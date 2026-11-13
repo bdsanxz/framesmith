@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 105,
-    "refused": 42,
-    "translated": 31
+    "approximated": 102,
+    "refused": 7,
+    "translated": 61
   },
   "duration": 27.5,
   "entries": [
@@ -13,22 +13,6 @@
       "detail": "element #mp-cam has no own left/top; placed by flow approximation at (0, 0)",
       "file": "compositions/map.html",
       "line": 66,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #mp-map has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/map.html",
-      "line": 67,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #mp-hl has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/map.html",
-      "line": 68,
       "verdict": "approximated"
     },
     {
@@ -72,6 +56,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-map-74.svg (236 bytes; xmlns added: true)",
+      "file": "compositions/map.html",
+      "line": 74,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #mp-label is a layout container; carried as an empty text anchor for motion targeting",
@@ -87,39 +78,35 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.fromTo",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/map.html",
-      "line": 95,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.set",
-      "detail": "property \"filter\" (value \"\\\"blur(8px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.set on \"#mp-cam\" at start=0.0000 duration=0.5000",
       "file": "compositions/map.html",
       "line": 99,
-      "verdict": "refused"
-    },
-    {
-      "construct": "tl.to",
-      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=0.6000",
-      "file": "compositions/map.html",
-      "line": 100,
       "verdict": "translated"
     },
     {
       "construct": "tl.to",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "a set on opacity at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=0.6000",
       "file": "compositions/map.html",
-      "line": 101,
-      "verdict": "refused"
+      "line": 100,
+      "verdict": "approximated"
     },
     {
       "construct": "tl.to",
-      "detail": "property \"keyframes\" (value \"[{ scale: 1, duration: 1.6, ease: \\\"power2.out\\\" }, { scale: 1.05, duration: 2.65, ease: \\\"sine.inOut\\\" }]\") has no KDL motion property; refusing the call site",
+      "delta": "a set on blur at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=1.2000",
+      "file": "compositions/map.html",
+      "line": 101,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.to",
+      "delta": "a set on scale at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=4.2500",
       "file": "compositions/map.html",
       "line": 102,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -130,10 +117,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#mp-pin svg\" is compound; only `#id` and `.class` land",
+      "detail": "tl.fromTo on \"#mp-pin svg\" at start=2.7500 duration=0.3000",
       "file": "compositions/map.html",
       "line": 105,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -151,23 +138,16 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/map.html",
-      "line": 87,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 4.2500s gives 1.8824 chars/s instead of 12.0000 chars/s",
-      "detail": "typeOn \"#mp-city\" at 2.9500 for 8 chars at 12.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6667s)",
+      "delta": "reveal paced over the clip window 4.2500s gives 1.8824 chars/s instead of 12.0000 chars/s; per-glyph duration 0.001s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "typeOn \"#mp-city\" at 2.9500 for 8 chars at 12.0000 chars/s (authored reveal 0.6667s) expanded to 8 per-glyph from-to opacity tweens at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/map.html",
       "line": 108,
       "verdict": "approximated"
     },
     {
       "construct": "typeOn",
-      "delta": "reveal paced over the clip window 4.2500s gives 7.0588 chars/s instead of 45.0000 chars/s",
-      "detail": "typeOn \"#mp-sub\" at 3.3000 for 30 chars at 45.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6667s)",
+      "delta": "reveal paced over the clip window 4.2500s gives 7.0588 chars/s instead of 45.0000 chars/s; per-glyph duration 0.001s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "typeOn \"#mp-sub\" at 3.3000 for 30 chars at 45.0000 chars/s (authored reveal 0.6667s) expanded to 30 per-glyph from-to opacity tweens at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/map.html",
       "line": 110,
       "verdict": "approximated"
@@ -245,6 +225,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-title-84.svg (592 bytes; xmlns added: true)",
+      "file": "compositions/title.html",
+      "line": 84,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #tt-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -278,10 +265,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #tt-sea references remote asset \"data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #tt-sea data: URI decoded to assets/data-tt-sea.svg (544 bytes, percent-encoded)",
       "file": "compositions/title.html",
       "line": 92,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -308,12 +295,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #tt-route is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-tt-route.svg (426 bytes; xmlns added: true)",
       "file": "compositions/title.html",
       "line": 98,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -355,13 +341,6 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/title.html",
-      "line": 128,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.fromTo",
       "detail": "tl.fromTo on \"#tt-title\" at start=4.2700 duration=0.2000",
       "file": "compositions/title.html",
@@ -370,10 +349,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#tt-title .tt-mark\" is compound; only `#id` and `.class` land",
+      "detail": "tl.fromTo on \"#tt-title .tt-mark\" at start=4.5500 duration=0.3000",
       "file": "compositions/title.html",
       "line": 134,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -384,10 +363,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"50% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"50% 100%\\\"\" snapped to clip origin \"center bottom\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#tt-arrow\" at start=6.5300 duration=0.1800",
       "file": "compositions/title.html",
       "line": 137,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -405,15 +385,8 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/title.html",
-      "line": 119,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1260.0000 chars/s instead of 22.0000 chars/s",
-      "detail": "typeOn \"#tt-sub-text\" at 1.0000 for 21 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.9545s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1260.0000 chars/s instead of 22.0000 chars/s",
+      "detail": "typeOn \"#tt-sub-text\" at 1.0000 for 21 chars at 22.0000 chars/s (authored reveal 0.9545s) expanded to 21 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/title.html",
       "line": 140,
       "verdict": "approximated"
@@ -467,6 +440,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-archduke-93.svg (276 bytes; xmlns added: true)",
+      "file": "compositions/archduke.html",
+      "line": 93,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #ad-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -484,10 +464,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #ad-sea references remote asset \"data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #ad-sea data: URI decoded to assets/data-ad-sea.svg (544 bytes, percent-encoded)",
       "file": "compositions/archduke.html",
       "line": 98,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -499,18 +479,17 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--ff.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'630' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ff.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-archduke-101.svg (542 bytes, percent-encoded)",
       "file": "compositions/archduke.html",
       "line": 101,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #ad-stroke is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-ad-stroke.svg (256 bytes; xmlns added: true)",
       "file": "compositions/archduke.html",
       "line": 102,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -544,13 +523,6 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/archduke.html",
-      "line": 129,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.fromTo",
       "detail": "tl.fromTo on \"#ad-person\" at start=7.1600 duration=0.4000",
       "file": "compositions/archduke.html",
@@ -559,10 +531,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#ad-person img\" at start=7.1600 duration=0.4000",
       "file": "compositions/archduke.html",
       "line": 134,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -573,24 +545,24 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#ad-tape\" at start=8.0600 duration=0.1500",
       "file": "compositions/archduke.html",
       "line": 137,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#ad-name\" at start=8.1400 duration=0.3000",
       "file": "compositions/archduke.html",
       "line": 138,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#ad-name .ad-mark\" is compound; only `#id` and `.class` land",
+      "detail": "tl.fromTo on \"#ad-name .ad-mark\" at start=8.6600 duration=0.3000",
       "file": "compositions/archduke.html",
       "line": 139,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -608,15 +580,8 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/archduke.html",
-      "line": 120,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1920.0000 chars/s instead of 22.0000 chars/s",
-      "detail": "typeOn \"#ad-role-text\" at 2.9300 for 32 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.4545s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1920.0000 chars/s instead of 22.0000 chars/s",
+      "detail": "typeOn \"#ad-role-text\" at 2.9300 for 32 chars at 22.0000 chars/s (authored reveal 1.4545s) expanded to 32 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/archduke.html",
       "line": 142,
       "verdict": "approximated"
@@ -654,6 +619,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-assassins-76.svg (275 bytes; xmlns added: true)",
+      "file": "compositions/assassins.html",
+      "line": 76,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #as-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -672,22 +644,6 @@
     {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
-      "file": "compositions/assassins.html",
-      "line": 81,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
-      "file": "compositions/assassins.html",
-      "line": 82,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #as-print is a layout container; carried as an empty text anchor for motion targeting",
       "file": "compositions/assassins.html",
       "line": 84,
@@ -695,10 +651,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--trial.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/trial.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-assassins-85.svg (548 bytes, percent-encoded)",
       "file": "compositions/assassins.html",
       "line": 85,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -756,13 +712,6 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/assassins.html",
-      "line": 113,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.fromTo",
       "detail": "tl.fromTo on \"#as-card\" at start=12.5800 duration=0.1800",
       "file": "compositions/assassins.html",
@@ -785,10 +734,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#as-print img\" at start=12.8600 duration=0.3800",
       "file": "compositions/assassins.html",
       "line": 122,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -807,15 +756,8 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/assassins.html",
-      "line": 104,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 900.0000 chars/s instead of 26.0000 chars/s",
-      "detail": "typeOn \"#as-label-text\" at 1.0500 for 15 chars at 26.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.5769s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 900.0000 chars/s instead of 26.0000 chars/s",
+      "detail": "typeOn \"#as-label-text\" at 1.0500 for 15 chars at 26.0000 chars/s (authored reveal 0.5769s) expanded to 15 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/assassins.html",
       "line": 119,
       "verdict": "approximated"
@@ -893,6 +835,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-street-83.svg (395 bytes; xmlns added: true)",
+      "file": "compositions/street.html",
+      "line": 83,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #st-ink is a layout container; carried as an empty text anchor for motion targeting",
@@ -909,12 +858,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #st-plan is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-st-plan.svg (2401 bytes; xmlns added: true)",
       "file": "compositions/street.html",
       "line": 88,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -974,10 +922,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--princip.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/princip.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-street-123.svg (552 bytes, percent-encoded)",
       "file": "compositions/street.html",
       "line": 123,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -1009,24 +957,25 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"path\") has no KDL motion property; refusing the call site",
+      "detail": "keyframes value \"path\" is not an array literal; refusing the call site",
       "file": "compositions/street.html",
       "line": 145,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"path\") has no KDL motion property; refusing the call site",
+      "detail": "keyframes value \"path\" is not an array literal; refusing the call site",
       "file": "compositions/street.html",
       "line": 146,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender false not expressible in KDL (no carryback flag); the from-state starts at its position 17.0200s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#st-car-ad\" at start=17.0200 duration=0.3000",
       "file": "compositions/street.html",
       "line": 147,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -1058,10 +1007,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"0 50%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"0 50%\\\"\" snapped to clip origin \"left center\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#st-princip-name\" at start=22.5600 duration=0.2000",
       "file": "compositions/street.html",
       "line": 155,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -1135,6 +1085,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-shots-75.svg (275 bytes; xmlns added: true)",
+      "file": "compositions/shots.html",
+      "line": 75,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #sh-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -1176,26 +1133,24 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--pistol.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pistol.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-shots-82.svg (550 bytes, percent-encoded)",
       "file": "compositions/shots.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #sh-burst-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-sh-burst-1.svg (375 bytes; xmlns added: true)",
       "file": "compositions/shots.html",
       "line": 83,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #sh-burst-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-sh-burst-2.svg (398 bytes; xmlns added: true)",
       "file": "compositions/shots.html",
       "line": 84,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1221,13 +1176,6 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/shots.html",
-      "line": 108,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.fromTo",
       "detail": "tl.fromTo on \"#sh-gun\" at start=23.8400 duration=0.3800",
       "file": "compositions/shots.html",
@@ -1236,10 +1184,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#sh-gun img\" at start=23.8400 duration=0.3800",
       "file": "compositions/shots.html",
       "line": 112,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1257,31 +1205,31 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ scale: 1.15, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#sh-burst-1\" at start=24.9500 duration=0.3600",
       "file": "compositions/shots.html",
       "line": 118,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#sh-burst-2\" at start=25.3500 duration=0.3600",
       "file": "compositions/shots.html",
       "line": 119,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ x: -14, y: 8, duration: 0.04 }, { x: 9, y: -6, duration: 0.05 }, { x: 0, y: 0, duration: 0.08 }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#sh-cam\" at start=24.9500 duration=0.1700",
       "file": "compositions/shots.html",
       "line": 120,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ opacity: 1, duration: 0.03 }, { opacity: 1, duration: 0.08 }, { opacity: 0, duration: 0.3, ease: \\\"power2.in\\\" }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#sh-flash\" at start=25.3500 duration=0.4100",
       "file": "compositions/shots.html",
       "line": 122,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1300,15 +1248,8 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/shots.html",
-      "line": 99,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 300.0000 chars/s instead of 20.0000 chars/s",
-      "detail": "typeOn \"#sh-label-text\" at 0.7500 for 5 chars at 20.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.2500s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 300.0000 chars/s instead of 20.0000 chars/s",
+      "detail": "typeOn \"#sh-label-text\" at 0.7500 for 5 chars at 20.0000 chars/s (authored reveal 0.2500s) expanded to 5 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/shots.html",
       "line": 116,
       "verdict": "approximated"
@@ -1323,10 +1264,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #pp-sheet references remote asset \"data:image/svg+xml,%3C!--paper.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paper.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #pp-sheet data: URI decoded to assets/data-pp-sheet.svg (548 bytes, percent-encoded)",
       "file": "compositions/paper.html",
       "line": 48,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",

@@ -1,0 +1,115 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-11-1374.html (composition id "c1-11-1374")
+  WHAT: A beat on the outbreak of 1374 and the towns of the Rhine where it appeared. It opens on a
+    woodcut of dancers with a priest (dancers2.jpg, a page of the Nuremberg Chronicle of 1493) from the start. At 2.35 s it cuts to a view of the Rhine (rhine2.jpg) with the red year
+    "1374" over it until 4.96 s. From 4.96 s a map of the Rhine towns takes over and pushes in to the
+    end at 8.58 s: six named dots (Strasbourg, Aachen, Köln, Metz, Utrecht and Trier) along a thin
+    Rhine route, with the label "Sungai Rhein" (Rhine river). index.html mounts it as c1-11-1374-slot
+    at 162.44 s.
+  STRUCTURE: back to front: #c1111374-a (the dancers), #c1111374-b (the Rhine) with its red year
+    #c1111374-b-name after it, and #c1111374-c (the map shot), which holds its own sea (.mp-sea), map
+    image (#c1111374-c-map), route (an svg .mp-lines path), grain, shade, six dot and label pairs and
+    the river note. The paused GSAP timeline, registered as window.__timelines["c1-11-1374"], pushes
+    the dancers from 0 s (scale 1.014 to 1.054 over 2.35 s); from 2.35 s shows the Rhine and the year
+    and pushes it (to 1.058 over 2.61 s); at 4.96 s hides the year and shows the map, which scales
+    from 2.0 to 2.14 over 3.62 s. The map's transform origin is 1000 px 450 px.
+  CUSTOMIZE: the red year is the text "1374" with top 150 px and font-size 250 px set inline. Each
+    town is a .mp-dot and a .mp-label placed by inline left and top pixels; to add or move a town,
+    copy one dot and label pair and change its position and name. The route is one path of 16 points,
+    with a stroke of 3 px (the map in c1-01-city.html uses 4.5 px). The map's start and end scales
+    (2.0 and 2.14) and the cut times 2.35 and 4.96 are in the tweens. The last tween ends at 8.58 s,
+    which must match the data-duration that index.html gives c1-11-1374-slot.
+  MEDIA: no media file is bundled. This file has two photo slots and one font slot. It has no sound and no CSS image.
+    Bundled drawing (SVG, kept): the map, img #c1111374-c-map (.mp-map, 3840 x 2160 px, inside #c1111374-c, which
+    cuts in at 4.96 s), src assets/generated/map-europe.svg. It is the same map of Europe that c1-01-city.html uses:
+    orange land and dark borders on the blue sea. It renders as it is and needs nothing plugged in. The blue sea
+    (#3f7f9f in .mp-sea), the Rhine route, the grain, the six dots and the labels are the rest of the scene. To use
+    your own map, set the img's src to your own SVG (keep the 3840 x 2160 px size, or change the width and height
+    together).
+    1. The dancers, img #c1111374-a-img (inside #c1111374-a, on screen from the start). It showed a woodcut
+       of dancers with a priest (Nuremberg Chronicle, fol. 217r, 1493). It now shows a faint hatch stand-in
+       labeled "PHOTO: assets/generated/dancers2.jpg". To plug in your picture, set the img's src to your
+       file (for example assets/generated/dancers2.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The Rhine, img #c1111374-b-img (inside #c1111374-b, which cuts in at 2.35 s; the red year is over it
+       until 4.96 s). It showed Hollar's Rhine near Strasbourg (1635). It now shows a stand-in labeled
+       "PHOTO: assets/generated/rhine2.jpg". To plug in your picture, set the img's src to your file.
+    3. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-name, .mp-label and .mp-note.
+       It was a bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise
+       the sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+    The red year "1374" is plain text and needs no file.
+  WHEN TO USE: a beat that names an outbreak year and then shows the towns it reached on a map. Pick
+    another composition when the beat has no year or no route to draw.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The big red name: on screen from the first frame of its shot, no animation. */
+        .dr-name { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: rgba(198, 58, 36, 0.92); text-shadow: 0 0 22px rgba(198, 58, 36, 0.4); white-space: nowrap; }
+        /* The map: orange land on a blue sea, dark borders, paper grain, a glowing dot, small dark labels. */
+        .mp-sea { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: #3f7f9f; }
+        .mp-map { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; max-width: none; }
+        .mp-lines { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        .mp-grain { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; mix-blend-mode: multiply; opacity: 0.34; }
+        .mp-shade { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(42, 33, 24, 0) 55%, rgba(42, 33, 24, 0.32) 100%); }
+        .mp-glow { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255, 244, 205, 0.95) 0%, rgba(255, 226, 150, 0.55) 35%, rgba(255, 226, 150, 0) 70%); }
+        .mp-dot { position: absolute; border-radius: 50%; background: #fff6da; }
+        .mp-label { position: absolute; font-family: "Arimo", sans-serif; font-weight: 700; color: #170f08; white-space: nowrap; }
+        .mp-note { position: absolute; font-family: "Arimo", sans-serif; font-weight: 400; font-style: italic; font-weight: 700; color: #170f08; white-space: nowrap; }
+      </style>
+      <!-- "Kutukan itu punya riwayat ..." (162.44 s): dancers2 from the start; rhine2 + red name 1374 on "Pada" (164.79 s); graphic on "wabah" (167.40 s). -->
+      <div id="root" data-composition-id="c1-11-1374" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c1111374-a" data-layout-allow-overflow><img id="c1111374-a-img" src="data:image/svg+xml,%3C!--dancers2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/dancers2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/dancers2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c1111374-b" data-layout-allow-overflow><img id="c1111374-b-img" src="data:image/svg+xml,%3C!--rhine2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/rhine2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/rhine2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-name" id="c1111374-b-name" style="top: 150px; font-size: 250px;">1374</div>
+        <!-- The map shot: the Rhine towns with their dots, labels and route, pushed in from 4.96 s. -->
+        <div class="dr-shot" id="c1111374-c" data-layout-allow-overflow style="transform-origin: 1000px 450px;">
+          <div class="mp-sea" data-layout-allow-overflow></div>
+          <img class="mp-map" id="c1111374-c-map" src="assets/generated/map-europe.svg" alt="" data-layout-allow-overflow />
+          <svg class="mp-lines" viewBox="0 0 1920 1080"><path d="M1148.5,732.3 L1152.3,681.2 L1129.8,668.6 L1044.9,676.5 L1056.1,595.8 L1082.8,558.5 L1090.8,520.8 L1081.2,478.7 L1061.5,481.2 L1045.4,448.7 L1011.3,399.8 L1000.6,358.1 L973.4,323.6 L917.3,320.2 L878.8,315.9 L859.6,310.7" fill="none" stroke="#35708f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <svg class="mp-grain" viewBox="0 0 1920 1080" preserveAspectRatio="none" data-layout-allow-overflow><filter id="c1111374-c-noise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" /><feColorMatrix type="matrix" values="0 0 0 0 0.16  0 0 0 0 0.13  0 0 0 0 0.09  0 0 0 0.55 0" /></filter><rect width="1920" height="1080" filter="url(#c1111374-c-noise)" /></svg>
+          <div class="mp-shade" data-layout-allow-overflow></div>
+          <div class="mp-dot" style="left: 1049.3px; top: 590.8px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 1060.9px; top: 587.0px; font-size: 14.5px; line-height: 17.4px;">Strasbourg</div>
+          <div class="mp-dot" style="left: 960.6px; top: 409.8px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 910.4px; top: 406.0px; font-size: 14.5px; line-height: 17.4px;">Aachen</div>
+          <div class="mp-dot" style="left: 1007.4px; top: 396.1px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 1019.0px; top: 391.3px; font-size: 14.5px; line-height: 17.4px;">Köln</div>
+          <div class="mp-dot" style="left: 965.5px; top: 547.3px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 927.9px; top: 543.5px; font-size: 14.5px; line-height: 17.4px;">Metz</div>
+          <div class="mp-dot" style="left: 909.2px; top: 297.1px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 856.1px; top: 293.3px; font-size: 14.5px; line-height: 17.4px;">Utrecht</div>
+          <div class="mp-dot" style="left: 990.3px; top: 494.9px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 953.6px; top: 491.1px; font-size: 14.5px; line-height: 17.4px;">Trier</div>
+          <div class="mp-note" style="left: 1098.0px; top: 470.0px; font-size: 11.6px; line-height: 13.9px;">Sungai Rhein</div>
+        </div>
+      </div>
+      <script>
+        /* The timeline: the dancers push, the Rhine and its year, then the map pushes in. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c1111374-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.054, x: 6, y: -2, duration: 2.35, ease: "none" }, 0.0);
+        tl.fromTo("#c1111374-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.058, x: -5, y: 3, duration: 2.61, ease: "none" }, 2.35);
+        gsap.set("#c1111374-b", { opacity: 0 });
+        tl.to("#c1111374-b", { opacity: 1, duration: 0.001 }, 2.35);
+        gsap.set("#c1111374-b-name", { opacity: 0 });
+        tl.to("#c1111374-b-name", { opacity: 1, duration: 0.001 }, 2.35);
+        tl.to("#c1111374-b-name", { opacity: 0, duration: 0.001 }, 4.96);
+        // The map: a slow push toward the place, and the dot's glow breathing. Nothing else moves.
+        tl.fromTo("#c1111374-c", { scale: 2.0 }, { scale: 2.14, duration: 3.62, ease: "none" }, 4.96);
+        gsap.set("#c1111374-c", { opacity: 0 });
+        tl.to("#c1111374-c", { opacity: 1, duration: 0.001 }, 4.96);
+        window.__timelines["c1-11-1374"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

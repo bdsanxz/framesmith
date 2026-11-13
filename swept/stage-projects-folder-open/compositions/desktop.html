@@ -1,0 +1,118 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/desktop.html (composition id "desktop")
+  WHAT: A cream stage with a blue Finder-style folder labelled "Projects" and a large black
+    cursor. The cursor glides in from the bottom-right and rests on the folder (0.1 to 1.9 s).
+    It double-clicks at 2.0 and 2.2 s, the label turns blue, and the lid tips open in 3D from
+    2.35 s. Three white documents then fan out above the folder (3.0 to 4.1 s) and settle into
+    a row with a slow drift. The cursor ends at 3.4 s moving down and right. It is silent and
+    6 s long; index.html plays it at 0 s for 6 s.
+  STRUCTURE: back to front, all inside #root: #desktop-shadow (a blurred ellipse); #desktop-folder
+    holding #desktop-back (#desktop-tab and #desktop-backpanel); the three .desktop-doc pages
+    #desktop-doc-1 to #desktop-doc-3 (hidden by CSS with opacity 0); #desktop-lid-wrap holding
+    #desktop-lid; #desktop-label with #desktop-label-pill; and the SVG #desktop-cursor on top.
+    One paused timeline "desktop", registered in window.__timelines, runs these tweens: the
+    cursor glide at 0.1 s (1.8 s, power2.inOut); two press dips on the cursor at 2.0 and 2.2 s;
+    the pill turns blue at 2.02 s; the lid rotates to rotationX -58 at 2.35 s (0.45 s, back.out);
+    the folder squashes at 2.33 s and settles at 2.45 s (elastic.out); the documents fan out at
+    3.00, 3.15 and 3.30 s (0.8 s, power3.out) and drift (yoyo, 1.0 s) from 4.10, 4.22 and 4.34 s;
+    the cursor moves to x 640, y 720 at 3.4 s (1.2 s).
+  CUSTOMIZE: the folder colors #4E9DE8 (#desktop-tab and #desktop-backpanel) and the lid gradient
+    #7DBDF7 to #62AEF2 (#desktop-lid); the stage gradient #F7EBC7, #F2E3B6 and #EAD8A3 (#root); the
+    blue of the selected label, rgba(46, 125, 230, 1), in the 2.02 s tween. The text "Projects" is
+    in #desktop-label-pill. The folder box is left 380, top 515, 320 by 250 px; #desktop-lid-wrap
+    repeats that box inline, so move them together. The ground shadow #desktop-shadow (top 752) and
+    the label row #desktop-label (top 792) sit under the folder box, so move them with it too. The
+    three documents take their positions from the row array ([x, y, rotation] each). The cursor start
+    (1120, 1120), landing point (560, 620) and end point (640, 720) are in its tweens. The drift tweens
+    run past the 6 s host duration, so the host cuts them off at its end.
+  MEDIA: No media file is bundled. This file has no photo, video, sound, font file or CSS image slot,
+    so it needs none. Its only text is the label "Projects", set in the font family Inter with a
+    sans-serif fallback. The file has no @font-face rule, so Inter shows only when the viewer has it
+    installed; otherwise the sans-serif fallback is used. The GSAP script is loaded by the parent
+    index.html, not by this file.
+  WHEN TO USE: a short silent motion piece that shows one object being used, such as a click, a
+    selection, an open or a reveal. Pick another setup when the story needs narration, real
+    footage or more than one scene.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Stage: a full-frame root with a cream radial gradient; Inter with a sans-serif fallback. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Inter", sans-serif;
+          background: radial-gradient(circle at 50% 40%, #F7EBC7 0%, #F2E3B6 55%, #EAD8A3 100%); }
+        /* Folder: centered (540, 640), 320×250. Back panel with tab, documents between back and lid, lid in front. */
+        #desktop-folder { position: absolute; left: 380px; top: 515px; width: 320px; height: 250px; }
+        #desktop-back { position: absolute; left: 0; top: 0; width: 320px; height: 250px; }
+        #desktop-tab { position: absolute; left: 0; top: 0; width: 130px; height: 40px; border-radius: 14px 14px 0 0; background: #4E9DE8; }
+        #desktop-backpanel { position: absolute; left: 0; top: 24px; width: 320px; height: 226px; border-radius: 0 16px 16px 16px; background: #4E9DE8; }
+        #desktop-lid { position: absolute; left: 0; top: 52px; width: 320px; height: 198px; border-radius: 14px; background: linear-gradient(#7DBDF7, #62AEF2);
+          box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.5) inset; }
+        /* Blurred ellipse on the ground under the folder. */
+        #desktop-shadow { position: absolute; left: 395px; top: 752px; width: 290px; height: 26px; border-radius: 50%; background: rgba(90, 70, 20, 0.22); filter: blur(10px); }
+        /* Label row under the folder; the pill is turned blue by a script tween on the first click. */
+        #desktop-label { position: absolute; left: 0; right: 0; top: 792px; display: flex; justify-content: center; }
+        #desktop-label-pill { padding: 6px 16px; border-radius: 8px; font-size: 34px; font-weight: 600; color: #2b2b2b; }
+        /* Documents: white pages with a folded corner and text lines. */
+        .desktop-doc { position: absolute; left: 470px; top: 560px; width: 140px; height: 180px; border-radius: 10px; background: #ffffff;
+          box-shadow: 0 14px 26px rgba(90, 70, 20, 0.28); opacity: 0; }
+        .desktop-doc::before { content: ""; position: absolute; right: 0; top: 0; width: 34px; height: 34px; border-radius: 0 10px 0 8px; background: #E6E6E6; }
+        .desktop-line { position: absolute; left: 20px; height: 8px; border-radius: 4px; background: #D5DAE2; }
+        /* Oversized black pointer; its box is 96 by 128 px and the script moves it with transforms. */
+        #desktop-cursor { position: absolute; left: 0; top: 0; width: 96px; height: 128px; }
+      </style>
+      <div id="root" data-composition-id="desktop" data-width="1080" data-height="1080">
+        <!-- Ground shadow, drawn first so everything else sits on top of it. -->
+        <div id="desktop-shadow"></div>
+        <!-- Folder container; its back layer (tab and back panel) is drawn before the documents. -->
+        <div id="desktop-folder" data-layout-allow-overlap>
+          <div id="desktop-back"><div id="desktop-tab"></div><div id="desktop-backpanel"></div></div>
+        </div>
+        <!-- Three documents: white pages with text lines, hidden by CSS until the script fans them out. -->
+        <div id="desktop-doc-1" class="desktop-doc" data-layout-allow-overlap><span class="desktop-line" style="top:60px;width:80px"></span><span class="desktop-line" style="top:84px;width:100px"></span><span class="desktop-line" style="top:108px;width:70px"></span></div>
+        <div id="desktop-doc-2" class="desktop-doc" data-layout-allow-overlap><span class="desktop-line" style="top:60px;width:96px"></span><span class="desktop-line" style="top:84px;width:76px"></span><span class="desktop-line" style="top:108px;width:100px"></span></div>
+        <div id="desktop-doc-3" class="desktop-doc" data-layout-allow-overlap><span class="desktop-line" style="top:60px;width:70px"></span><span class="desktop-line" style="top:84px;width:100px"></span><span class="desktop-line" style="top:108px;width:86px"></span></div>
+        <!-- Lid layer, drawn after the documents so it covers their lower part; its hinge is the bottom edge. -->
+        <div id="desktop-lid-wrap" style="position:absolute;left:380px;top:515px;width:320px;height:250px" data-layout-allow-overlap><div id="desktop-lid"></div></div>
+        <!-- Label under the folder, reading Projects. -->
+        <div id="desktop-label"><span id="desktop-label-pill">Projects</span></div>
+        <!-- Pointer, last in the stage so it stays on top. -->
+        <svg id="desktop-cursor" data-layout-allow-overflow viewBox="0 0 24 32"><path d="M2 2 L2 26 L8.2 20.4 L12.4 29.6 L16.4 27.8 L12.3 18.8 L20.6 18.8 Z" fill="#111111" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <script>
+        /* Setup: one paused timeline holds all three beats of the folder scene. */
+        const tl = gsap.timeline({ paused: true });
+        // Documents start hidden inside the folder: the hidden state lives in CSS (opacity: 0), because a
+        // tl.set at position 0 does not render while the playhead sits exactly at 0.
+
+        // Beat 1 (0–2s): oversized black cursor glides in from bottom-right and rests on the folder.
+        tl.fromTo("#desktop-cursor", { x: 1120, y: 1120 }, { x: 560, y: 620, duration: 1.8, ease: "power2.inOut" }, 0.1);
+
+        // Beat 2 (2–3s): double-click — two quick press dips; first click selects the label (Finder-style blue pill).
+        tl.to("#desktop-cursor", { scale: 0.88, duration: 0.05, ease: "power1.out", yoyo: true, repeat: 1, transformOrigin: "10% 6%" }, 2.0);
+        tl.to("#desktop-cursor", { scale: 0.88, duration: 0.05, ease: "power1.out", yoyo: true, repeat: 1, transformOrigin: "10% 6%" }, 2.2);
+        tl.fromTo("#desktop-label-pill", { backgroundColor: "rgba(46, 125, 230, 0)", color: "#2b2b2b" }, { backgroundColor: "rgba(46, 125, 230, 1)", color: "#ffffff", duration: 0.05 }, 2.02);
+        // Lid tips open toward the viewer (3D hinge at the bottom edge) with a soft squash-and-settle of the body.
+        tl.fromTo("#desktop-lid", { rotationX: 0, transformPerspective: 900, transformOrigin: "50% 100%" }, { rotationX: -58, duration: 0.45, ease: "back.out(1.4)" }, 2.35);
+        tl.fromTo("#desktop-folder", { scaleX: 1, scaleY: 1, transformOrigin: "50% 100%" }, { scaleX: 1.04, scaleY: 0.93, duration: 0.12, ease: "power2.out" }, 2.33);
+        tl.to("#desktop-folder", { scaleX: 1, scaleY: 1, duration: 0.45, ease: "elastic.out(1, 0.5)" }, 2.45);
+
+        // Beat 3 (3–6s): three documents fan out of the folder and settle in a neat row above it, each with a soft shadow.
+        const row = [[-190, -380, -8], [0, -400, 0], [190, -380, 8]];
+        row.forEach(([x, y, r], i) => {
+          const id = "#desktop-doc-" + (i + 1);
+          tl.fromTo(id, { opacity: 0, x: 0, y: 0, rotation: 0, scale: 0.8 },
+            { opacity: 1, x: x, y: y, rotation: r, scale: 1, duration: 0.8, ease: "power3.out", immediateRender: false }, 3.0 + i * 0.15);
+          // Then the row settles into a slow, subtle drift (finite, seek-safe).
+          tl.to(id, { y: y - 10, duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.1 + i * 0.12);
+        });
+        /* The cursor drifts down and right while the documents fan out. */
+        tl.to("#desktop-cursor", { x: 640, y: 720, duration: 1.2, ease: "power2.inOut" }, 3.4);
+        /* Register the timeline under the composition id so the host can seek it. */
+        window.__timelines["desktop"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/frames/03-roll-counter.html (composition id "roll-counter")
+  WHAT: About 4 seconds on a dark ink ground. A large lime "DAY" counter rolls from 05 up to 30,
+    changing on each of 25 drum-roll hits, and the last hit lands on 30. A caption, "THIRTY DAYS.
+    ONE A DAY.", fades up 30 px under the number. index.html mounts it as frame-03 at 10.031 s for
+    3.969 s, after the cards and before the banner. The file plays no sound of its own; the drum roll that the
+    hits follow is in the music bed, which index.html mounts.
+  STRUCTURE: Back to front: #roll-counter-ground (flat #1E2A1C fill, clip, 3.969 s) and
+    #roll-counter-stage (a centered column with #roll-counter-kicker "DAY", #roll-counter-num
+    showing the number, and #roll-counter-sub the caption). Timeline: #roll-counter-num is set to
+    "05" at 0 s; for each of the 25 hit times in the hits array (0.209 s to 3.599 s, frame-local,
+    from audiomap events) the script sets the next value and pops the number from scale 1.06 to 1
+    over 0.1 s. The caption fades from opacity 0 and 30 px down over 0.3 s starting at 0.2 s.
+  CUSTOMIZE: Hit times: the hits array; each hit uses the next value, so 25 hits reach 30 exactly.
+    The value is 6 + i with a cap of 30 from Math.min; change 6 to start the count elsewhere, and
+    fewer or more hits change how far it counts. Colors: #1E2A1C ground, #B6F23A lime kicker and
+    number, #F4F7EF caption. Size: 420px number, 96px caption, 40px kicker. Text: the "DAY" kicker
+    and the caption in the markup; the starting "05" in the markup and in tl.set must match.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS
+    image slot. The kicker uses JetBrains Mono and the caption uses Inter, both bundled with HyperFrames, so
+    no font file is needed.
+  WHEN TO USE: A tally or counter that climbs with a drum roll and settles on a final value at the
+    end of a beat-cut sequence. Pick something else when the number has to come from real data, or
+    when a count must be read slowly.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root and layout: fills the frame and stacks the stage on it. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Inter", sans-serif; }
+        /* Flat dark ink ground under everything in this frame. */
+        #roll-counter-ground { position: absolute; inset: 0; background: #1E2A1C; }
+        /* Centered column holding the kicker, the counter and the caption. */
+        #roll-counter-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+        /* Mono "DAY" kicker above the number, in lime. */
+        #roll-counter-kicker { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 40px; letter-spacing: 0.14em; color: #B6F23A; }
+        /* The big 420px lime counter; tabular figures keep the digits from shifting width. */
+        #roll-counter-num { display: block; font-weight: 900; font-size: 420px; line-height: 0.85; letter-spacing: -0.05em; color: #B6F23A; font-variant-numeric: tabular-nums; }
+        /* Caption line under the counter, in light ink. */
+        #roll-counter-sub { font-weight: 900; font-size: 96px; letter-spacing: -0.03em; color: #F4F7EF; }
+      </style>
+      <div id="root" data-composition-id="roll-counter" data-width="1920" data-height="1080">
+        <!-- Background layer: the flat ink fill for the 3.969 second frame. -->
+        <div id="roll-counter-ground" class="clip" data-start="0" data-duration="3.969"></div>
+        <!-- Text stage: kicker, counter and caption stacked in the center. -->
+        <div id="roll-counter-stage" data-layout-allow-overflow>
+          <div id="roll-counter-kicker">DAY</div>
+          <div id="roll-counter-num">05</div>
+          <div id="roll-counter-sub">THIRTY DAYS. ONE A DAY.</div>
+        </div>
+      </div>
+      <script>
+        /* Paused timeline for this frame, registered under "roll-counter" below. */
+        const tl = gsap.timeline({ paused: true });
+        // Roll hits from audiomap.events (track 10.031–14.0), frame-local. Each hit steps the counter.
+        const hits = [0.209, 0.395, 0.464, 0.72, 0.906, 0.975, 1.207, 1.416, 1.463, 1.718, 1.904, 1.974, 2.067, 2.183, 2.322, 2.461, 2.577, 2.694, 2.833, 2.949, 3.088, 3.204, 3.32, 3.46, 3.599];
+        const num = document.getElementById("roll-counter-num");
+        /* Start the counter at 05 at the top of the frame. */
+        tl.set(num, { textContent: "05" }, 0);
+        /* Each hit sets the next value and pops the number from scale 1.06 back to 1. */
+        hits.forEach((t, i) => {
+          const n = Math.min(30, 6 + i);
+          tl.set(num, { textContent: String(n).padStart(2, "0") }, t);
+          tl.fromTo(num, { scale: 1.06 }, { scale: 1, duration: 0.1, ease: "power2.out" }, t);
+        });
+        /* Caption fades up 30 px starting 0.2 seconds into the frame. */
+        tl.fromTo("#roll-counter-sub", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: "expo.out" }, 0.2);
+        /* Register the timeline under its composition id so the host can play it. */
+        window.__timelines["roll-counter"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

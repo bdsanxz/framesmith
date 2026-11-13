@@ -1,0 +1,70 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-08-bundschuh.html (composition id "c1-08-bundschuh")
+  WHAT: A beat on the country revolts of the Bundschuh movement, the peasant conspiracies of the
+    Upper Rhine. It opens on a woodcut of men pushing a cart uphill, held from the start, then at
+    5.68 s cuts to the title woodcut of a Bundschuh pamphlet (1514). The red name
+    "Bundschuh" sits across the frame from that cut on. It runs 8.18 s; index.html mounts it as
+    c1-08-bundschuh-slot at 136.54 s.
+  STRUCTURE: two .dr-shot wrappers in document order: #c108bundschuh-a (the cart) and
+    #c108bundschuh-b (the pamphlet), with the red name #c108bundschuh-b-name, a .dr-name placed
+    after the pamphlet so it sits above it. The paused GSAP timeline, registered as
+    window.__timelines["c1-08-bundschuh"], pushes the cart from 0 s (scale 1.014 to 1.106 over
+    5.68 s). At 5.68 s it shows the pamphlet and the name and pushes the pamphlet (to 1.057 over
+    2.5 s). The name is on screen from its first frame, with no animation.
+  CUSTOMIZE: the name text is "Bundschuh" in the markup, with top 700 px and font-size 210 px set
+    inline. Its colour and tracking come from .dr-name (rgba(198, 58, 36, 0.92), letter-spacing
+    -0.01em). The push amounts and the cut time 5.68 s are in the tweens; the last tween ends at
+    8.18 s, which must match the data-duration that index.html gives c1-08-bundschuh-slot. The grades
+    are the data-color-grading JSON on each img.
+  MEDIA: no media file is bundled. This file has two photo slots and one font slot. The red name is
+    plain text. It has no sound and no CSS image.
+    1. The cart, img #c108bundschuh-a-img (inside #c108bundschuh-a, on screen from the start). It showed
+       Hans Weiditz's woodcut of men pushing a cart (1531). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/cart.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/cart.jpg). The data-media attribute only names the expected path; it loads
+       nothing. The img's data-color-grading still grades your picture.
+    2. The pamphlet, img #c108bundschuh-b-img (inside #c108bundschuh-b, which cuts in at 5.68 s). It showed
+       the title woodcut of a Bundschuh pamphlet (1514). It now shows a stand-in labeled
+       "PHOTO: assets/generated/bundschuh.jpg". To plug in your picture, set the img's src to your file.
+    3. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-name for the red "Bundschuh".
+       It was a bundled font file. It now reads local("Arimo"): the face is used if it is installed,
+       otherwise the sans-serif fallback of the font stack. To plug in your font, add
+       url("your-font.woff2") format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a beat that names a movement or a group in one word, set in red over a picture of its
+    period. Pick another composition when the name is too long to sit on one line.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The big red name: on screen from the first frame of its shot, no animation. */
+        .dr-name { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: rgba(198, 58, 36, 0.92); text-shadow: 0 0 22px rgba(198, 58, 36, 0.4); white-space: nowrap; }
+      </style>
+      <!-- "Di pedesaan sekitarnya, para ..." (136.54 s): cart from the start; bundschuh + red name Bundschuh on "dalam" (142.22 s). -->
+      <div id="root" data-composition-id="c1-08-bundschuh" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c108bundschuh-a" data-layout-allow-overflow><img id="c108bundschuh-a-img" src="data:image/svg+xml,%3C!--cart.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'668' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/cart.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/cart.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c108bundschuh-b" data-layout-allow-overflow><img id="c108bundschuh-b-img" src="data:image/svg+xml,%3C!--bundschuh.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/bundschuh.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/bundschuh.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-name" id="c108bundschuh-b-name" style="top: 700px; font-size: 210px;">Bundschuh</div>
+      </div>
+      <script>
+        /* The timeline: the cart push, then the pamphlet cut in with the red name. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c108bundschuh-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.106, x: 6, y: -2, duration: 5.68, ease: "none" }, 0.0);
+        tl.fromTo("#c108bundschuh-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.057, x: -5, y: 3, duration: 2.5, ease: "none" }, 5.68);
+        gsap.set("#c108bundschuh-b", { opacity: 0 });
+        tl.to("#c108bundschuh-b", { opacity: 1, duration: 0.001 }, 5.68);
+        gsap.set("#c108bundschuh-b-name", { opacity: 0 });
+        tl.to("#c108bundschuh-b-name", { opacity: 1, duration: 0.001 }, 5.68);
+        window.__timelines["c1-08-bundschuh"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

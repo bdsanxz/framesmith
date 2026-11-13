@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-09-omens.html (composition id "c1-09-omens")
+  WHAT: A beat on the omens and the disasters that people read as signs. It opens on a stock clip of
+    clouds crossing the sky, then cuts to two pictures of Durer's Opening of the Fifth and Sixth
+    Seals (about 1497): seals-people.jpg at 2.02 s and seals-top.jpg at 4.31 s.
+    Each shot pushes slowly. It runs 7.86 s; index.html mounts it as c1-09-omens-slot at
+    144.72 s.
+  STRUCTURE: three .dr-shot wrappers in document order: #c109omens-a (the clouds clip, a video slot that is now a still stand-in),
+    #c109omens-b (seals-people.jpg) and #c109omens-c (seals-top.jpg). No text sits over them. The
+    paused GSAP timeline, registered as window.__timelines["c1-09-omens"], pushes the clip from 0 s
+    (scale 1.0 to 1.035 over 2.02 s); at 2.02 s it shows the people picture and pushes it (scale
+    1.014 to 1.053 over 2.29 s); at 4.31 s it shows the top picture and pushes it (scale 1.014 to
+    1.073 over 3.55 s). Each picture covers the one before it.
+  CUSTOMIZE: the cut times 2.02 and 4.31 and the push amounts are in the tweens. The video's
+    data-duration (2.02) must match the first tween and the cut to the people picture. The last tween
+    ends at 7.86 s, which must match the data-duration that index.html gives c1-09-omens-slot. The
+    clip's grade and the two pictures' grades are the data-color-grading JSON on each element. There
+    is no caption here; a caption would be a copy of the .dr-cap rule from c1-05-hardship.html.
+  MEDIA: no media file is bundled. This file has one video slot, two photo slots and one font slot.
+    It has no sound and no CSS image.
+    1. The clouds clip, the video slot img #c109omens-a-video (inside #c109omens-a, on screen from 0 s for
+       2.02 s; data-start 0.0, data-duration 2.02, data-track-index 1, data-media-kind="video"). It showed
+       a stock clip of clouds crossing the sky (footage/v02.mp4), muted. It now shows a faint hatch
+       stand-in labeled "VIDEO: footage/v02.mp4", which does not move. To plug in your clip, turn this img
+       back into a video element with src set to your file, muted and playsinline. Keep the id c109omens-a-video, the data-start, data-duration and data-track-index attributes,
+       the data-color-grading attribute and data-media-kind="video", so the [data-media-kind="video"] CSS
+       rule still matches. Set the clip's length to the data-duration (2.02 s) and keep the tween.
+    2. The people picture, img #c109omens-b-img (inside #c109omens-b, which cuts in at 2.02 s). It showed
+       Durer's Opening of the Fifth and Sixth Seals (about 1497), the people part. It now shows a stand-in
+       labeled "PHOTO: assets/generated/seals-people.jpg". To plug in your picture, set the img's src to
+       your file (for example assets/generated/seals-people.jpg). The data-media attribute only names the
+       expected path; it loads nothing. The img's data-color-grading still grades your picture.
+    3. The top picture, img #c109omens-c-img (inside #c109omens-c, which cuts in at 4.31 s). It showed the
+       top part of the same woodcut. It now shows a stand-in labeled "PHOTO: assets/generated/seals-top.jpg".
+       To plug in your picture, set the img's src to your file.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700). No element in this file uses it, so
+       nothing is drawn with it and no file is needed. If you add a caption, add
+       url("your-font.woff2") format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a beat about signs, weather or a disaster, with a sky or a clip first and then pictures
+    of the scene. Pick another composition when the beat needs a caption or a dated source.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Bagi orang masa itu, ..." (144.72 s): film: clouds crossing the sky from the start; seals-people on "bencana" (146.74 s); seals-top on "Kelaparan" (149.03 s). -->
+      <div id="root" data-composition-id="c1-09-omens" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c109omens-a" data-layout-allow-overflow><img id="c109omens-a-video" data-start="0.0" data-duration="2.02" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' src="data:image/svg+xml,%3C!--v02.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/v02.mp4%3C/text%3E%3C/svg%3E" data-media="footage/v02.mp4" data-media-kind="video" alt="" /></div>
+        <div class="dr-shot" id="c109omens-b" data-layout-allow-overflow><img id="c109omens-b-img" src="data:image/svg+xml,%3C!--seals-people.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/seals-people.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/seals-people.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c109omens-c" data-layout-allow-overflow><img id="c109omens-c-img" src="data:image/svg+xml,%3C!--seals-top.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/seals-top.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/seals-top.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* The timeline: the clip push, then the two seals pictures, each cut in and pushed. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c109omens-a", { scale: 1.0 }, { scale: 1.035, duration: 2.02, ease: "none" }, 0.0);
+        tl.fromTo("#c109omens-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.053, x: -5, y: 3, duration: 2.29, ease: "none" }, 2.02);
+        gsap.set("#c109omens-b", { opacity: 0 });
+        tl.to("#c109omens-b", { opacity: 1, duration: 0.001 }, 2.02);
+        tl.fromTo("#c109omens-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.073, x: 4, y: 3, duration: 3.55, ease: "none" }, 4.31);
+        gsap.set("#c109omens-c", { opacity: 0 });
+        tl.to("#c109omens-c", { opacity: 1, duration: 0.001 }, 4.31);
+        window.__timelines["c1-09-omens"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

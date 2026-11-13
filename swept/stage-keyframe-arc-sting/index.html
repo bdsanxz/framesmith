@@ -1,0 +1,52 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main", 6 seconds, 1080 by 1080)
+  WHAT: A 6-second square title sting on a dark radial ground. The headline Keyframes rises in, punches in
+    and settles, an orange square is thrown along a curved arc and lands to the right of the headline, and
+    the title and the landed square then drift together to the end. The root holds only this sting, so the
+    sting is the whole film.
+  STRUCTURE: Root composition "main" (data-duration 6). One host slot, #slot-sting, mounts
+    compositions/sting.html as composition "sting" at 0 for 6 seconds on track 0 (kind graphics). The root
+    GSAP timeline is paused and registered as window.__timelines["main"]; it has no tweens of its own.
+  CUSTOMIZE: The square canvas is 1080 by 1080: the viewport meta, the html and body rules, and the
+    data-width and data-height attributes all carry it, so keep them equal. The background #101014 is set
+    in the html, body and #root rules here, and the radial gradient is set in compositions/sting.html. The
+    duration 6 must match on #root and on #slot-sting. Headline, colors and motion are edited in
+    compositions/sting.html.
+  MEDIA: No media file is bundled. This file has no photo, video, sound, font or CSS image slot. Its only
+    loaded file is the GSAP 3.14.2 core script from cdn.jsdelivr.net, which is a script, not a media file.
+    sting.html loads the MotionPathPlugin script from the same CDN. The headline face, Inter, is named in
+    CSS only, so there is nothing to plug in here; see sting.html for the font.
+  WHEN TO USE: A 1:1 title sting where a headline and a mark move together and the mark needs a curved throw.
+    Pick a plain tween instead when no curved route is needed, since the arc adds the MotionPathPlugin dependency.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1080" />
+    <title>Keyframes — arc throw sting</title>
+    <!-- GSAP core, loaded from jsDelivr; the sting timeline in sting.html uses it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and padding, and size every box from its border. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* Pin the page to the 1080 square canvas and paint the dark background. */
+      html, body { width: 1080px; height: 1080px; overflow: hidden; background: #101014; }
+      /* The composition root fills the square and clips anything outside it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #101014; }
+    </style>
+  </head>
+  <body>
+    <!-- Root composition main: a 6 second square timeline with one host slot. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1080" data-height="1080">
+      <!-- Host slot: mounts compositions/sting.html as the sting composition for 6 seconds on track 0. -->
+      <div id="slot-sting" data-composition-id="sting" data-composition-src="compositions/sting.html"
+        data-start="0" data-duration="6" data-track-index="0" data-track-kind="graphics" data-width="1080" data-height="1080"></div>
+    </div>
+    <script>
+      /* Root timeline: paused and registered for the renderer, with no tweens of its own. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

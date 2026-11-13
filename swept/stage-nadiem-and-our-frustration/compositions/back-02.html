@@ -1,0 +1,159 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/back-02.html (composition id "back-02"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: 143.43 s of scenes that lie BEHIND the presenter, between the backdrop and his cut-out (z-index 3 in index.html). Only with "background": "replace": the veil under a side text, a picture tucked behind his shoulder (a float
+    with depth behind), and a stage word whose end goes behind his jaw. He passes in front of all of it.
+  STRUCTURE: mounted by index.html at 419.83 s for 143.43 s; one .clip per scene, each with data-start/data-duration in this file's own seconds; the GSAP
+    timeline tl brings each in (W: words out of blur as spoken, Q: words typed on) and out.
+    The scenes in this file (type, side, this file's seconds; the host adds 419.83 s):
+      b84   veil, left        0.00-5.87 s
+      b86   float, right      16.67-20.60 s  a photo card with a name tag (FERRY IRWANDI)
+      b87   veil, left        20.57-22.60 s
+      b88   float, right      27.50-31.03 s  a photo card (MAHFUD MD)
+      b90   float, left       38.27-41.93 s  a photo card (PROF. RHENALD KASALI)
+      b91   float, right      41.93-46.17 s  a photo card (HOTMAN PARIS)
+      b95   stage, left       65.60-70.80 s  two icons (certificate, device-tv) beside the stage word
+      b97   veil, left        76.70-79.47 s
+      b98   float, left       79.47-81.17 s  a photo card (GARY NEVILLE)
+      b99   float, right      81.17-82.57 s  a photo card (MICAH RICHARDS)
+      b100  float, left       82.57-86.00 s  a photo card (THIERRY HENRY)
+      b106  stage, left       115.50-121.50 s the stage word, behind his jaw
+      b114  veil, left        141.30-143.43 s
+  CUSTOMIZE: change cut.json and build again, never this file: it is rewritten on every build. A scene's
+    words ("w"), its text ("lines", "word", "label"), its side and pictures live there; the colours
+    are COLORS and the timings CHAPTER, END, LEAD at the head of scripts/deep-tracery-build.py.
+  MEDIA: no media file is bundled. Slots in this file:
+    PHOTO slots, seven float cards, each an img element inside its .card. They showed, in order: #b86 assets/pic/ferry-irwandi.jpg;
+    #b88 assets/pic/mahfud-md.jpg; #b90 assets/pic/rhenald-kasali.jpg; #b91 assets/pic/hotman-paris.jpg; #b98
+    assets/pic/gary-neville.jpg; #b99 assets/pic/micah-richards.jpg; #b100 assets/pic/thierry-henry.jpg. Each is a
+    labelled hatch stand-in now, so the card frame and name tag still show. To plug in, set each img's src to that file
+    (its data-media names it).
+    Bundled drawings (SVG, kept): the two icon masks of the stage #b95, assets/icons/certificate.svg and
+    assets/icons/device-tv.svg, loaded by url('...') in its inline styles. They are SVG files made for this
+    inspiration and render as they are. They are not media slots and need nothing plugged in. To use your own
+    icons, change each url('...') to your own SVG of the same size.
+    VIDEO and SOUND slots: none. CSS image grounds: none. The veils are drawn in CSS.
+    FONTS: the six @font-face rules use local(...) for Archivo, Instrument Serif, Bricolage Grotesque and JetBrains
+    Mono. An installed font is used, otherwise the stack falls back. To bundle one, add
+    src: url("fonts/NAME.woff2") format("woff2") to its @font-face.
+  WHEN TO USE: a presenter explainer: a talking head dressed with text and pictures timed to his own words, in the
+    deep tracery style (references/deep-tracery.md). For a narrated film without a presenter, use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is taken from the installed font (local); see MEDIA for bundling your own. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; color: #f6fbfa; }
+        .clip { position: absolute; }
+        .w { display: inline-block; }
+        /* Shared rules (the family's full set). The veil (.veil, .scrim): the dark gradient a text sits on; it falls on the backdrop only. */
+        .veil { inset: 0; }
+        .scrim { position: absolute; inset: 0; }
+        .veil.left .scrim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.86) 0%, rgba(5, 5, 5, 0.72) 36%, rgba(5, 5, 5, 0) 62%); }
+        .veil.right .scrim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.86) 0%, rgba(5, 5, 5, 0.72) 36%, rgba(5, 5, 5, 0) 62%); }
+        /* .float: a photo card behind his shoulder (the float cards #b86 to #b100). */
+        .float { top: 0; height: 1080px; }
+        .float .scrim { inset: auto; top: 0; height: 1080px; width: 1100px; }
+        .float.left .scrim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.8) 0%, rgba(5, 5, 5, 0.6) 50%, rgba(5, 5, 5, 0) 100%); }
+        .float.right .scrim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.8) 0%, rgba(5, 5, 5, 0.6) 50%, rgba(5, 5, 5, 0) 100%); }
+        .card { position: absolute; left: 0; right: 0; top: 0; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+        .pic { position: relative; width: 100%; overflow: hidden; }
+        .pic img { display: block; width: 100%; height: auto; }
+        .pic.photo, .pic.portrait { border-radius: 14px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6); }
+        .pic.portrait img { filter: saturate(0.9) contrast(1.05); }
+        .pic.page { border-radius: 12px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6); background: #ffffff; }
+        .pic.logo { filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.55)); }
+        .fmarks, .crop { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+        .fmark { position: absolute; background: #fbe406; mix-blend-mode: multiply; transform-origin: 0 50%; }
+        .unknown { width: 300px; height: 300px; border-radius: 50%; background: #f1f1ef; color: #101010; font-weight: 800; font-size: 210px; line-height: 300px; text-align: center; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.25), 0 24px 70px rgba(0, 0, 0, 0.6); }
+        .nametag { margin-top: -26px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .nametag .nm { background: #0b0b0b; color: #ffffff; font-weight: 800; font-size: 40px; line-height: 1; padding: 10px 18px; text-transform: uppercase; letter-spacing: 0.005em; }
+        .nametag .rl { background: #f3f3f1; color: #0b0b0b; font-weight: 500; font-size: 28px; line-height: 1; padding: 7px 14px 8px; }
+        /* A stage: one word stands beside him, on top of his shoulder. The room stays the room:
+           that side goes a little darker, no more. Cut out, he stands in front of all of it and the
+           word's end lies behind him; kept in his room, it is laid in front and stops short of him. */
+        .stage { inset: 0; }
+        .all, .dim { position: absolute; inset: 0; }
+        .stage.left .dim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.6) 0%, rgba(5, 5, 5, 0.42) 34%, rgba(5, 5, 5, 0) 60%); }
+        .stage.right .dim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.6) 0%, rgba(5, 5, 5, 0.42) 34%, rgba(5, 5, 5, 0) 60%); }
+        .slead { position: absolute; white-space: nowrap; font-weight: 500; font-size: 36px; line-height: 1.2; color: #a9e8e0; letter-spacing: -0.01em; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
+        .slead .em { font-weight: 800; font-style: italic; }
+        .srow { position: absolute; white-space: nowrap; }
+        .sword { display: block; font-weight: 800; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.86; white-space: nowrap; color: #f6fbfa; text-shadow: 0 3px 26px rgba(0, 0, 0, 0.5); }
+        .node { position: absolute; width: 108px; height: 108px; margin: -54px 0 0 -54px; border-radius: 50%; border: 1.6px solid rgba(246, 251, 250, 0.55); background: rgba(13, 15, 16, 0.72); display: flex; align-items: center; justify-content: center; }
+        .node i { display: block; width: 52px; height: 52px; background: #f6fbfa; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+        .node u { text-decoration: none; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 32px; }
+        .node b { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 26px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
+      </style>
+      <div id="root" data-composition-id="back-02" data-width="1920" data-height="1080">
+        <!-- Markup: one .clip per scene (#b84 to #b114), each with its host timing. Veils hold a .scrim; the float cards hold a .card
+             with the photo (an img) and the name tag; the stages (#b95, #b106) hold .all, .dim and their words and icons. -->
+        <div id="b84" class="clip veil left" data-layout-allow-occlusion data-layout-allow-overflow data-start="0.0" data-duration="5.867" data-track-index="0"><div class="scrim"></div></div>
+        <div id="b86" class="clip float right" data-layout-allow-occlusion data-layout-allow-overflow data-start="16.667" data-duration="3.933" data-track-index="0" style="left:1036px;width:480px"><div class="scrim" style="right:-404px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--ferry-irwandi.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/ferry-irwandi.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/ferry-irwandi.jpg" alt="" /></div><div class="nametag"><span class="nm">FERRY IRWANDI</span><span class="rl">konten kreator</span></div></div></div>
+        <div id="b87" class="clip veil left" data-layout-allow-occlusion data-layout-allow-overflow data-start="20.567" data-duration="2.033" data-track-index="1"><div class="scrim"></div></div>
+        <div id="b88" class="clip float right" data-layout-allow-occlusion data-layout-allow-overflow data-start="27.5" data-duration="3.533" data-track-index="0" style="left:1036px;width:480px"><div class="scrim" style="right:-404px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--mahfud-md.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/mahfud-md.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/mahfud-md.jpg" alt="" /></div><div class="nametag"><span class="nm">MAHFUD MD</span><span class="rl">eks Menko Polhukam</span></div></div></div>
+        <div id="b90" class="clip float left" data-layout-allow-occlusion data-layout-allow-overflow data-start="38.267" data-duration="3.666" data-track-index="1" style="left:557px;width:480px"><div class="scrim" style="left:-557px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--rhenald-kasali.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/rhenald-kasali.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/rhenald-kasali.jpg" alt="" /></div><div class="nametag"><span class="nm">PROF. RHENALD KASALI</span><span class="rl">Guru Besar FEB UI</span></div></div></div>
+        <div id="b91" class="clip float right" data-layout-allow-occlusion data-layout-allow-overflow data-start="41.933" data-duration="4.234" data-track-index="1" style="left:1045px;width:480px"><div class="scrim" style="right:-395px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--hotman-paris.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/hotman-paris.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/hotman-paris.jpg" alt="" /></div><div class="nametag"><span class="nm">HOTMAN PARIS</span><span class="rl">pengacara</span></div></div></div>
+        <div id="b95" class="clip stage left" data-layout-allow-occlusion data-layout-allow-overflow data-start="65.6" data-duration="5.2" data-track-index="2"><div class="all"><div class="dim"></div><div class="slead" style="top:423px;right:679px"><span id="b95-l0w0" class="w">kita</span> <span id="b95-l0w1" class="w">dengerin</span> <span id="b95-l0w2" class="w">aja</span> <span id="b95-l0w3" class="w">opini</span></div><div id="b95-n0" class="node" style="left:455px;top:553px"><i style="-webkit-mask-image:url('assets/icons/certificate.svg');mask-image:url('assets/icons/certificate.svg')"></i><b>kompeten</b></div><div id="b95-n1" class="node" style="left:685px;top:553px"><i style="-webkit-mask-image:url('assets/icons/device-tv.svg');mask-image:url('assets/icons/device-tv.svg')"></i><b>terkenal</b></div></div></div>
+        <div id="b97" class="clip veil left" data-layout-allow-occlusion data-layout-allow-overflow data-start="76.7" data-duration="2.767" data-track-index="2"><div class="scrim"></div></div>
+        <div id="b98" class="clip float left" data-layout-allow-occlusion data-layout-allow-overflow data-start="79.467" data-duration="1.7" data-track-index="2" style="left:389px;width:460px"><div class="scrim" style="left:-389px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--gary-neville.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/gary-neville.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/gary-neville.jpg" alt="" /></div><div class="nametag"><span class="nm">GARY NEVILLE</span></div></div></div>
+        <div id="b99" class="clip float right" data-layout-allow-occlusion data-layout-allow-overflow data-start="81.167" data-duration="1.4" data-track-index="3" style="left:1027px;width:460px"><div class="scrim" style="right:-433px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--micah-richards.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/micah-richards.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/micah-richards.jpg" alt="" /></div><div class="nametag"><span class="nm">MICAH RICHARDS</span></div></div></div>
+        <div id="b100" class="clip float left" data-layout-allow-occlusion data-layout-allow-overflow data-start="82.567" data-duration="3.433" data-track-index="3" style="left:371px;width:460px"><div class="scrim" style="left:-371px"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--thierry-henry.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/thierry-henry.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/thierry-henry.jpg" alt="" /></div><div class="nametag"><span class="nm">THIERRY HENRY</span></div></div></div>
+        <div id="b106" class="clip stage left" data-layout-allow-occlusion data-layout-allow-overflow data-start="115.5" data-duration="6.0" data-track-index="3"><div class="all"><div class="dim"></div><div class="slead" style="top:474px;right:1003px"><span id="b106-l0w0" class="w">itu</span> <span id="b106-l0w1" class="w">membuat</span> <span id="b106-l0w2" class="w">kita</span> <span id="b106-l0w3" class="w">frustrasi,</span> <span id="b106-l0w4" class="w">karena</span> <span id="b106-l0w5" class="w">kita</span></div><div class="srow" style="top:528px;font-size:132px;right:934px"><span id="b106-word" class="sword" data-layout-allow-overlap>TAKUT</span></div></div></div>
+        <div id="b114" class="clip veil left" data-layout-allow-occlusion data-layout-allow-overflow data-start="141.3" data-duration="2.133" data-track-index="4"><div class="scrim"></div></div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it. Each veil fades in on its scene start, each float or stage
+        // brings its card or words in on the times the presenter says them, and each one fades out at its end.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each. Both are defined here
+        // for the build's shared helpers; this file uses tl.fromTo and tl.to directly.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        tl.fromTo("#b84 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 0.0);
+        tl.fromTo("#b86 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 16.667);
+        tl.fromTo("#b86 .card", { opacity: 0, x: -220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 16.667);
+        tl.to("#b86 .card", { opacity: 0, duration: 0.13, ease: "none" }, 20.46);
+        tl.fromTo("#b87 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 20.567);
+        tl.fromTo("#b88 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 27.5);
+        tl.fromTo("#b88 .card", { opacity: 0, x: -220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 27.5);
+        tl.to("#b88 .card", { opacity: 0, duration: 0.13, ease: "none" }, 30.893);
+        tl.fromTo("#b90 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 38.267);
+        tl.fromTo("#b90 .card", { opacity: 0, x: 220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 38.267);
+        tl.to("#b90 .card", { opacity: 0, duration: 0.13, ease: "none" }, 41.793);
+        tl.fromTo("#b91 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 41.933);
+        tl.fromTo("#b91 .card", { opacity: 0, x: -220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 41.933);
+        tl.to("#b91 .card", { opacity: 0, duration: 0.13, ease: "none" }, 46.027);
+        tl.fromTo("#b95 .dim", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 65.6);
+        W([["b95-l0w0", 65.614], ["b95-l0w1", 65.717], ["b95-l0w2", 66.025], ["b95-l0w3", 66.128]]);
+        tl.fromTo("#b95-n0", { opacity: 0, x: 70, scale: 0.85 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 67.407);
+        tl.fromTo("#b95-n1", { opacity: 0, x: 70, scale: 0.85 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 68.569);
+        tl.to("#b95 .all", { opacity: 0, duration: 0.2, ease: "none" }, 70.58);
+        tl.fromTo("#b97 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 76.7);
+        tl.fromTo("#b98 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 79.467);
+        tl.fromTo("#b98 .card", { opacity: 0, x: 220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 79.467);
+        tl.to("#b98 .card", { opacity: 0, duration: 0.13, ease: "none" }, 81.027);
+        tl.fromTo("#b99 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 81.167);
+        tl.fromTo("#b99 .card", { opacity: 0, x: -220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.42, ease: "power3.out" }, 81.167);
+        tl.to("#b99 .card", { opacity: 0, duration: 0.13, ease: "none" }, 82.427);
+        tl.fromTo("#b100 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 82.567);
+        tl.fromTo("#b100 .card", { opacity: 0, x: 220, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 82.567);
+        tl.to("#b100 .card", { opacity: 0, duration: 0.13, ease: "none" }, 85.86);
+        tl.fromTo("#b106 .dim", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 115.5);
+        W([["b106-l0w0", 119.377], ["b106-l0w1", 119.682], ["b106-l0w2", 119.988], ["b106-l0w3", 120.293], ["b106-l0w4", 120.599], ["b106-l0w5", 120.904]]);
+        tl.fromTo("#b106-word", { opacity: 0, x: 70, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" }, 115.8);
+        tl.to("#b106 .all", { opacity: 0, duration: 0.2, ease: "none" }, 121.28);
+        tl.fromTo("#b114 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 141.3);
+        window.__timelines["back-02"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/counter.html (composition id "counter")
+  WHAT: The third scene, 3 seconds long, mounted at 6 s in index.html. On a dark ground a small mono
+    label "LUMEN 03/04" sits at the top left, and in the middle a mint DAY label sits beside a very large
+    numeral that counts from 0 up to 20. The count runs for 1.4 s from 0.2 s with a power3.out ease, so it
+    slows as it lands on 20. The numeral uses tabular digits, so its width does not jitter while it counts.
+    The scene plays no sound of its own.
+  STRUCTURE: the scene sits in a template element, and the host mounts its style, markup and script. Back
+    to front: #root holds .counter-chrome (the top-left label) and #counter-row, a flex row with #counter-label
+    and #counter-num. The timeline "counter" has one tween that moves a plain object n.v from 0 to 20; its
+    onUpdate writes Math.round(n.v) into #counter-num.
+  CUSTOMIZE: the end value (20), the duration (1.4 s), the start (0.2 s) and the ease (power3.out) are in the
+    single tl.fromTo call. Colors: #F2F4FF for the numeral, #9AA3C7 for the chrome label, #7DF9C5 for the DAY
+    label. The numeral is 260 px and the DAY label 36 px. The faces are Archivo Black (numeral) and
+    JetBrains Mono (labels). The scene is 3 s long, so change the host's data-duration in index.html too.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. Its two faces, Archivo Black (the numeral) and JetBrains Mono (the labels), are bundled with HyperFrames,
+    so no font file is needed.
+  WHEN TO USE: a count-up beat that lands on a number, such as a day count, a total or a score. For a value
+    that must not be rounded, or for text that is not a number, pick a text reveal instead.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The scene is a template: the host mounts its style, markup and script together. -->
+    <template>
+      <style>
+        /* Design tokens, copied from the export so this scene stands alone. */
+        :root { --lumen-ink: #F2F4FF; --lumen-dim: #9AA3C7; --lumen-accent: #7DF9C5; }
+        /* Scene root: fills the square and sets the ink color and the display face. */
+        #root { position: absolute; inset: 0; color: #F2F4FF; font-family: "Archivo Black", sans-serif; }
+        /* The top-left mono label. */
+        .counter-chrome { position: absolute; left: 48px; top: 40px; font-family: "JetBrains Mono", monospace; font-size: 22px; letter-spacing: .14em; color: #9AA3C7; }
+        /* Centers the DAY label and the numeral in one row. */
+        #counter-row { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 28px; }
+        /* The DAY label: mono, 36 px, mint. */
+        #counter-label { font-family: "JetBrains Mono", monospace; font-size: 36px; letter-spacing: .14em; color: #7DF9C5; }
+        /* The counting numeral: 260 px, with tabular digits. */
+        #counter-num { font-size: 260px; font-variant-numeric: tabular-nums; }
+      </style>
+      <!-- Scene markup: the root with the chrome label and the centered counter row. -->
+      <div id="root" data-composition-id="counter" data-width="1080" data-height="1080">
+        <div class="counter-chrome">LUMEN · 03/04</div>
+        <div id="counter-row"><span id="counter-label">DAY</span><span id="counter-num">0</span></div>
+      </div>
+      <script>
+        /* Timeline: paused, so the host seeks it; it holds one count-up tween. */
+        const tl = gsap.timeline({ paused: true });
+        /* The plain value that the tween moves, and the element it writes into. */
+        const n = { v: 0 }, el = document.getElementById("counter-num");
+        /* Count from 0 to 20 over 1.4 s, starting at 0.2 s, with a power3.out ease. */
+        tl.fromTo(n, { v: 0 }, { v: 20, duration: 1.4, ease: "power3.out", onUpdate: () => { el.textContent = Math.round(n.v); } }, 0.2);
+        /* Registration under the composition id. */
+        window.__timelines["counter"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

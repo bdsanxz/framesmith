@@ -1,0 +1,740 @@
+[
+  {
+    "text": "August",
+    "start": 0.1,
+    "end": 0.518,
+    "id": "w0"
+  },
+  {
+    "text": "twenty",
+    "start": 0.518,
+    "end": 0.852,
+    "id": "w1"
+  },
+  {
+    "text": "seventh,",
+    "start": 0.852,
+    "end": 1.153,
+    "id": "w2"
+  },
+  {
+    "text": "eighteen.",
+    "start": 1.437,
+    "end": 2.44,
+    "id": "w3"
+  },
+  {
+    "text": "Krakatoa",
+    "start": 2.652,
+    "end": 3.253,
+    "id": "w4"
+  },
+  {
+    "text": "in",
+    "start": 3.308,
+    "end": 3.364,
+    "id": "w5"
+  },
+  {
+    "text": "the",
+    "start": 3.364,
+    "end": 3.475,
+    "id": "w6"
+  },
+  {
+    "text": "Sunda",
+    "start": 3.475,
+    "end": 3.92,
+    "id": "w7"
+  },
+  {
+    "text": "Strait.",
+    "start": 3.92,
+    "end": 4.421,
+    "id": "w8"
+  },
+  {
+    "text": "The",
+    "start": 5.571,
+    "end": 5.714,
+    "id": "w9"
+  },
+  {
+    "text": "volcano",
+    "start": 5.714,
+    "end": 6.142,
+    "id": "w10"
+  },
+  {
+    "text": "has",
+    "start": 6.285,
+    "end": 6.428,
+    "id": "w11"
+  },
+  {
+    "text": "rumbled",
+    "start": 6.428,
+    "end": 6.928,
+    "id": "w12"
+  },
+  {
+    "text": "since",
+    "start": 6.928,
+    "end": 7.142,
+    "id": "w13"
+  },
+  {
+    "text": "May.",
+    "start": 7.142,
+    "end": 7.571,
+    "id": "w14"
+  },
+  {
+    "text": "At",
+    "start": 7.815,
+    "end": 7.954,
+    "id": "w15"
+  },
+  {
+    "text": "two",
+    "start": 7.954,
+    "end": 8.102,
+    "id": "w16"
+  },
+  {
+    "text": "minutes",
+    "start": 8.176,
+    "end": 8.471,
+    "id": "w17"
+  },
+  {
+    "text": "past",
+    "start": 8.471,
+    "end": 8.767,
+    "id": "w18"
+  },
+  {
+    "text": "ten,",
+    "start": 8.767,
+    "end": 9.243,
+    "id": "w19"
+  },
+  {
+    "text": "the",
+    "start": 9.719,
+    "end": 9.719,
+    "id": "w20"
+  },
+  {
+    "text": "third",
+    "start": 9.719,
+    "end": 10.023,
+    "id": "w21"
+  },
+  {
+    "text": "and",
+    "start": 10.023,
+    "end": 10.245,
+    "id": "w22"
+  },
+  {
+    "text": "largest",
+    "start": 10.245,
+    "end": 10.689,
+    "id": "w23"
+  },
+  {
+    "text": "explosion",
+    "start": 10.689,
+    "end": 11.206,
+    "id": "w24"
+  },
+  {
+    "text": "tears",
+    "start": 11.354,
+    "end": 11.797,
+    "id": "w25"
+  },
+  {
+    "text": "the",
+    "start": 11.797,
+    "end": 11.871,
+    "id": "w26"
+  },
+  {
+    "text": "island",
+    "start": 11.871,
+    "end": 12.315,
+    "id": "w27"
+  },
+  {
+    "text": "apart.",
+    "start": 12.315,
+    "end": 12.903,
+    "id": "w28"
+  },
+  {
+    "text": "waves",
+    "start": 14.123,
+    "end": 14.577,
+    "id": "w29"
+  },
+  {
+    "text": "more",
+    "start": 14.577,
+    "end": 14.707,
+    "id": "w30"
+  },
+  {
+    "text": "than",
+    "start": 14.707,
+    "end": 14.837,
+    "id": "w31"
+  },
+  {
+    "text": "30",
+    "start": 14.837,
+    "end": 15.161,
+    "id": "w32"
+  },
+  {
+    "text": "meters",
+    "start": 15.161,
+    "end": 15.485,
+    "id": "w33"
+  },
+  {
+    "text": "high",
+    "start": 15.485,
+    "end": 15.81,
+    "id": "w34"
+  },
+  {
+    "text": "cross",
+    "start": 15.81,
+    "end": 16.069,
+    "id": "w35"
+  },
+  {
+    "text": "the",
+    "start": 16.069,
+    "end": 16.199,
+    "id": "w36"
+  },
+  {
+    "text": "straight.",
+    "start": 16.199,
+    "end": 16.762,
+    "id": "w37"
+  },
+  {
+    "text": "They",
+    "start": 17.972,
+    "end": 18.207,
+    "id": "w38"
+  },
+  {
+    "text": "kill",
+    "start": 18.207,
+    "end": 18.442,
+    "id": "w39"
+  },
+  {
+    "text": "36,417",
+    "start": 18.521,
+    "end": 21.263,
+    "id": "w40"
+  },
+  {
+    "text": "people.",
+    "start": 21.42,
+    "end": 21.812,
+    "id": "w41"
+  },
+  {
+    "text": "But",
+    "start": 22.861,
+    "end": 23.097,
+    "id": "w42"
+  },
+  {
+    "text": "what",
+    "start": 23.097,
+    "end": 23.254,
+    "id": "w43"
+  },
+  {
+    "text": "the",
+    "start": 23.254,
+    "end": 23.411,
+    "id": "w44"
+  },
+  {
+    "text": "world",
+    "start": 23.411,
+    "end": 23.725,
+    "id": "w45"
+  },
+  {
+    "text": "remembers",
+    "start": 23.725,
+    "end": 24.275,
+    "id": "w46"
+  },
+  {
+    "text": "is",
+    "start": 24.275,
+    "end": 24.432,
+    "id": "w47"
+  },
+  {
+    "text": "the",
+    "start": 24.432,
+    "end": 24.59,
+    "id": "w48"
+  },
+  {
+    "text": "sound,",
+    "start": 24.59,
+    "end": 25.048,
+    "id": "w49"
+  },
+  {
+    "text": "the",
+    "start": 25.204,
+    "end": 25.306,
+    "id": "w50"
+  },
+  {
+    "text": "loudest",
+    "start": 25.306,
+    "end": 25.726,
+    "id": "w51"
+  },
+  {
+    "text": "sound",
+    "start": 25.726,
+    "end": 25.966,
+    "id": "w52"
+  },
+  {
+    "text": "in",
+    "start": 25.966,
+    "end": 26.146,
+    "id": "w53"
+  },
+  {
+    "text": "recorded",
+    "start": 26.146,
+    "end": 26.566,
+    "id": "w54"
+  },
+  {
+    "text": "history.",
+    "start": 26.566,
+    "end": 27.216,
+    "id": "w55"
+  },
+  {
+    "text": "Roger",
+    "start": 28.517,
+    "end": 29.084,
+    "id": "w56"
+  },
+  {
+    "text": "Verbeak,",
+    "start": 29.084,
+    "end": 29.731,
+    "id": "w57"
+  },
+  {
+    "text": "a",
+    "start": 29.731,
+    "end": 29.812,
+    "id": "w58"
+  },
+  {
+    "text": "Dutch",
+    "start": 29.812,
+    "end": 30.136,
+    "id": "w59"
+  },
+  {
+    "text": "geologist,",
+    "start": 30.136,
+    "end": 30.864,
+    "id": "w60"
+  },
+  {
+    "text": "surveys",
+    "start": 30.864,
+    "end": 31.35,
+    "id": "w61"
+  },
+  {
+    "text": "what",
+    "start": 31.35,
+    "end": 31.511,
+    "id": "w62"
+  },
+  {
+    "text": "is",
+    "start": 31.511,
+    "end": 31.673,
+    "id": "w63"
+  },
+  {
+    "text": "left.",
+    "start": 31.673,
+    "end": 31.997,
+    "id": "w64"
+  },
+  {
+    "text": "Two-thirds",
+    "start": 32.124,
+    "end": 32.61,
+    "id": "w65"
+  },
+  {
+    "text": "of",
+    "start": 32.61,
+    "end": 32.67,
+    "id": "w66"
+  },
+  {
+    "text": "the",
+    "start": 32.67,
+    "end": 32.792,
+    "id": "w67"
+  },
+  {
+    "text": "island",
+    "start": 32.792,
+    "end": 33.095,
+    "id": "w68"
+  },
+  {
+    "text": "is",
+    "start": 33.095,
+    "end": 33.277,
+    "id": "w69"
+  },
+  {
+    "text": "gone.",
+    "start": 33.277,
+    "end": 33.881,
+    "id": "w70"
+  },
+  {
+    "text": "165",
+    "start": 35.05,
+    "end": 36.508,
+    "id": "w71"
+  },
+  {
+    "text": "coastal",
+    "start": 36.647,
+    "end": 37.133,
+    "id": "w72"
+  },
+  {
+    "text": "villages",
+    "start": 37.133,
+    "end": 37.688,
+    "id": "w73"
+  },
+  {
+    "text": "are",
+    "start": 37.688,
+    "end": 37.897,
+    "id": "w74"
+  },
+  {
+    "text": "destroyed.",
+    "start": 37.897,
+    "end": 38.724,
+    "id": "w75"
+  },
+  {
+    "text": "The",
+    "start": 39.854,
+    "end": 39.99,
+    "id": "w76"
+  },
+  {
+    "text": "sound",
+    "start": 39.99,
+    "end": 40.328,
+    "id": "w77"
+  },
+  {
+    "text": "keeps",
+    "start": 40.328,
+    "end": 40.6,
+    "id": "w78"
+  },
+  {
+    "text": "going.",
+    "start": 40.6,
+    "end": 41.055,
+    "id": "w79"
+  },
+  {
+    "text": "Batavia",
+    "start": 41.357,
+    "end": 41.973,
+    "id": "w80"
+  },
+  {
+    "text": "160",
+    "start": 42.408,
+    "end": 43.39,
+    "id": "w81"
+  },
+  {
+    "text": "kilometers",
+    "start": 43.39,
+    "end": 43.995,
+    "id": "w82"
+  },
+  {
+    "text": "away.",
+    "start": 43.995,
+    "end": 44.449,
+    "id": "w83"
+  },
+  {
+    "text": "Perth",
+    "start": 44.613,
+    "end": 45.093,
+    "id": "w84"
+  },
+  {
+    "text": "about",
+    "start": 45.253,
+    "end": 45.493,
+    "id": "w85"
+  },
+  {
+    "text": "3,100.",
+    "start": 45.493,
+    "end": 46.655,
+    "id": "w86"
+  },
+  {
+    "text": "Rodrigue",
+    "start": 46.847,
+    "end": 47.354,
+    "id": "w87"
+  },
+  {
+    "text": "4,800.",
+    "start": 47.579,
+    "end": 48.663,
+    "id": "w88"
+  },
+  {
+    "text": "A",
+    "start": 49.145,
+    "end": 49.145,
+    "id": "w89"
+  },
+  {
+    "text": "police",
+    "start": 49.145,
+    "end": 49.448,
+    "id": "w90"
+  },
+  {
+    "text": "chief",
+    "start": 49.448,
+    "end": 49.822,
+    "id": "w91"
+  },
+  {
+    "text": "reports",
+    "start": 49.822,
+    "end": 50.271,
+    "id": "w92"
+  },
+  {
+    "text": "the",
+    "start": 50.271,
+    "end": 50.421,
+    "id": "w93"
+  },
+  {
+    "text": "roar",
+    "start": 50.421,
+    "end": 50.794,
+    "id": "w94"
+  },
+  {
+    "text": "of",
+    "start": 50.794,
+    "end": 50.869,
+    "id": "w95"
+  },
+  {
+    "text": "heavy",
+    "start": 50.869,
+    "end": 51.243,
+    "id": "w96"
+  },
+  {
+    "text": "guns.",
+    "start": 51.243,
+    "end": 51.991,
+    "id": "w97"
+  },
+  {
+    "text": "Barographs",
+    "start": 53.021,
+    "end": 53.759,
+    "id": "w98"
+  },
+  {
+    "text": "around",
+    "start": 53.759,
+    "end": 54.054,
+    "id": "w99"
+  },
+  {
+    "text": "the",
+    "start": 54.054,
+    "end": 54.128,
+    "id": "w100"
+  },
+  {
+    "text": "world",
+    "start": 54.128,
+    "end": 54.424,
+    "id": "w101"
+  },
+  {
+    "text": "record",
+    "start": 54.424,
+    "end": 54.866,
+    "id": "w102"
+  },
+  {
+    "text": "the",
+    "start": 54.866,
+    "end": 55.014,
+    "id": "w103"
+  },
+  {
+    "text": "pressure",
+    "start": 55.014,
+    "end": 55.457,
+    "id": "w104"
+  },
+  {
+    "text": "wave",
+    "start": 55.457,
+    "end": 55.9,
+    "id": "w105"
+  },
+  {
+    "text": "seven",
+    "start": 55.9,
+    "end": 56.417,
+    "id": "w106"
+  },
+  {
+    "text": "times.",
+    "start": 56.417,
+    "end": 57.081,
+    "id": "w107"
+  },
+  {
+    "text": "In",
+    "start": 58.142,
+    "end": 58.373,
+    "id": "w108"
+  },
+  {
+    "text": "1927,",
+    "start": 58.373,
+    "end": 59.421,
+    "id": "w109"
+  },
+  {
+    "text": "a",
+    "start": 59.837,
+    "end": 59.837,
+    "id": "w110"
+  },
+  {
+    "text": "new",
+    "start": 59.837,
+    "end": 60.145,
+    "id": "w111"
+  },
+  {
+    "text": "island",
+    "start": 60.145,
+    "end": 60.607,
+    "id": "w112"
+  },
+  {
+    "text": "rises",
+    "start": 60.607,
+    "end": 61.069,
+    "id": "w113"
+  },
+  {
+    "text": "from",
+    "start": 61.069,
+    "end": 61.223,
+    "id": "w114"
+  },
+  {
+    "text": "the",
+    "start": 61.223,
+    "end": 61.3,
+    "id": "w115"
+  },
+  {
+    "text": "sea,",
+    "start": 61.3,
+    "end": 61.747,
+    "id": "w116"
+  },
+  {
+    "text": "Anak",
+    "start": 62.117,
+    "end": 62.487,
+    "id": "w117"
+  },
+  {
+    "text": "Krakatao,",
+    "start": 62.613,
+    "end": 63.105,
+    "id": "w118"
+  },
+  {
+    "text": "the",
+    "start": 63.421,
+    "end": 63.435,
+    "id": "w119"
+  },
+  {
+    "text": "child",
+    "start": 63.435,
+    "end": 63.625,
+    "id": "w120"
+  },
+  {
+    "text": "of",
+    "start": 63.625,
+    "end": 63.752,
+    "id": "w121"
+  },
+  {
+    "text": "Krakatawa.",
+    "start": 63.752,
+    "end": 64.799,
+    "id": "w122"
+  }
+]

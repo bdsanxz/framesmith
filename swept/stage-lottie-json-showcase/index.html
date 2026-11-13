@@ -1,0 +1,52 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main")
+  WHAT: The whole film of this inspiration: 5 seconds at 1920x1080 on a near-black ground. For the
+    first 2.5 seconds it shows the text of assets/tile-pulse.json as a code panel; for the last
+    2.5 seconds it plays that same file as an animated tile. There is no narration or music.
+  STRUCTURE: #root (composition id "main", duration 5) holds two clip hosts on track 0:
+    #slot-json mounts compositions/json-view.html at start 0 for 2.5 s, and #slot-play mounts
+    compositions/lottie-play.html at start 2.5 for 2.5 s. The root GSAP timeline is paused, has
+    no tweens, and is registered as window.__timelines["main"].
+  CUSTOMIZE: The film length is data-duration on #root (5) and on the two hosts. Keep the host
+    starts and durations adding up to it (0 + 2.5, then 2.5 + 2.5). The near-black ground is
+    #0f1115, set in the html, body and #root rules. The text and the animation live in the two
+    composition files, not here.
+  MEDIA: No media file is bundled, and this file has no photo, video, sound, font or CSS image
+    slot, so none is needed. It loads only the GSAP 3.14.2 script from jsdelivr, which is code.
+    The Lottie JSON (assets/tile-pulse.json) is loaded by compositions/lottie-play.html; see that
+    file's MEDIA section for how to plug in your own Lottie file.
+  WHEN TO USE: A short film that shows a Lottie file as code and then plays it, to teach that a
+    Lottie inside a sub-composition plays from its host's start. Pick another layout when two
+    things must be on screen at once, since this one runs strictly in sequence.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Lottie JSON — shown, then played</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Page reset and a fixed 1920 by 1080 frame on a near-black ground. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0f1115; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0f1115; }
+    </style>
+  </head>
+  <body>
+    <!-- Root composition: two clip hosts on track 0, placed back to back from 0 to 5 seconds. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5" data-width="1920" data-height="1080">
+      <!-- Host 1: the JSON shown as a code panel, from 0 to 2.5 seconds. -->
+      <div id="slot-json" data-composition-id="json-view" data-composition-src="compositions/json-view.html"
+        data-start="0" data-duration="2.5" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Host 2: the Lottie player, from 2.5 to 5 seconds. -->
+      <div id="slot-play" data-composition-id="lottie-play" data-composition-src="compositions/lottie-play.html"
+        data-start="2.5" data-duration="2.5" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Paused root timeline with no tweens; each host runs its own timeline. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

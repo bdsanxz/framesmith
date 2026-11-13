@@ -1,8 +1,8 @@
 framesmith convert refused for one-take-journey: 8 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/one-take-journey/fidelity.json.
   compositions/journey.html:196 [tl.to] to vars object is not a literal; refusing the call site
   compositions/journey.html:207 [tl.to] to vars object is not a literal; refusing the call site
-  compositions/journey.html:211 [tl.from] selector "#code .ch" is compound; only `#id` and `.class` land
-  compositions/journey.html:213 [tl.set] position "0.2 + i * 0.055" is an expression; refusing the call site
+  compositions/journey.html:211 [tl.from] selector "#code .ch" names no converted clip
+  compositions/journey.html:213 [tl.set] position "0.2 + i * 0.055" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
   compositions/journey.html:225 [tl.from] selector ".bar-val, .bar-name" is compound; only `#id` and `.class` land
   compositions/journey.html:230 [tl.fromTo] property "svgOrigin" (value "\"4850 760\"") has no KDL motion property; refusing the call site
   compositions/journey.html:241 [tl.to] property "f" (value "525") has no KDL motion property; refusing the call site

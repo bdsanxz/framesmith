@@ -1,0 +1,355 @@
+{
+ "version": 1,
+ "engine": "adopted from narration.mp3",
+ "lead": 0.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "Dua puluh delapan Juni, sembilan belas empat belas. Sarajevo.",
+   "key": "ea7583b3c68d4427",
+   "start": 0.0,
+   "duration": 3.145,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "28",
+     "start": 0.0,
+     "end": 0.599
+    },
+    {
+     "text": "Juni,",
+     "start": 0.672,
+     "end": 1.116
+    },
+    {
+     "text": "1914.",
+     "start": 1.622,
+     "end": 2.831
+    },
+    {
+     "text": "Sarajevo.",
+     "start": 2.831,
+     "end": 3.145
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "Satu belokan yang salah akan memicu perang dunia.",
+   "key": "830017f6ce4fb049",
+   "start": 3.145,
+   "duration": 3.905,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Satu",
+     "start": 1.293,
+     "end": 1.513
+    },
+    {
+     "text": "belokan",
+     "start": 1.671,
+     "end": 1.881
+    },
+    {
+     "text": "yang",
+     "start": 1.881,
+     "end": 2.065
+    },
+    {
+     "text": "salah,",
+     "start": 2.118,
+     "end": 2.352
+    },
+    {
+     "text": "akan",
+     "start": 2.632,
+     "end": 2.632
+    },
+    {
+     "text": "memicu",
+     "start": 2.836,
+     "end": 2.994
+    },
+    {
+     "text": "perang",
+     "start": 2.994,
+     "end": 3.309
+    },
+    {
+     "text": "dunia.",
+     "start": 3.309,
+     "end": 3.765
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "Di kursi belakang duduk Adipati Agung Franz Ferdinand, pewaris takhta Austria-Hungaria.",
+   "key": "e9a62cf5ba23aa2d",
+   "start": 7.05,
+   "duration": 5.08,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Di",
+     "start": 0.17,
+     "end": 0.598
+    },
+    {
+     "text": "kursi",
+     "start": 0.598,
+     "end": 0.636
+    },
+    {
+     "text": "belakang",
+     "start": 0.636,
+     "end": 1.12
+    },
+    {
+     "text": "duduk",
+     "start": 1.12,
+     "end": 1.415
+    },
+    {
+     "text": "Adipati",
+     "start": 1.424,
+     "end": 1.69
+    },
+    {
+     "text": "Agung",
+     "start": 1.976,
+     "end": 2.156
+    },
+    {
+     "text": "Franz",
+     "start": 2.156,
+     "end": 2.46
+    },
+    {
+     "text": "Ferdinand,",
+     "start": 2.46,
+     "end": 3.03
+    },
+    {
+     "text": "pewaris",
+     "start": 3.296,
+     "end": 3.572
+    },
+    {
+     "text": "takhta",
+     "start": 3.734,
+     "end": 3.895
+    },
+    {
+     "text": "Austria-Hungaria.",
+     "start": 3.895,
+     "end": 4.946
+    }
+   ]
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "Di sepanjang rutenya, enam pembunuh muda menunggu.",
+   "key": "324e7b2984273510",
+   "start": 12.13,
+   "duration": 3.27,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Di",
+     "start": 0.14,
+     "end": 0.584
+    },
+    {
+     "text": "sepanjang",
+     "start": 0.584,
+     "end": 0.788
+    },
+    {
+     "text": "rutenya,",
+     "start": 0.871,
+     "end": 1.257
+    },
+    {
+     "text": "enam",
+     "start": 1.517,
+     "end": 1.584
+    },
+    {
+     "text": "pembunuh",
+     "start": 1.602,
+     "end": 2.093
+    },
+    {
+     "text": "muda,",
+     "start": 2.093,
+     "end": 2.454
+    },
+    {
+     "text": "menunggu.",
+     "start": 2.454,
+     "end": 3.108
+    }
+   ]
+  },
+  {
+   "id": "s05",
+   "file": "assets/narration/s05.mp3",
+   "text": "Di Jembatan Latin, sopirnya berbelok ke kanan. Arah yang salah.",
+   "key": "be377f2bb4226f28",
+   "start": 15.4,
+   "duration": 4.54,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Di",
+     "start": 0.16,
+     "end": 0.663
+    },
+    {
+     "text": "jembatan",
+     "start": 0.663,
+     "end": 0.97
+    },
+    {
+     "text": "Latin,",
+     "start": 0.97,
+     "end": 1.261
+    },
+    {
+     "text": "sopirnya",
+     "start": 1.588,
+     "end": 2.031
+    },
+    {
+     "text": "berbelok",
+     "start": 2.143,
+     "end": 2.599
+    },
+    {
+     "text": "ke",
+     "start": 2.599,
+     "end": 2.646
+    },
+    {
+     "text": "kanan,",
+     "start": 2.776,
+     "end": 3.168
+    },
+    {
+     "text": "arah",
+     "start": 3.517,
+     "end": 3.517
+    },
+    {
+     "text": "yang",
+     "start": 3.517,
+     "end": 3.847
+    },
+    {
+     "text": "salah.",
+     "start": 3.847,
+     "end": 4.339
+    }
+   ]
+  },
+  {
+   "id": "s06",
+   "file": "assets/narration/s06.mp3",
+   "text": "Ia mengerem, dan mesinnya mati, beberapa langkah dari Gavrilo Princip.",
+   "key": "407dfd348f1e1e79",
+   "start": 19.94,
+   "duration": 4.155,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Ia",
+     "start": 0.227,
+     "end": 0.34
+    },
+    {
+     "text": "mengerem,",
+     "start": 0.34,
+     "end": 0.853
+    },
+    {
+     "text": "dan",
+     "start": 1.039,
+     "end": 1.203
+    },
+    {
+     "text": "mesinnya",
+     "start": 1.203,
+     "end": 1.751
+    },
+    {
+     "text": "mati.",
+     "start": 1.751,
+     "end": 2.012
+    },
+    {
+     "text": "Beberapa",
+     "start": 2.317,
+     "end": 2.679
+    },
+    {
+     "text": "langkah",
+     "start": 2.679,
+     "end": 2.938
+    },
+    {
+     "text": "dari",
+     "start": 3.022,
+     "end": 3.068
+    },
+    {
+     "text": "Gavrilo",
+     "start": 3.263,
+     "end": 3.551
+    },
+    {
+     "text": "Princip.",
+     "start": 3.551,
+     "end": 3.943
+    }
+   ]
+  },
+  {
+   "id": "s07",
+   "file": "assets/narration/s07.mp3",
+   "text": "Ia menembak dua kali.",
+   "key": "45a34ea8578269c9",
+   "start": 24.095,
+   "duration": 1.445,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Ia",
+     "start": 0.224,
+     "end": 0.26
+    },
+    {
+     "text": "menembak",
+     "start": 0.371,
+     "end": 0.694
+    },
+    {
+     "text": "dua",
+     "start": 0.742,
+     "end": 0.923
+    },
+    {
+     "text": "kali.",
+     "start": 0.923,
+     "end": 1.365
+    }
+   ]
+  }
+ ],
+ "duration": 25.54
+}

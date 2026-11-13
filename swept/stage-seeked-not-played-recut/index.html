@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: index.html (root composition) (composition id "main")
+  WHAT: An 18 s talking-head clip packaged with designed cards, all timed to the narration's words.
+    The presenter fills the frame; at 1.4 s the title HTML -> VIDEO appears; from 2.85 s a stat
+    panel on the right builds "~400 blocks and components" while the presenter slides to the left
+    half; at 6.77 s the panel's second stat "18 font families" replaces it; the presenter returns to
+    full frame at 9.4 s for the quote card "Seeked, not played." (10.6 s); from 15.25 s a kinetic
+    close "AN AGENT CAN DIRECT IT." sits over a slow push-in. A URL bug stays at the top right for
+    the whole film, and word-synced captions run along the bottom. The clip itself plays untouched.
+  STRUCTURE: #video-wrap is an untimed wrapper holding #aroll (the presenter video slot, track 0); it
+    is the only element the main timeline moves. The sound slot #aroll-audio (track 10) is meant to
+    play the same file for the sound.
+    Graphics are sub-compositions on track 1: card-title (1.4 s for 1.45 s), card-registry (2.85 s
+    for 3.92 s), card-fonts (6.77 s for 2.8 s), card-seek (10.6 s for 4.6 s), card-close (15.25 s
+    for 2.71 s). card-url-bug (track 2, 0 to 17.96 s) and captions (track 3, a captions kind) span the
+    film. Main timeline: #video-wrap is set to x 0 and scale 1 at 0 s; x -480 over 0.7 s from 2.6 s;
+    x 0 over 0.7 s from 9.4 s; scale 1.08 over 2.71 s from 15.25 s, with ease none. The graphics
+    cannot move the video (a sub-composition cannot reach host-root media), which is why the moves
+    live here.
+  CUSTOMIZE: Card timing: the data-start and data-duration of each card host. Each card's own tweens
+    are in card-local time (global minus the card's start), so when a card moves, its file's
+    comments must be re-timed too. The speaker slide: x -480 (a quarter of the 1920 px frame, so the
+    speaker moves left but not fully out of view) and the times 2.6, 9.4 and 15.25 s. The root
+    data-duration (17.96) must match the footage's length. The stand-in rule: change the footage
+    file, and the card and caption times follow the transcript word starts, so re-time them from the
+    new transcript.
+  MEDIA: No media file is bundled with this composition. Two slots carry the presenter's clip, a video
+    slot and a sound slot. Video slot: #aroll (an img with data-media-kind="video", track 0, 17.96 s)
+    showed footage/aroll.mp4, the presenter, muted. That file is a stand-in rendered from the narration's
+    transcript by scripts/make-standin-aroll.mjs (the mouth opens on each word); real footage would replace
+    it with one keyframe per second. The slot now shows a labeled hatch stand-in (text "VIDEO:
+    footage/aroll.mp4") instead of the presenter. To plug in your clip, replace that img with
+    a video element with id="aroll", src="footage/aroll.mp4", muted, playsinline, data-start="0", data-duration="17.96", data-track-index="0" and data-media-kind="video", keeping the same id, so the #aroll CSS rule and
+    the move of #video-wrap still apply. Sound slot: #aroll-audio (track 10, from 0 s for 17.96 s,
+    volume 1) would play the same footage/aroll.mp4 as the audible track. It is a SOUND SLOT comment and
+    plays nothing now, so the film is silent. To plug in the sound, add
+    an audio element with id="aroll-audio", src="footage/aroll.mp4", data-start="0", data-duration="17.96", data-track-index="10" and data-volume="1" inside #root, or a recording of your own as src. Without footage, use a plain
+    dark ground with a simple presenter shape; the cards and captions still teach the timing. The word
+    starts in assets/transcript.json drive all timings, and assets/narration.mp3, the narration the stand-in
+    was built from, is not referenced by this file. No font is loaded here, and the GSAP script loads from
+    cdn.jsdelivr.net.
+  WHEN TO USE: A talking-head clip that needs designed stat, quote and title cards placed on the
+    spoken words, with the speaker left untouched except for the framing moves. Pick a different
+    structure when the presenter must be cut, or when the film has no single speaker to frame.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Talking-head recut — seeked, not played</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Page reset; the stage is a fixed 1920x1080 frame. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* The page itself, fixed at 1920x1080 with a black backdrop. */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      /* Scope to the main root: sub-composition roots are also #root once inlined, and would inherit this black fill. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000; }
+      /* The clip plays untouched; only this untimed wrapper moves (split-screen choreography). */
+      #video-wrap { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
+      /* The speaker's clip fills its wrapper, cropped to cover it. */
+      #aroll { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <!-- All times are word starts from assets/transcript.json. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="17.96" data-width="1920" data-height="1080">
+      <!-- The speaker: the clip sits in an untimed wrapper that the main timeline moves for the split-screen framing. -->
+      <div id="video-wrap">
+        <img id="aroll" data-start="0" data-duration="17.96" data-track-index="0" src="data:image/svg+xml,%3C!--aroll.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/aroll.mp4%3C/text%3E%3C/svg%3E" data-media="footage/aroll.mp4" data-media-kind="video" alt="" />
+      </div>
+      <!-- The audible track: the same file again, so the sound plays while the video above stays muted. -->
+      <!-- SOUND SLOT (id "aroll-audio", from 0 s, for 17.96 s, volume 1, track 10): an audio element played footage/aroll.mp4 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+
+      <!-- The cards: each sub-composition is mounted here at its start time, on the graphics track, in order. -->
+      <div id="card-title" data-composition-id="card-title" data-composition-src="compositions/cards/title.html" data-start="1.4" data-duration="1.45" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="card-registry" data-composition-id="card-registry" data-composition-src="compositions/cards/registry.html" data-start="2.85" data-duration="3.92" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="card-fonts" data-composition-id="card-fonts" data-composition-src="compositions/cards/fonts.html" data-start="6.77" data-duration="2.8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="card-seek" data-composition-id="card-seek" data-composition-src="compositions/cards/seek.html" data-start="10.6" data-duration="4.6" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="card-close" data-composition-id="card-close" data-composition-src="compositions/cards/close.html" data-start="15.25" data-duration="2.71" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The persistent URL bug: on track 2 for the whole film. -->
+      <div id="card-url-bug" data-composition-id="card-url-bug" data-composition-src="compositions/cards/url-bug.html" data-start="0" data-duration="17.96" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The caption track: a sub-composition of word-timed lines, kept on its own track above the cards. -->
+      <div id="caption-track" data-composition-id="captions" data-composition-src="compositions/captions.html" data-start="0" data-duration="17.96" data-track-index="3" data-track-kind="captions" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      // Host-root media is choreographed on the MAIN timeline at global time: a sub-composition cannot reach it.
+      /* Setup: the main timeline, paused so the host drives it; it owns every move of the speaker. */
+      const tl = gsap.timeline({ paused: true });
+      /* Reset: the wrapper starts at full frame and unscaled. */
+      tl.set("#video-wrap", { x: 0, scale: 1, transformOrigin: "50% 50%" }, 0);
+      // "The registry…" (2.85): slide the speaker to the left half while the stat panel builds on the right.
+      tl.to("#video-wrap", { x: -480, duration: 0.7, ease: "power2.inOut" }, 2.6);
+      // "And because…" (9.57): back to full frame for the quote card.
+      tl.to("#video-wrap", { x: 0, duration: 0.7, ease: "power2.inOut" }, 9.4);
+      // "That is why…" (15.25): slow push-in on the speaker for the close.
+      tl.to("#video-wrap", { scale: 1.08, duration: 2.71, ease: "none" }, 15.25);
+      /* Registration: the host finds the main timeline by the composition id "main". */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

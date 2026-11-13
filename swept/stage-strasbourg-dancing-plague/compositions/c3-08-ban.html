@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-08-ban.html (composition id "c3-08-ban")
+  WHAT: Beat 8 of chapter 3, on the dance ban. The narration (Indonesian "Larangan itu dicatat oleh ...")
+    says the ban was recorded. The first picture is the ban of 2 August 1518, signed by Sebastian Brant, with
+    a yellow marker wiping over its first line at 1.87 s and a caption that names the date. Then three
+    pictures are cut in: Bruegel's Wedding Dance (about 1566) at 4.15 s with a caption, the Nuremberg Chronicle
+    page fol. 217r (1493) at 6.27 s, and Dürer's piper and drummer (about 1504) at 7.83 s. The beat runs 10.18 s;
+    index.html mounts it at 356.06 s, under narration clip voice-s38.
+  STRUCTURE: Four stacked layers in #root, back to front: #c308ban-a (ban.jpg, with the marker #c308ban-a-m1
+    and the caption #c308ban-a-cap), #c308ban-b (wedding.jpg, caption #c308ban-b-cap), #c308ban-c
+    (dancers2-lute.jpg) and #c308ban-d (drummer.jpg). Each is a .dr-shot wrapper. The timeline
+    (window.__timelines["c3-08-ban"]) scales the marker from 0 to 1 at 1.87 s over 0.31 s, pushes layer a from
+    1.0 to 1.050 over 4.15 s, and hides its caption at 4.15 s. It cuts in layer b at 4.15 s and pushes it to
+    1.051 over 2.12 s, hiding its caption at 6.27 s. It cuts in layer c at 6.27 s and pushes it to 1.042 over
+    1.56 s, and cuts in layer d at 7.83 s, drifting from the right to 1.054 over 2.35 s.
+  CUSTOMIZE: The marker is a div with an inline left, top, width and height in frame pixels (440 by 110 px at
+    1360,840); copy it to mark another line. Its colour is rgba(255,214,64,0.55) in .dr-mark, with multiply
+    blending. Caption text is the two lines in each caption div; a's caption sits at top 880 px by inline style.
+    The cut times 4.15, 6.27 and 7.83 must match the ends of the layers before them, and the total is the
+    10.18 s data-duration in index.html. The ban uses the lighter page grade (exposure -0.25, no wheels), since
+    it is a printed page; the other pictures use the usual grade.
+  MEDIA: no media file is bundled. This file has four photo slots and one font slot. It has no sound, no
+    video and no CSS image. The yellow markers are plain boxes, not files.
+    1. The ban, img #c308ban-a-img (inside #c308ban-a, shown 0 to 4.15 s, with the marker #c308ban-a-m1 and the
+       caption #c308ban-a-cap). It showed the ban of 2 August 1518, a printed page (ban.jpg). It now shows a
+       faint hatch stand-in labeled "PHOTO: assets/generated/ban.jpg". To plug in your picture, set the img's src
+       to your file (for example assets/generated/ban.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your page with the lighter page grade.
+    2. Bruegel's Wedding Dance, img #c308ban-b-img (inside #c308ban-b, cut in at 4.15 s, with the caption
+       #c308ban-b-cap until 6.27 s). It showed Bruegel's Wedding Dance (about 1566) (wedding.jpg). It now shows a
+       stand-in labeled "PHOTO: assets/generated/wedding.jpg". To plug in your picture, set the img's src to your
+       file.
+    3. The chronicle page, img #c308ban-c-img (inside #c308ban-c, cut in at 6.27 s). It showed the Nuremberg
+       Chronicle page fol. 217r (1493) (dancers2-lute.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/dancers2-lute.jpg". To plug in your picture, set the img's src to your file.
+    4. The drummer, img #c308ban-d-img (inside #c308ban-d, cut in at 7.83 s and drifting from the right). It
+       showed Dürer's piper and drummer (about 1504) (drummer.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/drummer.jpg". To plug in your picture, set the img's src to your file.
+    5. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap for both captions. It was a
+       bundled woff2 file (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is used if it
+       is installed, otherwise the sans-serif fallback of the font stack. To plug in your font, add
+       url("your-font.woff2") format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a beat where a document is marked and a few pictures follow for the narration's examples. Pick
+    c3-01 for a single picture with a source line.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The caption font, Arimo, is read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root is the 1920 by 1080 frame in dark slate (#0f1518), behind every layer. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The marker: one yellow bar per text line, in frame pixels, multiplied onto the page. */
+        .dr-mark { position: absolute; height: 40px; background: rgba(255, 214, 64, 0.55); mix-blend-mode: multiply; transform-origin: 0 50%; }
+      </style>
+      <!-- "Larangan itu dicatat oleh ..." (356.06 s): ban + caption from the start; wedding + caption on "Pesta" (360.21 s); dancers2-lute on "alat" (362.33 s); drummer on "tidak" (363.89 s). -->
+      <div id="root" data-composition-id="c3-08-ban" data-width="1920" data-height="1080">
+        <!-- Layers 1 to 4 are stacked in order; layer 1 is the ban page with its marker and caption, and layers 2 to 4 are cut in after it. -->
+        <div class="dr-shot" id="c308ban-a" data-layout-allow-overflow><img id="c308ban-a-img" src="data:image/svg+xml,%3C!--ban.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ban.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/ban.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.25,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /><div class="dr-mark" id="c308ban-a-m1" style="left: 1360px; top: 840px; width: 440px; height: 110px;"></div></div>
+        <div class="dr-cap" id="c308ban-a-cap" style="top: 880px;">Larangan menari, ditandatangani Sebastian Brant<br />Strasbourg, 2 Agustus 1518</div>
+        <div class="dr-shot" id="c308ban-b" data-layout-allow-overflow><img id="c308ban-b-img" src="data:image/svg+xml,%3C!--wedding.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/wedding.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/wedding.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c308ban-b-cap">Tarian Pernikahan<br />Pieter Bruegel, sekitar 1566</div>
+        <div class="dr-shot" id="c308ban-c" data-layout-allow-overflow><img id="c308ban-c-img" src="data:image/svg+xml,%3C!--dancers2-lute.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'839' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/dancers2-lute.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/dancers2-lute.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c308ban-d" data-layout-allow-overflow><img id="c308ban-d-img" src="data:image/svg+xml,%3C!--drummer.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/drummer.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/drummer.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* The yellow marker wipes across the first line of the ban from 1.87 s over 0.31 s. */
+        /* Phase 1, 0 to 4.15 s: the ban pushes in, and its caption is hidden at 4.15 s; phase 2 cuts in the wedding still with its caption at 4.15 s, hidden at 6.27 s. */
+        /* Phases 3 and 4: the chronicle woodcut is cut in at 6.27 s and the drummer at 7.83 s, each pushing on. */
+        tl.fromTo("#c308ban-a-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.31, ease: "power1.inOut" }, 1.87);
+        tl.fromTo("#c308ban-a", { scale: 1.0, x: -6, y: 2 }, { scale: 1.050, x: 6, y: -2, duration: 4.15, ease: "none" }, 0.0);
+        tl.to("#c308ban-a-cap", { opacity: 0, duration: 0.001 }, 4.15);
+        tl.fromTo("#c308ban-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.051, x: -5, y: 3, duration: 2.12, ease: "none" }, 4.15);
+        gsap.set("#c308ban-b", { opacity: 0 });
+        tl.to("#c308ban-b", { opacity: 1, duration: 0.001 }, 4.15);
+        gsap.set("#c308ban-b-cap", { opacity: 0 });
+        tl.to("#c308ban-b-cap", { opacity: 1, duration: 0.001 }, 4.15);
+        tl.to("#c308ban-b-cap", { opacity: 0, duration: 0.001 }, 6.27);
+        tl.fromTo("#c308ban-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.042, x: 4, y: 3, duration: 1.56, ease: "none" }, 6.27);
+        gsap.set("#c308ban-c", { opacity: 0 });
+        tl.to("#c308ban-c", { opacity: 1, duration: 0.001 }, 6.27);
+        tl.fromTo("#c308ban-d", { scale: 1.014, x: 6, y: 3 }, { scale: 1.054, x: -6, y: -3, duration: 2.35, ease: "none" }, 7.83);
+        gsap.set("#c308ban-d", { opacity: 0 });
+        tl.to("#c308ban-d", { opacity: 1, duration: 0.001 }, 7.83);
+        window.__timelines["c3-08-ban"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

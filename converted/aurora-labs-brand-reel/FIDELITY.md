@@ -1,21 +1,15 @@
 # Fidelity report: aurora-labs-brand-reel → main
 
-- translated: 21
-- approximated (with deltas): 61
-- refused: 17
+- translated: 22
+- approximated (with deltas): 66
+- refused: 11
 
 ## Refused (cause named; conversion refused)
 
 - `compositions/wordmark-palette.html`:85 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
-- `compositions/wordmark-palette.html`:87 [tl.fromTo] selector "#wordmark-palette-swatches .swatch" is compound; only `#id` and `.class` land
-- `compositions/type-specimen.html`:78 [tl.fromTo] selector "#type-specimen-copy .type-specimen-label" is compound; only `#id` and `.class` land
 - `compositions/type-specimen.html`:80 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
-- `compositions/type-specimen.html`:82 [tl.fromTo] property "transformOrigin" (value "\"0% 50%\"") has no KDL motion property; refusing the call site
 - `compositions/ui-card.html`:98 [tl.fromTo] property "v" (value "99.98") has no KDL motion property; refusing the call site
-- `compositions/ui-card.html`:101 [tl.fromTo] property "transformOrigin" (value "\"0% 50%\"") has no KDL motion property; refusing the call site
-- `compositions/ui-card.html`:103 [tl.fromTo] selector "#ui-card-steps .ui-card-step" is compound; only `#id` and `.class` land
 - `compositions/logo-close.html`:72 [tl.fromTo] property "strokeDashoffset" (value "0") has no KDL motion property; refusing the call site
-- `compositions/logo-close.html`:73 [tl.fromTo] property "transformOrigin" (value "\"50% 50%\"") has no KDL motion property; refusing the call site
 - `compositions/logo-close.html`:75 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
 - `compositions/aurora-wipe.html`:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
 - `compositions/aurora-wipe.html`:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site
@@ -40,6 +34,7 @@
 - `compositions/wordmark-palette.html`:74 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/wordmark-palette.html`:75 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/wordmark-palette.html`:76 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:87 [tl.fromTo] tl.fromTo on "#wordmark-palette-swatches .swatch" at start=1.4000 duration=0.6000 delta: selector matched 5 clips; stagger 0.0600s expanded to per-element start offsets
 - `compositions/type-specimen.html`:59 [placement] element #type-specimen-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/type-specimen.html`:61 [placement] element #type-specimen-glyph has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/type-specimen.html`:63 [placement] element #type-specimen-copy has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -50,6 +45,8 @@
 - `compositions/type-specimen.html`:59 [container element] element #type-specimen-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/type-specimen.html`:63 [container element] element #type-specimen-copy is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/type-specimen.html`:66 [container element] element #type-specimen-rule is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/type-specimen.html`:78 [tl.fromTo] tl.fromTo on "#type-specimen-copy .type-specimen-label" at start=5.6000 duration=0.6000 delta: selector matched 2 clips; stagger 0.5000s expanded to per-element start offsets
+- `compositions/type-specimen.html`:82 [tl.fromTo] tl.fromTo on "#type-specimen-rule" at start=6.0000 duration=0.6000 delta: transformOrigin "\"0% 50%\"" snapped to clip origin "left center" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
 - `compositions/ui-card.html`:72 [placement] element #ui-card-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/ui-card.html`:74 [placement] element #ui-card-card has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/ui-card.html`:75 [placement] element #ui-card-header has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -71,6 +68,8 @@
 - `compositions/ui-card.html`:82 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/ui-card.html`:83 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/ui-card.html`:84 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:101 [tl.fromTo] tl.fromTo on "#ui-card-fill" at start=11.0000 duration=1.4000 delta: transformOrigin "\"0% 50%\"" snapped to clip origin "left center" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
+- `compositions/ui-card.html`:103 [tl.fromTo] tl.fromTo on "#ui-card-steps .ui-card-step" at start=11.8000 duration=0.6000 delta: selector matched 3 clips; stagger 0.1200s expanded to per-element start offsets
 - `compositions/logo-close.html`:54 [placement] element #logo-close-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/logo-close.html`:56 [placement] element #logo-close-lockup has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/logo-close.html`:57 [placement] element #logo-close-mark has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -80,9 +79,9 @@
 - `compositions/logo-close.html`:65 [placement] element #logo-close-tag has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/logo-close.html`:54 [container element] element #logo-close-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/logo-close.html`:56 [container element] element #logo-close-lockup is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/logo-close.html`:57 [container element] element #logo-close-mark is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/logo-close.html`:58 [container element] element #logo-close-ring is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/logo-close.html`:60 [container element] element #logo-close-core is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-close.html`:73 [tl.fromTo] tl.fromTo on "#logo-close-core" at start=16.6000 duration=0.6000 delta: transformOrigin "\"50% 50%\"" snapped to clip origin "center" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
 - `compositions/aurora-wipe.html`:37 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/aurora-wipe.html`:37 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/aurora-wipe.html`:37 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -104,6 +103,7 @@
 - `compositions/ui-card.html`:94 [tl.fromTo] tl.fromTo on "#ui-card-chip" at start=10.9000 duration=0.2500
 - `compositions/ui-card.html`:105 [tl.fromTo] tl.fromTo on "#ui-card-dot" at start=11.2000 duration=0.5000
 - `compositions/ui-card.html`:107 [tl.fromTo] tl.fromTo on "#ui-card-stage" at start=10.0000 duration=6.0000
+- `compositions/logo-close.html`:57 [asset svg] inline <svg> extracted to assets/data-logo-close-mark.svg (418 bytes; xmlns added: true)
 - `compositions/logo-close.html`:70 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/logo-close.html`:77 [tl.fromTo] tl.fromTo on "#logo-close-tag" at start=17.3000 duration=0.6000
 - `compositions/logo-close.html`:79 [tl.fromTo] tl.fromTo on "#logo-close-stage" at start=16.0000 duration=4.0000

@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-11-red-shoes.html (composition id "c3-11-red-shoes")
+  WHAT: Beat 11 of chapter 3, on the crosses and the red shoes. The narration (Indonesian "Tangan mereka diberi
+    salib ...") describes the ritual marks given to the dancers. Three shots follow: the grotto lithograph of
+    1828 from 0 s; Hondius's procession plate (1642), showing the feet, cut in at 2.43 s; and a stock clip of
+    candles burning in the dark, cut in at 5.2 s. The beat runs 8.9 s; index.html mounts it at 381.72 s, under
+    narration clip voice-s41.
+  STRUCTURE: Three stacked layers in #root, back to front: #c311redshoes-a (grotto-cross.jpg), #c311redshoes-b
+    (pro-feet.jpg) and #c311redshoes-c (a video slot, footage/v05.mp4, now a still stand-in). Each is a .dr-shot wrapper. The
+    timeline (window.__timelines["c3-11-red-shoes"]) pushes layer a from 1.014 to 1.056 over 2.43 s. It cuts in
+    layer b at 2.43 s and pushes it from 1.014 to 1.061 over 2.77 s. At 5.2 s it cuts in the clip, which
+    pushes from 1.0 to 1.061 over its 3.7 s length.
+  CUSTOMIZE: Each still's file is named by data-media on its img (grotto-cross.jpg, pro-feet.jpg); set the src to
+    swap in your own (see MEDIA). The clip's file is named by data-media on the video slot #c311redshoes-c-video;
+    to use your own clip, turn the slot back into a video (see MEDIA). The cut times 2.43 and 5.2 must equal the
+    ends of the layers before them, and the total is the 8.9 s data-duration in index.html. The clip window is set
+    by data-start 5.2 and data-duration 3.7 on the video slot, so change the clip length there and in the last
+    tween together. The grade is the data-color-grading JSON on each media element.
+  MEDIA: no media file is bundled. This file has two photo slots, one video slot and one font slot. It has no
+    sound and no CSS image.
+    1. The grotto cross, img #c311redshoes-a-img (inside #c311redshoes-a, shown 0 to 2.43 s). It showed the grotto
+       lithograph of 1828 (grotto-cross.jpg). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/grotto-cross.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/grotto-cross.jpg). The data-media attribute only names the expected path; it loads
+       nothing. The img's data-color-grading still grades your picture.
+    2. The procession feet, img #c311redshoes-b-img (inside #c311redshoes-b, cut in at 2.43 s). It showed Hondius's
+       procession plate (1642), with the feet (pro-feet.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/pro-feet.jpg". To plug in your picture, set the img's src to your file.
+    3. The candles, video slot img #c311redshoes-c-video (inside #c311redshoes-c, from 5.2 s for 3.7 s; data-start
+       5.2, data-duration 3.7, data-track-index 1, data-media-kind="video"). It showed a stock clip of candles burning
+       in the dark, played muted (footage/v05.mp4). It now shows a faint hatch stand-in labeled
+       "VIDEO: footage/v05.mp4", which does not move. To plug in your clip, turn this img back into a video element with src set to your file path, muted and playsinline. Keep the id
+       c311redshoes-c-video, the data-start, data-duration, data-track-index and data-hf-media-start-basis attributes,
+       the data-color-grading attribute and data-media-kind="video", so the [data-media-kind="video"] CSS rule still
+       matches. Keep data-duration at 3.7 s, or change it together with the last tween. If you have only a still of a
+       candle flame, keep this img and set its src to the still; it holds for the same 3.7 s.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700). No element in this file uses it, so no font file is
+       needed. If you add a caption, add url("your-font.woff2") format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a beat about a ritual act that ends on a moving shot, for variety after prints. Pick c3-02 when the
+    beat should be stills only.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font declared here (Arimo) is not used by any text in this file. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root is the 1920 by 1080 frame in dark slate (#0f1518), behind every layer. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Tangan mereka diberi salib ..." (381.72 s): grotto-cross from the start; pro-feet on "Kaki" (384.15 s); film: candles burning in the dark on "yang" (386.92 s). -->
+      <div id="root" data-composition-id="c3-11-red-shoes" data-width="1920" data-height="1080">
+        <!-- Layers 1 to 3 are stacked in order: two stills, then the candle clip, each cut in over the one before it. -->
+        <div class="dr-shot" id="c311redshoes-a" data-layout-allow-overflow><img id="c311redshoes-a-img" src="data:image/svg+xml,%3C!--grotto-cross.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/grotto-cross.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/grotto-cross.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c311redshoes-b" data-layout-allow-overflow><img id="c311redshoes-b-img" src="data:image/svg+xml,%3C!--pro-feet.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pro-feet.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/pro-feet.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c311redshoes-c" data-layout-allow-overflow><img id="c311redshoes-c-video" data-start="5.2" data-hf-media-start-basis="local" data-duration="3.7" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' src="data:image/svg+xml,%3C!--v05.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/v05.mp4%3C/text%3E%3C/svg%3E" data-media="footage/v05.mp4" data-media-kind="video" alt="" /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1, 0 to 2.43 s: the grotto cross pushes in; phase 2 cuts in the procession feet at 2.43 s. */
+        /* Phase 3, from 5.2 s: the candle clip is cut in and pushes from scale 1.0 over its 3.7 s. */
+        tl.fromTo("#c311redshoes-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.056, x: 6, y: -2, duration: 2.43, ease: "none" }, 0.0);
+        tl.fromTo("#c311redshoes-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.061, x: -5, y: 3, duration: 2.77, ease: "none" }, 2.43);
+        gsap.set("#c311redshoes-b", { opacity: 0 });
+        tl.to("#c311redshoes-b", { opacity: 1, duration: 0.001 }, 2.43);
+        tl.fromTo("#c311redshoes-c", { scale: 1.0 }, { scale: 1.061, duration: 3.7, ease: "none" }, 5.2);
+        gsap.set("#c311redshoes-c", { opacity: 0 });
+        tl.to("#c311redshoes-c", { opacity: 1, duration: 0.001 }, 5.2);
+        window.__timelines["c3-11-red-shoes"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

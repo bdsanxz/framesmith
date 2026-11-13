@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main", 5 seconds, 1920 by 1080)
+  WHAT: A 5-second name card on a near-black ground. A vertical accent bar grows, the word WELCOME
+    slides in, then a large name and a smaller role line fade in, and the whole text block drifts
+    slowly to the right. The root holds only this card, so the card is the whole film.
+  STRUCTURE: Root composition "main" (data-duration 5) holds one host slot, #slot-card, which mounts
+    compositions/card.html as composition "card" at data-start 0 for 5 seconds on track 0 (kind graphics).
+    The root GSAP timeline is paused and registered as window.__timelines["main"]; it has no tweens of
+    its own, because the motion lives in the card sub-composition.
+  CUSTOMIZE: Template variables are declared in the data-composition-variables JSON on the html element:
+    name (string, default "Ada Lovelace", maxLength 28), role (string, default "First programmer"), and
+    accent (color, default "#7c5cff"). Change the defaults there, or pass values with the variables option
+    of the render command. The background #0e0f14 is set in the html, body and #root rules. Keep the
+    data-duration of #root and of #slot-card equal (both 5).
+  MEDIA: No media file is bundled with this composition, and this host file has no picture, video, sound
+    or font slot. It loads only the GSAP 3.14.2 library from cdn.jsdelivr.net, which is a script. The
+    fonts of card.html (Inter and JetBrains Mono) are named there with no @font-face rule and are bundled
+    with HyperFrames, so no font file is added. The name, role and accent come from this file's variables; the
+    layout and the fonts are in card.html.
+  WHEN TO USE: A short typographic name or title card that must render the same locally and in the cloud,
+    with the name and role supplied at render time. Pick another inspiration for a longer scene or one with footage.
+-->
+<html lang="en" data-composition-variables='[
+  {"id":"name","type":"string","label":"Name","default":"Ada Lovelace","maxLength":28},
+  {"id":"role","type":"string","label":"Role","default":"First programmer"},
+  {"id":"accent","type":"color","label":"Accent","default":"#7c5cff"}
+]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Name card — a cloud-ready template</title>
+    <!-- GSAP core, loaded from jsDelivr; the root timeline and the card timeline both use it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and padding, and size every box from its border. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* Pin the page to the 1920 by 1080 canvas and paint the background. */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0e0f14; }
+      /* The composition root fills the canvas and clips anything outside it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0e0f14; }
+    </style>
+  </head>
+  <body>
+    <!-- Root composition main: a 5 second timeline whose only child is the card host slot. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5" data-width="1920" data-height="1080">
+      <!-- Host slot: mounts compositions/card.html as the card composition for 5 seconds on track 0. -->
+      <div id="slot-card" data-composition-id="card" data-composition-src="compositions/card.html"
+        data-start="0" data-duration="5" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Root timeline: paused and registered for the renderer, with no tweens of its own. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

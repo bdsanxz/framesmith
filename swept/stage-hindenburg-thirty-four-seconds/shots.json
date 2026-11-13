@@ -1,0 +1,11 @@
+{"width": 1920, "height": 1080, "fps": 30, "out": "footage", "handle": 0.2,
+ "shots": [
+  {"id": "a1", "start": 5.93, "end": 9.95, "source": ".footage/src/universal.mp4", "in_point": 29.45, "subject": "the Hindenburg over Manhattan"},
+  {"id": "a2", "start": 9.95, "end": 12.81, "source": ".footage/src/universal.mp4", "in_point": 56.3, "subject": "the ship over the Lakehurst field and its mooring mast"},
+  {"id": "b1", "start": 12.81, "end": 17.08, "source": ".footage/src/universal.mp4", "in_point": 76.5, "subject": "flame pouring past the hull"},
+  {"id": "c1", "start": 51.2, "end": 52.55, "source": ".footage/src/universal.mp4", "in_point": 83.0, "subject": "the tail on fire"},
+  {"id": "c2", "start": 52.55, "end": 55.91, "source": ".footage/src/universal.mp4", "in_point": 86.4, "subject": "the burning ship settles to the ground"},
+  {"id": "d1", "start": 55.91, "end": 61.29, "source": ".footage/src/universal.mp4", "in_point": 97.0, "subject": "the wreck burning on the field"},
+  {"id": "e1", "start": 61.29, "end": 64.0, "source": ".footage/src/universal.mp4", "in_point": 187.3, "subject": "the twisted frame from the air, the next day"},
+  {"id": "e2", "start": 64.0, "end": 68.0, "source": ".footage/src/universal.mp4", "in_point": 195.6, "subject": "the black scar on the field from the air"}
+ ]}

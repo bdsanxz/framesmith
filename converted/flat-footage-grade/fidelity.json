@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 55,
-    "refused": 28,
-    "translated": 6
+    "approximated": 56,
+    "refused": 8,
+    "translated": 25
   },
   "duration": 24.0,
   "entries": [
@@ -106,7 +106,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #look-deep has no own left/top; placed by flow approximation at (0, 0)",
+      "detail": "element #look-deep has no own left/top; placed by flow approximation at (0, 540)",
       "file": "index.html",
       "line": 129,
       "verdict": "approximated"
@@ -114,7 +114,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #look-mono has no own left/top; placed by flow approximation at (960, 0)",
+      "detail": "element #look-mono has no own left/top; placed by flow approximation at (960, 540)",
       "file": "index.html",
       "line": 132,
       "verdict": "approximated"
@@ -122,7 +122,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #finished-wrap has no own left/top; placed by flow approximation at (960, 0)",
+      "detail": "element #finished-wrap has no own left/top; placed by flow approximation at (960, 540)",
       "file": "index.html",
       "line": 136,
       "verdict": "approximated"
@@ -130,7 +130,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #finished has no own left/top; placed by flow approximation at (960, 0)",
+      "detail": "element #finished has no own left/top; placed by flow approximation at (960, 540)",
       "file": "index.html",
       "line": 137,
       "verdict": "approximated"
@@ -138,7 +138,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hue-wrap has no own left/top; placed by flow approximation at (960, 0)",
+      "detail": "element #hue-wrap has no own left/top; placed by flow approximation at (960, 540)",
       "file": "index.html",
       "line": 140,
       "verdict": "approximated"
@@ -146,7 +146,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hue has no own left/top; placed by flow approximation at (960, 0)",
+      "detail": "element #hue has no own left/top; placed by flow approximation at (960, 540)",
       "file": "index.html",
       "line": 141,
       "verdict": "approximated"
@@ -161,10 +161,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #sting-mono references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #sting-mono data: URI decoded to assets/data-sting-mono.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 101,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -176,10 +176,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #sting-color references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #sting-color data: URI decoded to assets/data-sting-color.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 104,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -191,10 +191,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #source references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #source data: URI decoded to assets/data-source.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 109,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -206,10 +206,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #corrected references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #corrected data: URI decoded to assets/data-corrected.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 113,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -221,10 +221,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #graded references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #graded data: URI decoded to assets/data-graded.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 118,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -244,10 +244,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #look-warm references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #look-warm data: URI decoded to assets/data-look-warm.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 123,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -267,10 +267,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #look-muted references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #look-muted data: URI decoded to assets/data-look-muted.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 126,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -290,10 +290,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #look-deep references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #look-deep data: URI decoded to assets/data-look-deep.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 129,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -313,10 +313,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #look-mono references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #look-mono data: URI decoded to assets/data-look-mono.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 132,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -328,10 +328,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #finished references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #finished data: URI decoded to assets/data-finished.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 137,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -343,10 +343,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #hue references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #hue data: URI decoded to assets/data-hue.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 141,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -525,14 +525,14 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"a\" is an expression; refusing the call site",
+      "detail": "position \"a\" is outside the numeric grammar (unbound identifier \"a\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/labels.html",
       "line": 134,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"b\" is an expression; refusing the call site",
+      "detail": "position \"b\" is outside the numeric grammar (unbound identifier \"b\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/labels.html",
       "line": 135,
       "verdict": "refused"
@@ -546,17 +546,17 @@
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-source .stage\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-source .stage\" at start=3.1000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 141,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-source .payload\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-source .payload\" at start=3.4000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 142,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -574,52 +574,53 @@
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-correct .stage\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-correct .stage\" at start=6.1000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 148,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-correct .payload\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-correct .payload\" at start=6.5000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 149,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-grade .stage\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-grade .stage\" at start=10.1000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 152,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-grade .payload\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-grade .payload\" at start=10.4000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 153,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-look .tag\" is compound; only `#id` and `.class` land",
+      "delta": "selector matched 4 clips; stagger 0.1500s expanded to per-element start offsets",
+      "detail": "tl.from on \"#g-look .tag\" at start=13.6000 duration=0.4000",
       "file": "compositions/labels.html",
       "line": 155,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-finish .stage\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-finish .stage\" at start=18.1000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 157,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#g-finish .payload\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#g-finish .payload\" at start=18.4000 duration=0.5000",
       "file": "compositions/labels.html",
       "line": 158,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
@@ -658,7 +659,7 @@
     },
     {
       "construct": "tl.from",
-      "detail": "position \"13.5 + i * 0.15\" is an expression; refusing the call site",
+      "detail": "position \"13.5 + i * 0.15\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "index.html",
       "line": 159,
       "verdict": "refused"

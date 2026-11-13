@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition)
+  WHAT: A 10-second demo at 1920x1080 that mounts the odometer block twice, back to back. The first
+    5 seconds show the block on its declared defaults (1,284,907 with "renders this month" on a
+    dark ground). The next 5 seconds show the same block with five variables overridden: value
+    394, a registry label, a dark ink, a light ground and an orange accent. It checks that
+    per-instance values reach the block. The file plays no sound of its own.
+  STRUCTURE: #root (composition id "main", duration 10) holds two clip hosts on track 1:
+    #od-defaults mounts compositions/odometer-roll.html at start 0 for 5 s with no overrides, and
+    #od-registry mounts the same file at start 5 for 5 s with data-variable-values set to value
+    394, the label, ink #1b1f27, ground #f3efe6 and accent #e4572e. The root GSAP timeline is
+    paused, has no tweens, and is registered as window.__timelines["main"].
+  CUSTOMIZE: Change the overrides in the data-variable-values attribute of #od-registry. Any key
+    left out keeps the declared default of the block. The block declares seven variables (value,
+    prefix, suffix, label, ink, ground, accent) and this file overrides five of them. Keep each
+    host's data-duration equal to the block's own duration (5), and keep the starts 0 and 5, or
+    the two readouts will overlap or leave a gap.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. It loads only the GSAP 3.14.2 script from jsdelivr. The block it mounts is drawn with CSS and Inter,
+    which HyperFrames bundles.
+  WHEN TO USE: A test page for the odometer block, to check that per-instance values reach it. For
+    a finished film, copy the host pattern (one slot per beat) and leave this demo behind.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Odometer roll, twice</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Page reset and a fixed 1920 by 1080 frame on a dark ground. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #121418; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #121418; }
+    </style>
+  </head>
+  <body>
+    <!-- The block as a user receives it: compositions/odometer-roll.html (its files[].target), mounted with the
+         snippet that the hyperframes add command prints for odometer-roll when it is given the variable values. Instance 1 runs on the declared defaults;
+         instance 2 overrides five of its seven params. -->
+    <!-- Root composition: two odometer hosts on track 1, back to back, 5 seconds each. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="10" data-width="1920" data-height="1080">
+      <!-- Host 1: the block on its declared defaults, from 0 to 5 seconds. -->
+      <div id="od-defaults" data-composition-id="odometer-roll" data-composition-src="compositions/odometer-roll.html"
+        data-start="0" data-duration="5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Host 2: the same block with five variables overridden, from 5 to 10 seconds. -->
+      <div id="od-registry" data-composition-id="odometer-roll" data-composition-src="compositions/odometer-roll.html"
+        data-start="5" data-duration="5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"value":394,"label":"items in the HyperFrames registry, 2026-10-01","ink":"#1b1f27","ground":"#f3efe6","accent":"#e4572e"}'></div>
+    </div>
+    <script>
+      /* Paused root timeline with no tweens; each host runs its own timeline. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

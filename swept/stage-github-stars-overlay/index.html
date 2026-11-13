@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main", 6 seconds, 1920 by 1080, transparent)
+  WHAT: A 6-second stat badge meant to sit on top of footage. A dark glass card in the lower left shows the
+    GitHub star count of heygen-com/hyperframes. A gold star slams in first, the count runs up to the number,
+    then the label and the date appear, and the card fades out near the end so the overlay ends empty.
+  STRUCTURE: Root composition "main" (data-duration 6). One host slot, #stat-slot, mounts compositions/stat.html
+    as composition "stat" at 0 for 6 seconds on track 0 (kind graphics). The root GSAP timeline is paused and
+    registered as window.__timelines["main"]; it has no tweens of its own.
+  CUSTOMIZE: The canvas is transparent: html and body have background transparent and #root has no background,
+    so the render is an overlay. Keep those when editing, or the badge will sit on a solid block. The 1920 by
+    1080 size is in the viewport meta and in the data-width and data-height attributes. The duration 6 must
+    match on #root and on #stat-slot. Numbers, labels, colors and timings are edited in compositions/stat.html.
+  MEDIA: No media file is bundled. This file has no slots: it loads only the GSAP 3.14.2 core from
+    cdn.jsdelivr.net, which is a script, not media. No image, video, sound or font file is loaded: the star is
+    an inline SVG in stat.html, and Inter and JetBrains Mono are named in CSS only. The count is a constant in
+    stat.html, not fetched at render time, so nothing is to be plugged in here.
+  WHEN TO USE: A short dated data badge, such as a repository count with its date, that must be composited over
+    footage or exported as a transparent overlay. Pick another inspiration if the badge needs a full-frame background.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>GitHub stars — stat overlay</title>
+    <!-- GSAP core, loaded from jsDelivr; the stat timeline in stat.html uses it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and padding, and size every box from its border. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* No background anywhere: render as MP4 (black behind) or as a transparent overlay (--format webm/mov). */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+      /* The composition root fills the canvas and sets no background, so only the badge paints. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <!-- Root composition main: a 6 second timeline with one host slot and no background. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1920" data-height="1080">
+      <!-- Host slot: mounts compositions/stat.html as the stat composition for 6 seconds on track 0. -->
+      <div id="stat-slot" data-composition-id="stat" data-composition-src="compositions/stat.html"
+        data-start="0" data-duration="6" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Root timeline: paused and registered for the renderer, with no tweens of its own. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

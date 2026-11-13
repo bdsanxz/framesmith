@@ -1,38 +1,36 @@
 # Fidelity report: sketchbook-family → main
 
-- translated: 12
-- approximated (with deltas): 66
-- refused: 27
+- translated: 21
+- approximated (with deltas): 61
+- refused: 25
 
 ## Refused (cause named; conversion refused)
 
-- `index.html`:73 [asset img] element #clip references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:90 [asset img] element #clip-framed references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
 - `compositions/hw-title.html`:161 [tl.eventCallback] timeline call "eventCallback" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
 - `compositions/hw-title.html`:182 [tl.time] timeline call "time" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
 - `compositions/hw-title.html`:184 [tl.set] target "els[i]" is not a DOM selector ("els[i]" is runtime state); naming the call site instead of guessing a clip
-- `compositions/hw-title.html`:254 [tl.to] duration "IN" is not a non-negative number; refusing the call site
-- `compositions/hw-title.html`:269 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/hw-title.html`:254 [tl.to] duration "IN" is outside the numeric grammar (unbound identifier "IN" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/hw-title.html`:269 [tl.to] duration "CONFIG.sweep.end - CONFIG.sweep.start" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/hw-title.html`:279 [tl.set] property "strokeDasharray" (value "len") has no KDL motion property; refusing the call site
-- `compositions/hw-title.html`:281 [tl.to] position "uAt" is an expression; refusing the call site
-- `compositions/hw-title.html`:296 [tl.to] duration "OUT" is not a non-negative number; refusing the call site
-- `compositions/hw-title.html`:298 [tl.set] position "DUR - 0.02" is an expression; refusing the call site
+- `compositions/hw-title.html`:281 [tl.to] position "uAt" is outside the numeric grammar (unbound identifier "uAt" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/hw-title.html`:296 [tl.to] duration "OUT" is outside the numeric grammar (unbound identifier "OUT" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/hw-title.html`:298 [tl.set] property "visibility" (value "\"hidden\"") has no KDL motion property; refusing the call site
 - `compositions/notes.html`:203 [tl.set] property "visibility" (value "\"hidden\"") has no KDL motion property; refusing the call site
 - `compositions/hw-scribble-transition.html`:162 [tl.set] property "strokeDasharray" (value "len") has no KDL motion property; refusing the call site
-- `compositions/hw-scribble-transition.html`:163 [tl.to] position "0.04 * i" is an expression; refusing the call site
-- `compositions/hw-scribble-transition.html`:173 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/hw-scribble-transition.html`:163 [tl.to] position "0.04 * i" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/hw-scribble-transition.html`:173 [tl.to] position "1.42 + 0.035 * i" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/hw-scribble-transition.html`:182 [tl.set] property "visibility" (value "\"hidden\"") has no KDL motion property; refusing the call site
 - `compositions/hw-frame.html`:197 [tl.eventCallback] timeline call "eventCallback" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
 - `compositions/hw-frame.html`:219 [tl.time] timeline call "time" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
 - `compositions/hw-frame.html`:221 [tl.set] target "els[i]" is not a DOM selector ("els[i]" is runtime state); naming the call site instead of guessing a clip
-- `compositions/hw-frame.html`:328 [tl.to] duration "IN * 1.4" is not a non-negative number; refusing the call site
+- `compositions/hw-frame.html`:328 [tl.to] duration "IN * 1.4" is outside the numeric grammar (unbound identifier "IN" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/hw-frame.html`:332 [tl.set] property "strokeDasharray" (value "blen") has no KDL motion property; refusing the call site
 - `compositions/hw-frame.html`:333 [tl.to] property "strokeDashoffset" (value "0") has no KDL motion property; refusing the call site
 - `compositions/hw-frame.html`:337 [tl.set] property "strokeDasharray" (value "l") has no KDL motion property; refusing the call site
-- `compositions/hw-frame.html`:338 [tl.to] position "1.1 + i * 0.12" is an expression; refusing the call site
-- `compositions/hw-frame.html`:345 [tl.set] property "transformOrigin" (value "\"50% 50%\"") has no KDL motion property; refusing the call site
-- `compositions/hw-frame.html`:358 [tl.to] duration "OUT" is not a non-negative number; refusing the call site
-- `compositions/hw-frame.html`:360 [tl.set] position "DUR - 0.02" is an expression; refusing the call site
+- `compositions/hw-frame.html`:338 [tl.to] position "1.1 + i * 0.12" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/hw-frame.html`:345 [tl.set] target "unit" is not a DOM selector ("unit" is runtime state); naming the call site instead of guessing a clip
+- `compositions/hw-frame.html`:358 [tl.to] duration "OUT" is outside the numeric grammar (unbound identifier "OUT" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/hw-frame.html`:360 [tl.set] property "visibility" (value "\"hidden\"") has no KDL motion property; refusing the call site
 
 ## Approximated (measured deltas)
 
@@ -49,18 +47,17 @@
 - `compositions/hw-title.html`:102 [container element] element #hw-t-root is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-title.html`:111 [container element] element #hw-t-wrap is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-title.html`:112 [container element] element #hw-t-line is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/hw-title.html`:113 [container element] element #hw-t-under is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-title.html`:113 [container element] element #hw-t-under-path is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-title.html`:116 [container element] element #hw-t-drv is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:122 [placement] element #hw-co-root has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:135 [placement] element #hw-co-mug-scribble has no own left/top; placed by flow approximation at (1190, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:136 [placement] element #hw-co-mug-outline has no own left/top; placed by flow approximation at (1190, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:140 [placement] element #hw-co-mug-connector has no own left/top; placed by flow approximation at (1190, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:143 [placement] element #hw-co-mug-label has no own left/top; placed by flow approximation at (1190, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:152 [placement] element #hw-co-lemon-scribble has no own left/top; placed by flow approximation at (975, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:153 [placement] element #hw-co-lemon-outline has no own left/top; placed by flow approximation at (975, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:157 [placement] element #hw-co-lemon-connector has no own left/top; placed by flow approximation at (975, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/notes.html`:160 [placement] element #hw-co-lemon-label has no own left/top; placed by flow approximation at (975, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:135 [placement] element #hw-co-mug-scribble has no own left/top; placed by flow approximation at (1190, 420) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:136 [placement] element #hw-co-mug-outline has no own left/top; placed by flow approximation at (1190, 420) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:140 [placement] element #hw-co-mug-connector has no own left/top; placed by flow approximation at (1190, 420) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:143 [placement] element #hw-co-mug-label has no own left/top; placed by flow approximation at (1190, 420) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:152 [placement] element #hw-co-lemon-scribble has no own left/top; placed by flow approximation at (975, 620) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:153 [placement] element #hw-co-lemon-outline has no own left/top; placed by flow approximation at (975, 620) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:157 [placement] element #hw-co-lemon-connector has no own left/top; placed by flow approximation at (975, 620) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/notes.html`:160 [placement] element #hw-co-lemon-label has no own left/top; placed by flow approximation at (975, 620) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/notes.html`:165 [placement] element #hw-co-drv has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/notes.html`:122 [container element] element #hw-co-root is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:131 [container element] element #hw-co-mug is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -68,7 +65,6 @@
 - `compositions/notes.html`:133 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:135 [container element] element #hw-co-mug-scribble is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:136 [container element] element #hw-co-mug-outline is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/notes.html`:139 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:140 [container element] element #hw-co-mug-connector is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:142 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:143 [container element] element #hw-co-mug-label is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -77,7 +73,6 @@
 - `compositions/notes.html`:150 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:152 [container element] element #hw-co-lemon-scribble is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:153 [container element] element #hw-co-lemon-outline is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/notes.html`:156 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:157 [container element] element #hw-co-lemon-connector is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:159 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/notes.html`:160 [container element] element #hw-co-lemon-label is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -87,7 +82,6 @@
 - `compositions/hw-scribble-transition.html`:92 [placement] element #hw-st-solid has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/hw-scribble-transition.html`:93 [placement] element #hw-st-drv has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/hw-scribble-transition.html`:81 [container element] element #hw-st-root is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/hw-scribble-transition.html`:90 [container element] element #hw-st-svg is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-scribble-transition.html`:92 [container element] element #hw-st-solid is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-scribble-transition.html`:93 [container element] element #hw-st-drv is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-frame.html`:138 [placement] element #hw-fr-root has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -97,7 +91,6 @@
 - `compositions/hw-frame.html`:151 [placement] element #hw-fr-caption has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/hw-frame.html`:153 [placement] element #hw-fr-drv has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/hw-frame.html`:147 [container element] element #hw-fr-media is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/hw-frame.html`:149 [container element] element #hw-fr-svg is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-frame.html`:149 [container element] element #hw-fr-border is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-frame.html`:151 [container element] element #hw-fr-caption is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/hw-frame.html`:153 [container element] element #hw-fr-drv is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -105,12 +98,21 @@
 
 ## Translated
 
+- `index.html`:73 [asset img] element #clip data: URI decoded to assets/data-clip.svg (537 bytes, percent-encoded)
+- `index.html`:90 [asset img] element #clip-framed data: URI decoded to assets/data-clip-framed.svg (537 bytes, percent-encoded)
+- `compositions/hw-title.html`:113 [asset svg] inline <svg> extracted to assets/data-hw-t-under.svg (119 bytes; xmlns added: true)
 - `compositions/hw-title.html`:249 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/hw-title.html`:253 [tl.set] tl.set on wrap at start=0.0000 duration=0.5000
+- `compositions/notes.html`:134 [asset svg] inline <svg> extracted to assets/data-notes-134.svg (229 bytes; xmlns added: true)
+- `compositions/notes.html`:139 [asset svg] inline <svg> extracted to assets/data-notes-139.svg (179 bytes; xmlns added: true)
+- `compositions/notes.html`:151 [asset svg] inline <svg> extracted to assets/data-notes-151.svg (233 bytes; xmlns added: true)
+- `compositions/notes.html`:156 [asset svg] inline <svg> extracted to assets/data-notes-156.svg (181 bytes; xmlns added: true)
 - `compositions/notes.html`:197 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/hw-scribble-transition.html`:90 [asset svg] inline <svg> extracted to assets/data-hw-st-svg.svg (112 bytes; xmlns added: true)
 - `compositions/hw-scribble-transition.html`:157 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/hw-scribble-transition.html`:167 [tl.to] tl.to on "#hw-st-solid" at start=11.2000 duration=0.1200
 - `compositions/hw-scribble-transition.html`:170 [tl.to] tl.to on "#hw-st-solid" at start=11.8200 duration=0.1500
+- `compositions/hw-frame.html`:149 [asset svg] inline <svg> extracted to assets/data-hw-fr-svg.svg (116 bytes; xmlns added: true)
 - `compositions/hw-frame.html`:323 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/hw-frame.html`:327 [tl.set] tl.set on media at start=11.5000 duration=0.5000
 - `compositions/hw-frame.html`:341 [tl.to] tl.to on caption at start=12.9000 duration=0.4000

@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/sting.html (composition id "sting")
+  WHAT: The sting itself, 6 seconds long, on a 1080 square, mounted by index.html as the sting composition
+    at 0 s for 6 s on track 0 (graphics). The headline Keyframes rises in from 40px below between 0 and
+    0.6 seconds, then punches up to 1.12 times scale, dips to 0.97 and settles at 1 (0.8 to 1.75 seconds).
+    An orange square starts at the lower left and is thrown along a curved path, turning to face its
+    travel, and lands to the right of the headline between 1.0 and 2.6 seconds, where it shrinks to half
+    size. From 2.6 seconds the title and the landed square drift 30px right and 12px up together, until
+    5.9 seconds.
+  STRUCTURE: Back to front: #root (a radial gradient ground), then #sting-group (a full-size group that holds
+    both layers and is the drift target), with #sting-title-wrap (a flex row at top 470px holding the span
+    #sting-title, the word Keyframes at 150px) and #sting-mark (a 120px rounded square at left 140px, top
+    760px) on top. Timeline: #sting-title opacity and y from 0s for 0.6s; #sting-title-wrap scale in a
+    three-stop keyframes ladder from 0.8s (1.12, 0.97, 1.0 over 0.95s); #sting-mark motionPath from 1.0s for
+    1.6s, through the points (390, -560) and (790, -270) with curviness 1.5 and autoRotate; #sting-mark scale
+    to 0.5 and rotation to 0 from 2.6s for 0.3s; #sting-group x and y from 2.6s for 3.3s with sine.inOut. The
+    timeline is registered as window.__timelines["sting"].
+  CUSTOMIZE: The headline text is the content of #sting-title, its size 150px and color #ffffff, set in Inter
+    at weight 900 (inherited from #root). The square is #sting-mark: color #ff5a36, size 120px, corner
+    radius 28px, start at left 140 and top 760. The arc is the points array in the motionPath, given as
+    offsets from the start, so the landing sits near x 930 and y 490 on the canvas; curviness 1.5 sets how
+    bent the route is. If the headline text changes width, move the end point (790, -270) so the square
+    still lands just right of the word, and move the middle point (390, -560) with it to keep the arc's
+    shape. The ground is the radial gradient in #root, from #23232c to #101014. Timings are the numbers in
+    the tl calls: the arc runs 1.0 to 2.6; the shrink and the drift both start at 2.6, so they move
+    together; the drift ends at 5.9 (2.6 + 3.3) and must stay inside the 6 second length. Keep the
+    data-layout-allow-overflow and data-layout-allow-occlusion attributes where they are, since the layout
+    checks depend on them.
+  MEDIA: No media file is bundled. This file has no font file, photo, video, sound or CSS image slot. The
+    headline face, Inter, is named in CSS only (inherited from #root), so without it installed the browser
+    uses a generic sans-serif. To plug in your own file, add an @font-face rule for "Inter" with
+    src: url("assets/fonts/YOUR-FILE.woff2") format("woff2") to the style block. The MotionPathPlugin 3.14.2
+    script comes from cdn.jsdelivr.net, which the arc needs; it is a script, not a media file. The GSAP
+    core comes from index.html.
+  WHEN TO USE: A short title or logo sting where a headline and a mark should move together and the mark needs
+    a curved throw with a punch-in. Use a plain tween when no curved route is needed, to avoid the plugin.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <!-- MotionPathPlugin turns a point list into a curved route (what Studio's "Arc Motion" writes). -->
+      <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/MotionPathPlugin.min.js"></script>
+      <style>
+        /* Root of the sting: fills the square, clips overflow, and paints a dark radial ground. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Inter", sans-serif;
+          background: radial-gradient(circle at 50% 45%, #23232c 0%, #101014 65%); }
+        /* Group that holds the title and the mark, so one drift tween moves both. */
+        #sting-group { position: absolute; inset: 0; }
+        /* The square that is thrown: a 120px orange block with rounded corners, starting at lower left. */
+        #sting-mark { position: absolute; left: 140px; top: 760px; width: 120px; height: 120px; border-radius: 28px; background: #ff5a36; }
+        /* Headline wrapper: a full-width flex row that centers the title at 470px from the top. */
+        #sting-title-wrap { position: absolute; left: 0; right: 0; top: 470px; display: flex; justify-content: center; }
+        /* Headline text: 150px heavy white type. */
+        #sting-title { display: block; font-size: 150px; font-weight: 900; letter-spacing: -0.04em; color: #ffffff; }
+      </style>
+      <!-- Composition root for the sting: 1080 square, with the group as its only layer. -->
+      <div id="root" data-composition-id="sting" data-width="1080" data-height="1080">
+        <!-- Group: the title wrapper first, then the square, so the square paints over the headline. -->
+        <div id="sting-group" data-layout-allow-overflow>
+        <div id="sting-title-wrap" data-layout-allow-overflow><span id="sting-title" data-layout-allow-occlusion>Keyframes</span></div>
+        <!-- The mark crosses the headline for a few frames mid-throw: intended (allow-occlusion sits on the occluded text). -->
+        <!-- The square that gets thrown and lands beside the headline. -->
+        <div id="sting-mark" data-layout-allow-overflow></div>
+        </div>
+      </div>
+      <script>
+        /* Setup: register MotionPathPlugin for the arc, then create the paused timeline. */
+        gsap.registerPlugin(MotionPathPlugin);
+        const tl = gsap.timeline({ paused: true });
+
+        // Entrance (0–0.6s): the headline rises in.
+        tl.fromTo("#sting-title", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0);
+
+        // Pose ladder (0.8–2.0s): one tween, three explicit poses — punch in, overshoot back, settle.
+        // Parent ease "none" because each stop carries its own ease.
+        tl.to("#sting-title-wrap", {
+          keyframes: [
+            { scale: 1.12, duration: 0.25, ease: "power2.out" },
+            { scale: 0.97, duration: 0.3, ease: "power2.inOut" },
+            { scale: 1.0, duration: 0.4, ease: "power2.out" },
+          ],
+          ease: "none",
+        }, 0.8);
+
+        // Arc throw (1.0–2.6s): the mark travels a curved route instead of a straight diagonal,
+        // turning to face its direction of travel, and lands just right of the headline.
+        tl.fromTo("#sting-mark", { x: 0, y: 0, rotation: 0 }, {
+          duration: 1.6,
+          ease: "power2.inOut",
+          motionPath: { path: [{ x: 0, y: 0 }, { x: 390, y: -560 }, { x: 790, y: -270 }], curviness: 1.5, autoRotate: true },
+        }, 1.0);
+        /* The landed square shrinks to half size and squares its rotation to 0 over 0.3 seconds, from 2.6 seconds. */
+        tl.to("#sting-mark", { rotation: 0, scale: 0.5, duration: 0.3, ease: "back.out(2)" }, 2.6);
+
+        // Drift (2.6–6.0s): two keyframes on x and y on the group, so title and landed mark move together
+        // and the hold never freezes.
+        tl.fromTo("#sting-group", { x: 0, y: 0 }, { x: 30, y: -12, duration: 3.3, ease: "sine.inOut" }, 2.6);
+        /* Registers this timeline under the id sting so the host can seek it. */
+        window.__timelines["sting"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "title": "Teal and amber",
+  "contrast": 0.22,
+  "saturation": 0.12,
+  "splitTone": { "shadows": [-0.05, 0.03, 0.09], "highlights": [0.08, 0.03, -0.05], "balance": 0.5 }
+}

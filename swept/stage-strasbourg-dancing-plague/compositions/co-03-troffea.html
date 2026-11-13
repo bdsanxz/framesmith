@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/co-03-troffea.html (composition id "co-03-troffea")
+  WHAT: A 7.7 s beat of the cold open, mounted by index.html at 24.68 s, under the narration line that
+    begins "Tabib Paracelsus, yang datang". For 5.89 s a bridge picture (bridge.jpg) pushes in, with a
+    framed portrait of Paracelsus (f-paracelsus.jpg) on the right and the name "Paracelsus" in red under
+    it. At 5.89 s (30.57 s in the film) the portrait and its name go, a picture of the city
+    (stras-city.jpg) takes over, and the large red name "Frau Troffea" stands over it while the picture
+    pushes in slightly. The file has no sound; the narration and the music are mounted by index.html.
+    None of its three pictures is bundled, so each shows as a faint hatched stand-in with a label naming
+    its file until you add it (see MEDIA); the frame, the names and the red number still show.
+  STRUCTURE: Layers back to front: #co03troffea-a (.dr-shot, bridge picture), #co03troffea-a-frame
+    (.dr-frame, the portrait frame), with #co03troffea-a-face (.dr-face, the portrait picture) inside it,
+    #co03troffea-a-who (.dr-who, the name "Paracelsus"), #co03troffea-b (.dr-shot, city picture), and
+    #co03troffea-b-name (.dr-name, "Frau Troffea"). Timeline (gsap, paused): from 0 s for 5.89 s,
+    #co03troffea-a scales 1.014 to 1.109 and drifts x -6 to 6 and y 2 to -2; #co03troffea-a-face scales
+    1.0 to 1.071 inside the frame. At 5.89 s the frame and the name "Paracelsus" are hidden, and
+    #co03troffea-b and #co03troffea-b-name appear. From 5.89 s for 1.81 s, #co03troffea-b scales
+    1.014 to 1.046 with x 5 to -5 and y -3 to 3.
+  CUSTOMIZE: Pictures: the src of img#co03troffea-a-img (bridge.jpg), img#co03troffea-a-face-img
+    (f-paracelsus.jpg) and img#co03troffea-b-img (stras-city.jpg). Portrait frame: left 1338px, top 236px,
+    364 by 454 px, with a 12px solid #e8765a border in .dr-frame. Name under the frame: text of
+    #co03troffea-a-who, at left 1220px, top 702px, font-size 44px, colour #f04a2e in .dr-who. Red name:
+    text of #co03troffea-b-name, with inline top 560px and font-size 230px. The cut at 5.89 s is repeated
+    in several tweens and must stay the same in each. The length 7.7 s (5.89 + 1.81) must match
+    data-duration of co-03-troffea-slot in index.html. Grade: data-color-grading on each img (contrast 0.1,
+    saturation -0.32, blacks -0.22, temperature -0.05, vignette 0.2, grain 0.08).
+  MEDIA: No media file is bundled in this composition. It has three photo slots and one font slot, and
+    no sound, video or CSS image slot.
+    1. Photo, bridge: the img #co03troffea-a-img inside #co03troffea-a (the first layer, pushed for
+       5.89 seconds). It showed assets/generated/bridge.jpg, a graded still picture of the bridge.
+       Now it shows the hatched stand-in naming that path (data-media), with its grade kept. To plug
+       in: set src="assets/generated/bridge.jpg" on that img.
+    2. Photo, portrait: the img #co03troffea-a-face-img inside the frame #co03troffea-a-frame (the
+       face #co03troffea-a-face scales inside it). It showed assets/generated/f-paracelsus.jpg, the
+       portrait of Paracelsus. Now it shows the stand-in naming that path. To plug in: set
+       src="assets/generated/f-paracelsus.jpg" on that img.
+    3. Photo, city: the img #co03troffea-b-img inside #co03troffea-b, hidden until 5.89 seconds. It
+       showed assets/generated/stras-city.jpg, a graded still picture of the city. Now it shows the
+       stand-in naming that path. To plug in: set src="assets/generated/stras-city.jpg" on that img.
+    If a picture is missing, use a solid #0f1518 ground (the #root colour) so the text and frame
+    still teach, or a free licensed old engraving of the same subject from Wikimedia Commons.
+    4. Font: Arimo, in the @font-face rule at the top of the style block. It was the bundled file
+       assets/fonts/arimo-latin.woff2, which drew the names and the red number. Now the rule reads
+       src: local("Arimo"), so they use Arimo only when it is installed; otherwise the sans-serif in
+       the font stack. To plug in: add url("assets/fonts/arimo-latin.woff2") format("woff2") to the
+       src list of that rule.
+  WHEN TO USE: A beat that introduces a person through a framed portrait over a place, then names a second
+    person or place in large red type over the next picture. Pick another file when no portrait is
+    needed, or when the name must sit on the picture itself instead of under a frame.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts and stage: the Arimo face is local only, and the root fills the frame on a near-black slate ground. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The big red name: on screen from the first frame of its shot, no animation. */
+        .dr-name { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: rgba(198, 58, 36, 0.92); text-shadow: 0 0 22px rgba(198, 58, 36, 0.4); white-space: nowrap; }
+        /* The framed portrait: a small portrait in a thick salmon-red frame, the name in red at its foot. */
+        .dr-frame { position: absolute; left: 1338px; top: 236px; width: 364px; height: 454px; border: 12px solid #e8765a; background: #0f1518; overflow: hidden; box-shadow: 0 10px 34px rgba(4, 8, 10, 0.55); }
+        .dr-face { position: absolute; inset: 0; transform-origin: 50% 40%; }
+        .dr-face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The name under the framed portrait: a bold line in #f04a2e, centred under the frame. */
+        .dr-who { position: absolute; left: 1220px; width: 600px; top: 702px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 44px; line-height: 50px; color: #f04a2e; text-shadow: 0 0 6px #0a0c0d, 0 0 18px #0a0c0d; white-space: nowrap; }
+      </style>
+      <!-- "Tabib Paracelsus, yang datang ..." (24.68 s): bridge + framed portrait Paracelsus from the start; stras-city + red name Frau Troffea on "Frau" (30.57 s). -->
+      <div id="root" data-composition-id="co-03-troffea" data-width="1920" data-height="1080">
+        <!-- The first picture, the bridge, with its push carried by the wrapper. -->
+        <div class="dr-shot" id="co03troffea-a" data-layout-allow-overflow><img id="co03troffea-a-img" src="data:image/svg+xml,%3C!--bridge.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/bridge.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/bridge.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The framed portrait: a thick salmon frame holding the Paracelsus picture, which scales inside it. -->
+        <div class="dr-frame" id="co03troffea-a-frame"><div class="dr-face" id="co03troffea-a-face" data-layout-allow-overflow><img id="co03troffea-a-face-img" src="data:image/svg+xml,%3C!--f-paracelsus.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/f-paracelsus.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/f-paracelsus.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div></div>
+        <!-- The name set under the portrait frame, shown until the cut. -->
+        <div class="dr-who" id="co03troffea-a-who">Paracelsus</div>
+        <!-- The second picture, the city, hidden until the cut at 5.89 s. -->
+        <div class="dr-shot" id="co03troffea-b" data-layout-allow-overflow><img id="co03troffea-b-img" src="data:image/svg+xml,%3C!--stras-city.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/stras-city.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/stras-city.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The large red name over the city picture, hidden until the cut. -->
+        <div class="dr-name" id="co03troffea-b-name" style="top: 560px; font-size: 230px;">Frau Troffea</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1 (0 to 5.89 s): the bridge pushes in, and the portrait's picture pushes inside its frame. */
+        tl.fromTo("#co03troffea-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.109, x: 6, y: -2, duration: 5.89, ease: "none" }, 0.0);
+        tl.fromTo("#co03troffea-a-face", { scale: 1.0 }, { scale: 1.071, duration: 5.89, ease: "none" }, 0.0);
+        /* The cut at 5.89 s: the portrait frame and its name are removed. */
+        tl.to("#co03troffea-a-frame", { opacity: 0, duration: 0.001 }, 5.89);
+        tl.to("#co03troffea-a-who", { opacity: 0, duration: 0.001 }, 5.89);
+        /* Phase 2 (from 5.89 s): the city picture is shown and pushes in under the red name. */
+        tl.fromTo("#co03troffea-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.046, x: -5, y: 3, duration: 1.81, ease: "none" }, 5.89);
+        /* Setup: the city picture and its name start hidden until the cut. */
+        gsap.set("#co03troffea-b", { opacity: 0 });
+        tl.to("#co03troffea-b", { opacity: 1, duration: 0.001 }, 5.89);
+        gsap.set("#co03troffea-b-name", { opacity: 0 });
+        tl.to("#co03troffea-b-name", { opacity: 1, duration: 0.001 }, 5.89);
+        /* Registration: the host finds this timeline by the id co-03-troffea. */
+        window.__timelines["co-03-troffea"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/villages.html (composition id "villages")
+  WHAT: A 4.8 s number card in the paper-collage block, mounted at 35.01 s, after the verbeek scene.
+    A torn sulphur-yellow card slaps down with a large 165 stamped on it and the label COASTAL
+    VILLAGES DESTROYED typed beneath. A photograph of a destroyed village, Java, 1883, whips in from
+    the left as a taped print, and its caption, "Java, 1883: where a village stood", types out under
+    it. The paper overlay (paper.html) sits over the whole block.
+  STRUCTURE: Inside #vl-cam (the camera, scaling 1 to 1.05 over 4.8 s), back to front: the paper
+    #vl-news and #vl-scrap; the print #vl-print (the photo slot inside it, 900x696 at
+    110,96, tilted -2 degrees) with the tape #vl-print-tape; the caption strip #vl-id; the card #vl-card
+    (900,500, 880x430) with its background #vl-card-bg (a CSS image slot, see MEDIA), the number #vl-num and the label strip
+    #vl-label with #vl-label-text; and the tape #vl-tape over the card's corner. A hidden SVG filter,
+    #vl-tear, roughens the torn edges. Timeline, in seconds from the scene start: 0 the card slaps
+    from scale 1.3 to 1 in 0.18 s; 0.16 the tape pops; 0.3 the number 165 scales in in 0.12 s; 1.4
+    the print slides from x -1300 to 0 with its blur clearing over 0.42 s; 1.7 the label types at 22
+    characters a second; 2.92 the caption shows and types at 30 characters a second from 2.96.
+  CUSTOMIZE: The number is #vl-num (165, Anton 216px). The label is #vl-label-text (COASTAL VILLAGES
+    DESTROYED, Special Elite 40px). The caption is #vl-id-text ("Java, 1883: where a village stood"). The
+    card is yellow #f2c230 with the paper texture from the CSS image slot on #vl-card-bg. The print's box
+    is #vl-print; replace the image and keep the box. Each step's start time is a number in its fromTo or
+    set, and the typing speeds are the third argument of typeOn. The camera end 1.05 and 4.8 s length
+    must match the scene in index.html.
+  MEDIA: No media file is bundled. Slot 1, a photo: #vl-print img, a photograph of a destroyed village on
+    Java, cut and printed by make-footage.sh (it was assets/generated/kampong.png, per the README). A faint
+    hatch stand-in labeled "PHOTO: assets/generated/kampong.png" shows there, on the taped print. To plug in
+    your own file, set the img's src to it, for example src="assets/generated/kampong.png". A licensed
+    photograph of a village in ruins, or a grey sepia plate of the same size, works; the taped-print shape is
+    what carries the shot. Slot 2, a CSS image: #vl-card-bg, the paper texture on the yellow card (it was
+    url("assets/generated/card.jpg") with center and cover; the rule now reads none, so the card shows its
+    own #f2c230 colour). To plug it back in, replace none in that rule with url("assets/generated/card.jpg")
+    (or your own texture file). Slots 3 and 4, fonts: no font file is bundled. Anton (the number 165) and
+    Special Elite (the label and the caption) load with src: local(); each is used if installed, else the
+    sans-serif and monospace fallbacks show. To plug in the files, add url("assets/fonts/anton-latin.woff2")
+    and url("assets/fonts/special-elite-latin.woff2") as sources in the two @font-face rules. Sound slots:
+    none. No video here.
+  WHEN TO USE: One number that is the point of the moment, shown on a yellow card beside a photograph
+    of what it counts. Pick a different layout when the figure needs a chart.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton and Special Elite, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The cream ground of the collage block. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #e6dcc3; }
+        /* The camera wrapper: one slow push over everything inside it. */
+        #vl-cam { position: absolute; inset: 0; transform-origin: 1000px 600px; }
+        .vl-torn { filter: url(#vl-tear); }
+        /* Paper scraps under the prints: a ruled newsprint sheet and a grey strip. */
+        #vl-news { position: absolute; left: 1240px; top: 70px; width: 620px; height: 380px; background: repeating-linear-gradient(180deg, #d8cfb6 0 9px, #b9af95 9px 12px); transform: rotate(2deg); }
+        #vl-scrap { position: absolute; left: 40px; top: 820px; width: 460px; height: 150px; background: #c9bd9c; transform: rotate(-3deg); }
+        /* The photograph as a print (paper-cutout.py on the whole photo): a paper shadow on the wrapper, motion blur on the image. */
+        #vl-print { position: absolute; left: 110px; top: 96px; width: 900px; height: 696px; transform: rotate(-2deg); filter: drop-shadow(10px 16px 12px rgba(40, 32, 14, 0.4)); }
+        #vl-print img { position: absolute; inset: 0; width: 100%; height: 100%; }
+        #vl-print-tape { position: absolute; left: 380px; top: -20px; width: 170px; height: 42px; background: rgba(214, 200, 150, 0.9); transform: rotate(3deg); }
+        /* The caption strip under the print, typed in Special Elite. */
+        #vl-id { position: absolute; left: 170px; top: 836px; transform: rotate(-1.5deg); }
+        #vl-id-bg { position: absolute; inset: 0; background: #f7f3e8; }
+        #vl-id-text { position: relative; padding: 8px 18px; font-family: "Special Elite", monospace; font-size: 38px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        /* The number card: torn sulphur-yellow paper, a big number, a typed label strip. */
+        /* The number card: a yellow paper piece with the big number and a label strip. */
+        #vl-card { position: absolute; left: 900px; top: 500px; width: 880px; height: 430px; transform: rotate(2deg); }
+        #vl-card-bg { position: absolute; inset: 0; background: #f2c230 none /* image slot: assets/generated/card.jpg, not bundled */ center / cover; box-shadow: 0 10px 16px rgba(40, 32, 14, 0.3); }
+        #vl-num { position: absolute; left: 0; right: 0; top: 14px; text-align: center; font-family: "Anton", sans-serif; font-size: 216px; line-height: 1.15; color: #1c1a16; white-space: nowrap; }
+        #vl-label { position: absolute; left: 90px; right: 90px; bottom: 36px; height: 62px; background: #f7f3e8; text-align: center; }
+        #vl-label-text { font-family: "Special Elite", monospace; font-size: 40px; line-height: 66px; color: #24211b; white-space: nowrap; }
+        /* A strip of tape over the top-left corner of the number card. */
+        #vl-tape { position: absolute; left: 860px; top: 480px; width: 150px; height: 40px; background: rgba(214, 200, 150, 0.9); transform: rotate(-24deg); }
+      </style>
+      <div id="root" data-composition-id="villages" data-width="1920" data-height="1080">
+        <!-- Hidden SVG filter: vl-tear roughens the torn paper edges. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="vl-tear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" /><feDisplacementMap in="SourceGraphic" scale="14" /></filter>
+        </svg>
+        <!-- The camera group: scraps, the print, the caption, the number card and its tape, back to front. -->
+        <div id="vl-cam" data-layout-allow-overflow>
+          <div id="vl-news" class="vl-torn"></div>
+          <div id="vl-scrap" class="vl-torn"></div>
+          <div id="vl-print" data-layout-allow-overflow>
+            <img src="data:image/svg+xml,%3C!--kampong.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/kampong.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/kampong.png" alt="" />
+            <div id="vl-print-tape"></div>
+          </div>
+          <div id="vl-id">
+            <div id="vl-id-bg" class="vl-torn"></div>
+            <div id="vl-id-text">Java, 1883: where a village stood</div>
+          </div>
+          <div id="vl-card" data-layout-allow-overlap>
+            <div id="vl-card-bg" class="vl-torn"></div>
+            <div id="vl-num">165</div>
+            <div id="vl-label"><span id="vl-label-text">COASTAL VILLAGES DESTROYED</span></div>
+          </div>
+          <div id="vl-tape" data-layout-allow-overlap></div>
+        </div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: shows a text one character at a time, each character at its own time. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        /* The caption, the tape and the number start hidden until their tweens show them. */
+        gsap.set(["#vl-id", "#vl-tape", "#vl-num"], { opacity: 0 });
+        // The empty yellow card slaps down on the cut; the number is stamped on "one hundred and sixty-five" (35.05 s).
+        tl.fromTo("#vl-card", { scale: 1.3, rotation: -5, opacity: 0 }, { scale: 1, rotation: 2, opacity: 1, duration: 0.18, ease: "power4.out" }, 0);
+        tl.fromTo("#vl-tape", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.15, ease: "back.out(2)" }, 0.16);
+        tl.fromTo("#vl-num", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.12, ease: "power3.out" }, 0.3);
+        // The photograph whips in on "coastal villages" (36.65 s), smeared with motion blur.
+        tl.fromTo("#vl-print", { x: -1300 }, { x: 0, duration: 0.42, ease: "power3.out" }, 1.4);
+        tl.fromTo("#vl-print img", { filter: "blur(26px)" }, { filter: "blur(0px)", duration: 0.42, ease: "power2.out" }, 1.4);
+        // The label types across "coastal villages are destroyed".
+        typeOn("#vl-label-text", 1.7, 22);
+        // The caption of the print types on "destroyed" (37.90 s).
+        tl.to("#vl-id", { opacity: 1, duration: 0.05 }, 2.92);
+        typeOn("#vl-id-text", 2.96, 30);
+        /* The camera push runs for the whole scene, 4.8 s. */
+        tl.fromTo("#vl-cam", { scale: 1 }, { scale: 1.05, duration: 4.8, ease: "sine.inOut" }, 0);
+        window.__timelines["villages"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

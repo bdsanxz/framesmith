@@ -1,0 +1,281 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/full-03.html (composition id "full-03"). The direcfy skill's scripts/deep-tracery-build.py
+    rewrites this file on every build, so a comment fix here is lost unless the same change is made in that script
+    or in cut.json.
+  WHAT: scenes that FILL the frame while the presenter's voice goes on (z-index 5, over him, so they cover him):
+    icon flows, page captures with yellow marker bars and a slow zoom, card text on a pale or dark ground, a versus
+    pair, and a big figure. Sixteen scenes in this file's own seconds, three of them empty clip frames; the host
+    mounts it at 338.667 s for 209.267 s (slot full-03 in index.html). It has no sound: the words come in on screen
+    as the presenter speaks.
+  STRUCTURE: back to front, the scenes sit in #root in time order (.clip elements f71 to f109, data-track-index 0 to 5)
+    and each is shown only during its own data-start and data-duration, covering the full 1920 x 1080 area. The one
+    timeline is the paused gsap timeline "full-03" (tl), registered at the end of the script. The helper W fades words
+    in with a blur, the helper Q types words on, and each scene's camera, marks, labels, values and steps are fromTo
+    tweens at their own times. The scenes, in order:
+      f71  flow        0.00-8.50 s     icons with "kerjanya di bidang ini", "sekolahnya di bidang ini" and "dia kompeten";
+                                       steps at 2.14, 4.89 and 6.96 s, arrows at 4.73 and 6.80 s; box "LU KOMPETENSINYA APA?"
+      f72  page white  11.10-17.57 s  screenshot; label "THE DEATH OF EXPERTISE" typed on 11.40 to 11.72 s; marks at 12.83
+                                       and 13.11 s; camera 1.000 to 1.035, then a push to 1.12 at 15.69 s and on to 1.16 at 16.01 s
+      f76  card white  37.57-39.03 s  caps "kita di luar" with its words from 37.57 s; red bar "mereka di dalam" typed on at 38.48 s
+      f82  flow        69.60-74.23 s  two steps "objektif" and "adil" at 71.45 and 73.26 s, the arrow at 73.10 s; box
+                                       "KITA MESTI PUNYA KEMAMPUAN"
+      f85  card dark   87.03-88.97 s  caps "peluangnya ada", then the serif "tapi belum tentu" with its words from 87.79 s
+      f89  clip        112.20-119.40 s black frame; its footage is index.html slot v-89 (see MEDIA)
+      f92  page white  131.47-134.30 s screenshot; label "KATA HOTMAN PARIS" typed 131.77 to 132.00 s; marks at 132.17 and
+                                       132.45 s; camera 1.000 to 1.040
+      f94  page white  134.30-138.13 s screenshot with no label; marks at 136.31 and 136.59 s; camera 1.000 to 1.054
+      f93  clip        138.13-145.03 s black frame; its footage is index.html slot v-93 (see MEDIA)
+      f103 clip        170.90-176.30 s black frame; its footage is index.html slot v-103 (see MEDIA)
+      f102 page white  176.33-182.60 s screenshot; label "ITU PUN MEREKA BERSEBERANGAN" typed 176.63 to 176.95 s; marks at
+                                       180.65 and 180.93 s; camera 1.000 to 1.070
+      f104 versus      182.60-188.37 s "pendapat Mahfud MD" on the left and "pendapat Prof. Rhenald, Hotman" on the right with
+                                       "vs" between; the value lines are empty; the word "berseberangan" typed on at 188.06 s
+      f105 card white  188.37-189.93 s caps "terus kita mau" with its words from 188.37 s; red bar "percaya sama siapa?"
+                                       typed on at 188.85 s
+      f107 page white  203.23-206.27 s screenshot; label "IBAM: TUNTUTAN 15 TAHUN + 7,5 TAHUN" typed 203.53 to 204.12 s; mark
+                                       at 205.46 s; camera 1.000 to 1.042
+      f108 page white  206.27-208.23 s screenshot; label "VONIS: 4 TAHUN" typed 206.57 to 206.80 s; mark at 206.72 s; camera
+                                       1.000 to 1.028
+      f109 big         208.23-209.27 s "27" over "TAHUN" with the label "tuntutannya : 18 plus 9", the figure from 208.33 s
+    Not in this file: cut.json also lists b-roll for two spans of this composition, at local 40.03 s (footage/b05.mp4, index.html
+    slot v-77) and 74.23 s (footage/b07.mp4, slot v-83). Those clips are video slots that index.html places above this layer
+    (z-index 6, class brollvid), so this file has no element for them.
+    The styles for ranking rows, b-roll pictures and the dark page exist for other scenes that cut.json can place; this
+    file uses none of them, and the ring style is defined but unused here.
+  CUSTOMIZE: change cut.json and build again, never this file. A scene's words ("w"), its text ("lines", "word",
+    "label"), its side and its pictures live in cut.json; the colours are COLORS, and the timings CHAPTER, END and LEAD
+    are at the head of scripts/deep-tracery-build.py. By hand, keep these together when a scene moves: its data-start
+    and data-duration, the camera tween that starts at the same data-start, and the word times in W and Q that fall
+    inside it. Visual knobs in the style block: the mark colour (#fbe406), the label tag colour (#d92329), the pale and
+    dark grounds (#ecebea and #0e0f10), the big figure size (330 px), and the caps size (104 px).
+  MEDIA: no media file is bundled in this file. Every slot below shows a stand-in, a fallback or nothing, and the steps
+    to plug in your own file follow each one.
+    - Page captures, 6 photo slots: img.pg inside the .sheet of f72, f92, f94, f102, f107 and f108 (no data-media-kind).
+      They were screenshots of news pages: f72 assets/pages/wikipedia-death-of-expertise.png, f92
+      assets/pages/cnn-hotman-jangan-pelit.png, f94 assets/pages/detik-hotman-buktikan-tidak-korupsi.png, f102
+      assets/pages/planetfootball-neville-carragher-debate.png, f107 assets/pages/kompas-ibam-dituntut-15-tahun.png and
+      f108 assets/pages/cnn-ibam-divonis-4-tahun.png. Shown now: a 1600 x 900 hatch stand-in labeled with its path. Plug in:
+      set the src of each img.pg to its screenshot at that path, or to your own 16:9 image.
+    - Soft copies, 6 CSS image slots: the .soft div of each of those six pages, with background-image:none. Each was a
+      blurred copy of its screenshot, seen everywhere except the yellow marker bands, where the sharp page shows through
+      the mask. Shown now: nothing, so the sharp page shows across the whole frame. Plug in: in each .soft style, replace
+      none with url("assets/pages/NAME.soft.jpg") for that page and keep the mask as it is.
+    - Grounds, 3 CSS image slots: the background rules of the scenes. The pale rule (.scene.t-page.white, .scene.t-card.white,
+      .scene.t-versus, .scene.t-flow; used here by f71, f72, f76, f82, f92, f94, f102, f104, f105, f107 and f108) was
+      assets/grounds/pale.jpg. The dark rule (.scene.t-card.dark, .scene.t-rank, .scene.t-big; used here by f85 and f109)
+      was assets/grounds/dark.jpg. A third rule, .scene.t-page.dark, also has a none slot for assets/grounds/dark.jpg, but no scene here uses it, so it shows nothing. Shown now: the rule colour,
+      #ecebea for pale and #0e0f10 for dark. Plug in: replace none in the rule with url("assets/grounds/pale.jpg") or
+      url("assets/grounds/dark.jpg"), keeping center / cover.
+    - Bundled drawings (SVG, kept), 5 icon masks: the masks of the .fl-icon elements in f71 (f71-s0
+      assets/icons/certificate.svg, f71-s1 assets/icons/school.svg, f71-s2 assets/icons/check.svg) and f82
+      (f82-s0 assets/icons/eye.svg, f82-s1 assets/icons/scale.svg), loaded by url() in each inline style. They
+      are SVG files made for this inspiration and render as they are. They are not media slots and need nothing
+      plugged in. To use your own icon, change the url() in that inline style to your own SVG.
+    - Fonts, 6 font slots: the @font-face rules for Archivo (weights 500, 700 and 800), Instrument Serif (italic 400),
+      Bricolage Grotesque (800) and JetBrains Mono (500). Each uses src: local(...), so the face is used if it is
+      installed, otherwise the fallback. Archivo sets the scene text and the label tags, and Instrument Serif sets the
+      serif line "tapi belum tentu" in f85. Bricolage Grotesque and JetBrains Mono are declared but no rule here uses them.
+      Shown now: the installed font of that name, else the fallback (sans-serif for Archivo, serif for Instrument Serif).
+      Plug in: add a second source to a face, for example src: local("Archivo"), url("YOUR_FILE.woff2") format("woff2");.
+    - Video, 3 clip slots (f89, f93 and f103, class t-clip): this file has no video element, so each clip scene shows only its
+      black ground. Their footage is an img in index.html with class clipvid and ids v-89 (footage/c05.mp4, 7.2 s), v-93
+      (footage/c04.mp4, 6.9 s) and v-103 (footage/c06.mp4, 5.4 s). Plug in: turn that img in index.html back into
+      a video element with src set to your file, muted and playsinline, keeping its id, class and data-* attributes, so the clip rules still match.
+    - Sound: none in this file. The film's audio elements are in index.html.
+  WHEN TO USE: when a scene should fill the frame and cover the presenter while his voice goes on: a page capture with a
+    marked passage, a versus pair, a card of type, a flow of icons, or a big figure. Use over-NN for text laid over him
+    and back-NN for a scene behind him. For a narrated film without a presenter, use another style; this file belongs to
+    the deep tracery style (references/deep-tracery.md).
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is local() only, so it needs an installed font or the fallback; see MEDIA. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        /* Base: the root and the scene frame, then the word spans and the blank clip frame. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; }
+        .clip { position: absolute; }
+        .scene { inset: 0; overflow: hidden; background: #0c0c0d; }
+        .w { display: inline-block; }
+        .tag { display: inline-block; }
+        /* A page: the real capture on a pale ground, sharp where the marker is and soft elsewhere. */
+        .scene.t-page.white, .scene.t-card.white, .scene.t-versus, .scene.t-flow { background: #ecebea none /* image slot: assets/grounds/pale.jpg, not bundled */ center / cover; }
+        .scene.t-page.dark { background: #0e0f10 none /* image slot: assets/grounds/dark.jpg, not bundled */ center / cover; }
+        /* Camera and capture: the zoom box, the sheet holding the picture, and the picture layers on it. */
+        .cam { position: absolute; inset: 0; }
+        .sheet { position: absolute; transform-origin: 0 0; }
+        .sheet .pg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        .sheet .soft { position: absolute; inset: 0; background-size: 100% 100%; opacity: 0.97; }
+        .scene.t-page.white .sheet { mix-blend-mode: multiply; }
+        /* Marks: the yellow boxes drawn over the lines the presenter names. The red ring rule is defined but not used here. */
+        .mark { position: absolute; background: #fbe406; mix-blend-mode: multiply; transform-origin: 0 50%; }
+        .scene.t-page.dark .mark { mix-blend-mode: screen; background: rgba(251, 228, 6, 0.38); }
+        .ring { position: absolute; overflow: visible; }
+        .ring path { fill: none; stroke: #d92329; stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 1; vector-effect: non-scaling-stroke; }
+        /* Veil and captions: the fade under a page, its red label tag and its source line. */
+        .veil { position: absolute; left: 0; width: 1920px; bottom: 0; height: 420px; background: linear-gradient(0deg, rgba(236, 235, 234, 0.97) 0%, rgba(236, 235, 234, 0.94) 52%, rgba(236, 235, 234, 0) 100%); }
+        .scene.t-page.dark .veil { background: linear-gradient(0deg, rgba(14, 15, 16, 0.97) 0%, rgba(14, 15, 16, 0.94) 52%, rgba(14, 15, 16, 0) 100%); }
+        .scene.t-page.dark .psource { color: #9a9b9d; }
+        .plabel { position: absolute; left: 0; width: 1920px; bottom: 150px; text-align: center; }
+        .plabel .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 58px; line-height: 1; padding: 12px 22px 12px; text-transform: uppercase; letter-spacing: -0.01em; }
+        .psource { position: absolute; left: 0; width: 1920px; bottom: 96px; text-align: center; font-weight: 500; font-size: 24px; color: #3b3b3b; letter-spacing: 0.01em; }
+        .psource.dark { color: #8f9092; }
+        /* A text card: black caps on the pale ground with a red bar, or white type on black with film specks. */
+        .scene.t-card.dark, .scene.t-rank, .scene.t-big { background: #0e0f10 none /* image slot: assets/grounds/dark.jpg, not bundled */ center / cover; }
+        .cblock { position: absolute; left: 160px; width: 1600px; top: 0; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+        .ccaps { font-weight: 800; font-size: 104px; line-height: 1.02; letter-spacing: -0.025em; text-transform: uppercase; color: #0d0c0c; }
+        .scene.t-card.dark .ccaps { color: #f6fbfa; }
+        .clow { font-weight: 700; font-size: 76px; line-height: 1.1; letter-spacing: -0.02em; color: #0d0c0c; }
+        .scene.t-card.dark .clow { color: #f6fbfa; }
+        .cserif { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 500; font-size: 88px; line-height: 1.05; color: #0d0c0c; }
+        .scene.t-card.dark .cserif { color: #b9e31c; }
+        .cl .em { color: #d92329; }
+        .scene.t-card.dark .cl .em { color: #b9e31c; }
+        .cbar .tag, .cchip .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 60px; line-height: 1; padding: 10px 20px; text-transform: uppercase; letter-spacing: -0.005em; }
+        .cchip .tag { font-size: 44px; }
+        /* B-roll and clip: darkened ground so the caps over footage read. The footage is an index.html slot, so the b-roll picture rules are not used in this file. */
+        .scene.t-broll { background: #050505; }
+        .bstill { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; background-size: cover; background-position: center; filter: brightness(0.6) contrast(1.1) saturate(0.9); }
+        .bstill.gray { filter: grayscale(1) brightness(0.55) contrast(1.2); }
+        .bshade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(5, 5, 5, 0.86) 0%, rgba(5, 5, 5, 0.45) 30%, rgba(5, 5, 5, 0.15) 58%, rgba(5, 5, 5, 0.3) 100%); }
+        .scene.t-clip { background: #050505; }
+        /* A ranking: rows on black, the one that matters in red. No ranking is placed in this file. */
+        .rk { position: absolute; left: 460px; width: 1000px; top: 0; height: 1080px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+        .rk-title { color: #f6fbfa; font-weight: 800; font-size: 54px; letter-spacing: -0.02em; margin-bottom: 18px; text-align: center; }
+        .rk-row { display: flex; align-items: center; gap: 22px; height: 78px; background: #f3f3f1; color: #0d0c0c; padding: 0 26px 0 0; font-weight: 700; font-size: 42px; letter-spacing: -0.01em; }
+        .rk-n { width: 78px; height: 78px; line-height: 78px; text-align: center; background: #0d0c0c; color: #f3f3f1; font-weight: 800; }
+        .rk-l { flex: 1; }
+        .rk-v { font-weight: 800; }
+        .rk-row.pick { background: #d92329; color: #ffffff; }
+        .rk-row.pick .rk-n { background: #ffffff; color: #d92329; }
+        /* One figure, as large as the frame takes. */
+        .bg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #f6fbfa; }
+        .bg-label { font-weight: 500; font-size: 46px; color: #a9e8e0; letter-spacing: -0.01em; }
+        .bg-fig { font-weight: 800; font-size: 330px; line-height: 0.95; letter-spacing: -0.04em; }
+        .bg-unit .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 60px; line-height: 1; padding: 10px 22px; letter-spacing: -0.005em; }
+        /* Two things side by side. */
+        .vs { position: absolute; left: 0; width: 1920px; top: 250px; height: 380px; display: flex; align-items: center; justify-content: center; gap: 70px; color: #0d0c0c; }
+        .vs-col { width: 560px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .vs-col img { max-width: 420px; max-height: 190px; object-fit: contain; }
+        .vs-label { font-weight: 800; font-size: 62px; letter-spacing: -0.02em; text-transform: uppercase; text-align: center; line-height: 1.02; }
+        .vs-value { font-weight: 800; font-size: 110px; letter-spacing: -0.03em; line-height: 1; color: #d92329; }
+        .vs-op { font-weight: 800; font-size: 120px; line-height: 1; color: #0d0c0c; }
+        .vs-line { position: absolute; left: 160px; width: 1600px; top: 700px; text-align: center; font-weight: 800; font-size: 58px; letter-spacing: -0.015em; text-transform: uppercase; color: #0d0c0c; }
+        .vs-line .em { font-style: italic; }
+        /* A flow: plain icons in a row, an arrow between each, a red label under them. */
+        .fl { position: absolute; left: 0; width: 1920px; top: 250px; height: 330px; display: flex; align-items: center; justify-content: center; gap: 34px; }
+        .fl-step { width: 300px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .fl-icon { width: 190px; height: 190px; background: #0d0c0c; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+        .fl-num { width: 170px; height: 170px; border-radius: 50%; border: 8px solid #0d0c0c; font-weight: 800; font-size: 100px; line-height: 170px; text-align: center; color: #0d0c0c; }
+        .fl-label { font-weight: 700; font-size: 36px; letter-spacing: -0.01em; color: #0d0c0c; text-align: center; line-height: 1.1; }
+        .fl-arrow { width: 90px; height: 10px; background: #0d0c0c; position: relative; transform-origin: 0 50%; margin-bottom: 60px; }
+        .fl-arrow::after { content: ""; position: absolute; right: -6px; top: -15px; border-left: 30px solid #0d0c0c; border-top: 20px solid transparent; border-bottom: 20px solid transparent; }
+        .fl-box { position: absolute; left: 0; width: 1920px; top: 660px; text-align: center; }
+        .fl-box .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 58px; line-height: 1; padding: 12px 22px; text-transform: uppercase; letter-spacing: -0.01em; }
+        .fl-line { position: absolute; left: 160px; width: 1600px; top: 760px; text-align: center; font-weight: 800; font-size: 54px; letter-spacing: -0.015em; text-transform: uppercase; color: #0d0c0c; }
+        .fl-line .em { font-style: italic; }
+      </style>
+      <!-- Scenes in time order. Each div with class clip is one scene; its data-start and data-duration are in this file's seconds. -->
+      <div id="root" data-composition-id="full-03" data-width="1920" data-height="1080">
+        <!-- Scene f71, 0.00-8.50 s: flow of three icon steps (certificate, school, check: kerjanya di bidang ini, sekolahnya di bidang ini, dia kompeten) and the red box LU KOMPETENSINYA APA. -->
+        <div id="f71" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="0.0" data-duration="8.5" data-track-index="0"><div class="fl"><div id="f71-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/certificate.svg');mask-image:url('assets/icons/certificate.svg')"></div><div class="fl-label">kerjanya di bidang ini</div></div><div id="f71-a1" class="fl-arrow"></div><div id="f71-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/school.svg');mask-image:url('assets/icons/school.svg')"></div><div class="fl-label">sekolahnya di bidang ini</div></div><div id="f71-a2" class="fl-arrow"></div><div id="f71-s2" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/check.svg');mask-image:url('assets/icons/check.svg')"></div><div class="fl-label">dia kompeten</div></div></div><div class="fl-box"><span class="tag">LU KOMPETENSINYA APA?</span></div></div>
+        <!-- Scene f72, 11.10-17.57 s: pale page with the Wikipedia capture, two yellow marks, the red label THE DEATH OF EXPERTISE and its source line. -->
+        <div id="f72" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="11.1" data-duration="6.467" data-track-index="0"><div id="f72-cam" class="cam"><div class="sheet" style="left:80px;top:-331.958px;width:2200px;height:1240px;transform:scale(1.2302)"><img class="pg" src="data:image/svg+xml,%3C!--wikipedia-death-of-expertise.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1048' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/wikipedia-death-of-expertise.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/wikipedia-death-of-expertise.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/wikipedia-death-of-expertise.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38.2%,transparent 42.2%,transparent 57.9%,#000 61.9%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38.2%,transparent 42.2%,transparent 57.9%,#000 61.9%,#000 100%)"></div><div id="f72-m0" class="mark" style="left:425px;top:577px;width:938px;height:36px"></div><div id="f72-m1" class="mark" style="left:44px;top:629px;width:791px;height:36px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f72-lt" class="tag"><span id="f72-l0w0" class="w">THE</span> <span id="f72-l0w1" class="w">DEATH</span> <span id="f72-l0w2" class="w">OF</span> <span id="f72-l0w3" class="w">EXPERTISE</span></span></div><div class="psource">source : en.wikipedia.org</div></div>
+        <!-- Scene f76, 37.57-39.03 s: white card with the caps kita di luar and the red bar mereka di dalam. -->
+        <div id="f76" class="clip scene t-card white" data-layout-allow-occlusion data-layout-allow-overflow data-start="37.567" data-duration="1.466" data-track-index="0"><div class="cblock"><div class="cl ccaps"><span id="f76-l0w0" class="w">kita</span> <span id="f76-l0w1" class="w">di</span> <span id="f76-l0w2" class="w">luar</span></div><div class="cl cbar"><span id="f76-l1t" class="tag"><span id="f76-l1w0" class="w">mereka</span> <span id="f76-l1w1" class="w">di</span> <span id="f76-l1w2" class="w">dalam</span></span></div></div></div>
+        <!-- Scene f82, 69.60-74.23 s: flow of two icon steps (eye, scale: objektif, adil) and the red box KITA MESTI PUNYA KEMAMPUAN. -->
+        <div id="f82" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="69.6" data-duration="4.633" data-track-index="1"><div class="fl"><div id="f82-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/eye.svg');mask-image:url('assets/icons/eye.svg')"></div><div class="fl-label">objektif</div></div><div id="f82-a1" class="fl-arrow"></div><div id="f82-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/scale.svg');mask-image:url('assets/icons/scale.svg')"></div><div class="fl-label">adil</div></div></div><div class="fl-box"><span class="tag">KITA MESTI PUNYA KEMAMPUAN</span></div></div>
+        <!-- Scene f85, 87.03-88.97 s: dark card with the caps peluangnya ada and the lime serif line tapi belum tentu. -->
+        <div id="f85" class="clip scene t-card dark" data-layout-allow-occlusion data-layout-allow-overflow data-start="87.033" data-duration="1.934" data-track-index="2"><div class="cblock"><div class="cl ccaps"><span id="f85-l0w0" class="w">peluangnya</span> <span id="f85-l0w1" class="w">ada</span></div><div class="cl cserif"><span id="f85-l1w0" class="w">tapi</span> <span id="f85-l1w1" class="w">belum</span> <span id="f85-l1w2" class="w">tentu</span></div></div></div>
+        <!-- Scene f89, 112.20-119.40 s: black clip frame; its footage is the index.html video slot v-89 (see MEDIA). -->
+        <div id="f89" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="112.2" data-duration="7.2" data-track-index="2"></div>
+        <!-- Scene f92, 131.47-134.30 s: pale page with the CNN capture, two yellow marks, the red label KATA HOTMAN PARIS and its source line. -->
+        <div id="f92" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="131.467" data-duration="2.833" data-track-index="2"><div id="f92-cam" class="cam"><div class="sheet" style="left:80px;top:-383.789px;width:2200px;height:1240px;transform:scale(1.3158)"><img class="pg" src="data:image/svg+xml,%3C!--cnn-hotman-jangan-pelit.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'953' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/cnn-hotman-jangan-pelit.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/cnn-hotman-jangan-pelit.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/cnn-hotman-jangan-pelit.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38.0%,transparent 42.0%,transparent 58.0%,#000 62.0%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38.0%,transparent 42.0%,transparent 58.0%,#000 62.0%,#000 100%)"></div><div id="f92-m0" class="mark" style="left:545px;top:580px;width:565px;height:40px"></div><div id="f92-m1" class="mark" style="left:16px;top:620px;width:154px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f92-lt" class="tag"><span id="f92-l0w0" class="w">KATA</span> <span id="f92-l0w1" class="w">HOTMAN</span> <span id="f92-l0w2" class="w">PARIS</span></span></div><div class="psource">source : cnnindonesia.com</div></div>
+        <!-- Scene f94, 134.30-138.13 s: pale page with the detik capture, two yellow marks, no label, and its source line. -->
+        <div id="f94" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="134.3" data-duration="3.833" data-track-index="3"><div id="f94-cam" class="cam"><div class="sheet" style="left:100.625px;top:23.225px;width:2200px;height:1240px;transform:scale(0.7812)"><img class="pg" src="data:image/svg+xml,%3C!--detik-hotman-buktikan-tidak-korupsi.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1181' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/detik-hotman-buktikan-tidak-korupsi.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/detik-hotman-buktikan-tidak-korupsi.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/detik-hotman-buktikan-tidak-korupsi.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 32.9%,transparent 36.9%,transparent 63.1%,#000 67.1%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 32.9%,transparent 36.9%,transparent 63.1%,#000 67.1%,#000 100%)"></div><div id="f94-m0" class="mark" style="left:42px;top:559px;width:1292px;height:66px"></div><div id="f94-m1" class="mark" style="left:42px;top:615px;width:125px;height:66px"></div></div></div><div class="veil"></div><div class="psource">source : detik.com</div></div>
+        <!-- Scene f93, 138.13-145.03 s: black clip frame; its footage is the index.html video slot v-93 (see MEDIA). -->
+        <div id="f93" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="138.133" data-duration="6.9" data-track-index="3"></div>
+        <!-- Scene f103, 170.90-176.30 s: black clip frame; its footage is the index.html video slot v-103 (see MEDIA). -->
+        <div id="f103" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="170.9" data-duration="5.4" data-track-index="3"></div>
+        <!-- Scene f102, 176.33-182.60 s: pale page with the Planetfootball capture, two yellow marks, the red label ITU PUN MEREKA BERSEBERANGAN and its source line. -->
+        <div id="f102" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="176.333" data-duration="6.267" data-track-index="4"><div id="f102-cam" class="cam"><div class="sheet" style="left:80px;top:14.812px;width:2200px;height:800px;transform:scale(1.0417)"><img class="pg" src="data:image/svg+xml,%3C!--planetfootball-neville-carragher-debate.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1257' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/planetfootball-neville-carragher-debate.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/planetfootball-neville-carragher-debate.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/planetfootball-neville-carragher-debate.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 29.5%,transparent 33.5%,transparent 66.6%,#000 70.6%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 29.5%,transparent 33.5%,transparent 66.6%,#000 70.6%,#000 100%)"></div><div id="f102-m0" class="mark" style="left:1275px;top:344px;width:59px;height:50px"></div><div id="f102-m1" class="mark" style="left:98px;top:407px;width:309px;height:50px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f102-lt" class="tag"><span id="f102-l0w0" class="w">ITU</span> <span id="f102-l0w1" class="w">PUN</span> <span id="f102-l0w2" class="w">MEREKA</span> <span id="f102-l0w3" class="w">BERSEBERANGAN</span></span></div><div class="psource">source : planetfootball.com</div></div>
+        <!-- Scene f104, 182.60-188.37 s: versus of pendapat Mahfud MD and pendapat Prof. Rhenald, Hotman, with vs between; the value lines are empty and berseberangan sits below. -->
+        <div id="f104" class="clip scene t-versus" data-layout-allow-occlusion data-layout-allow-overflow data-start="182.6" data-duration="5.767" data-track-index="4"><div class="vs"><div id="f104-l" class="vs-col"><div class="vs-label">pendapat Mahfud MD</div><div class="vs-value"></div></div><div id="f104-op" class="vs-op">vs</div><div id="f104-r" class="vs-col"><div class="vs-label">pendapat Prof. Rhenald, Hotman</div><div class="vs-value"></div></div></div><div class="vs-line"><span id="f104-l0w0" class="w em">berseberangan</span></div></div>
+        <!-- Scene f105, 188.37-189.93 s: white card with the caps terus kita mau and the red bar percaya sama siapa. -->
+        <div id="f105" class="clip scene t-card white" data-layout-allow-occlusion data-layout-allow-overflow data-start="188.367" data-duration="1.566" data-track-index="4"><div class="cblock"><div class="cl ccaps"><span id="f105-l0w0" class="w">terus</span> <span id="f105-l0w1" class="w">kita</span> <span id="f105-l0w2" class="w">mau</span></div><div class="cl cbar"><span id="f105-l1t" class="tag"><span id="f105-l1w0" class="w">percaya</span> <span id="f105-l1w1" class="w">sama</span> <span id="f105-l1w2" class="w">siapa?</span></span></div></div></div>
+        <!-- Scene f107, 203.23-206.27 s: pale page with the Kompas capture, one yellow mark, the red label IBAM: TUNTUTAN 15 TAHUN + 7,5 TAHUN and its source line. -->
+        <div id="f107" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="203.233" data-duration="3.034" data-track-index="5"><div id="f107-cam" class="cam"><div class="sheet" style="left:151.424px;top:-23.743px;width:2200px;height:1240px;transform:scale(0.7351)"><img class="pg" src="data:image/svg+xml,%3C!--kompas-ibam-dituntut-15-tahun.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1067' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/kompas-ibam-dituntut-15-tahun.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/kompas-ibam-dituntut-15-tahun.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/kompas-ibam-dituntut-15-tahun.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 31.1%,transparent 35.1%,transparent 64.9%,#000 68.9%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 31.1%,transparent 35.1%,transparent 64.9%,#000 68.9%,#000 100%)"></div><div id="f107-m0" class="mark" style="left:857px;top:575px;width:1314px;height:90px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f107-lt" class="tag"><span id="f107-l0w0" class="w">IBAM:</span> <span id="f107-l0w1" class="w">TUNTUTAN</span> <span id="f107-l0w2" class="w">15</span> <span id="f107-l0w3" class="w">TAHUN</span> <span id="f107-l0w4" class="w">+</span> <span id="f107-l0w5" class="w">7,5</span> <span id="f107-l0w6" class="w">TAHUN</span></span></div><div class="psource">source : kompas.com</div></div>
+        <!-- Scene f108, 206.27-208.23 s: pale page with the CNN capture, one yellow mark, the red label VONIS: 4 TAHUN and its source line. -->
+        <div id="f108" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="206.267" data-duration="1.966" data-track-index="5"><div id="f108-cam" class="cam"><div class="sheet" style="left:80px;top:-433.745px;width:2200px;height:1240px;transform:scale(1.3964)"><img class="pg" src="data:image/svg+xml,%3C!--cnn-ibam-divonis-4-tahun.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'972' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/cnn-ibam-divonis-4-tahun.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/cnn-ibam-divonis-4-tahun.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/cnn-ibam-divonis-4-tahun.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 39.6%,transparent 43.6%,transparent 56.4%,#000 60.4%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 39.6%,transparent 43.6%,transparent 56.4%,#000 60.4%,#000 100%)"></div><div id="f108-m0" class="mark" style="left:16px;top:600px;width:544px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f108-lt" class="tag"><span id="f108-l0w0" class="w">VONIS:</span> <span id="f108-l0w1" class="w">4</span> <span id="f108-l0w2" class="w">TAHUN</span></span></div><div class="psource">source : cnnindonesia.com</div></div>
+        <!-- Scene f109, 208.23-209.27 s: dark big figure 27 with the unit TAHUN and the label tuntutannya : 18 plus 9. -->
+        <div id="f109" class="clip scene t-big" data-layout-allow-occlusion data-layout-allow-overflow data-start="208.233" data-duration="1.034" data-track-index="5"><div class="bg"><div class="bg-label">tuntutannya : 18 plus 9</div><div id="f109-fig" class="bg-fig">27</div><div class="bg-unit"><span class="tag">TAHUN</span></div></div></div>
+      </div>
+      <!-- Script block: the paused GSAP timeline for this file, with the word helpers W and Q and one group of tweens per scene. -->
+      <script>
+        // The one paused timeline for this file, registered at the end of the script.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        // Scene by scene, in time order: the steps, words, camera, marks, labels and values of f71 to f109.
+        tl.fromTo("#f71-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 2.144);
+        tl.fromTo("#f71-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 4.73);
+        tl.fromTo("#f71-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 4.89);
+        tl.fromTo("#f71-a2", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 6.803);
+        tl.fromTo("#f71-s2", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 6.963);
+        Q([["f72-lt", 11.4], ["f72-l0w0", 11.45], ["f72-l0w1", 11.54], ["f72-l0w2", 11.63], ["f72-l0w3", 11.72]]);
+        tl.set("#f72-cam", { transformOrigin: "945.45px 432.0px" }, 0);
+        tl.fromTo("#f72-cam", { scale: 1 }, { scale: 1.035, duration: 4.568, ease: "none", immediateRender: false }, 11.1);
+        tl.fromTo("#f72-cam", { scale: 1.035 }, { scale: 1.12, duration: 0.3, ease: "power3.inOut", immediateRender: false }, 15.688);
+        tl.fromTo("#f72-cam", { scale: 1.12 }, { scale: 1.16, duration: 1.539, ease: "none", immediateRender: false }, 16.008);
+        tl.fromTo("#f72-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 12.833);
+        tl.fromTo("#f72-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.421, ease: "power1.inOut" }, 13.113);
+        W([["f76-l0w0", 37.567], ["f76-l0w1", 37.819], ["f76-l0w2", 37.898], ["f76-l1w0", 38.493], ["f76-l1w1", 38.642], ["f76-l1w2", 38.791]]);
+        Q([["f76-l1t", 38.483]]);
+        tl.fromTo("#f82-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 71.45);
+        tl.fromTo("#f82-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 73.095);
+        tl.fromTo("#f82-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 73.255);
+        W([["f85-l0w0", 87.033], ["f85-l0w1", 87.402], ["f85-l1w0", 87.793], ["f85-l1w1", 87.913], ["f85-l1w2", 88.044]]);
+        Q([["f92-lt", 131.767], ["f92-l0w0", 131.817], ["f92-l0w1", 131.907], ["f92-l0w2", 131.997]]);
+        tl.set("#f92-cam", { transformOrigin: "820.789px 432.0px" }, 0);
+        tl.fromTo("#f92-cam", { scale: 1 }, { scale: 1.04, duration: 2.833, ease: "none", immediateRender: false }, 131.467);
+        tl.fromTo("#f92-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.334, ease: "power1.inOut" }, 132.168);
+        tl.fromTo("#f92-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.176, ease: "power1.inOut" }, 132.448);
+        tl.set("#f94-cam", { transformOrigin: "638.125px 507.6px" }, 0);
+        tl.fromTo("#f94-cam", { scale: 1 }, { scale: 1.054, duration: 3.833, ease: "none", immediateRender: false }, 134.3);
+        tl.fromTo("#f94-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 136.31);
+        tl.fromTo("#f94-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.165, ease: "power1.inOut" }, 136.59);
+        Q([["f102-lt", 176.633], ["f102-l0w0", 176.683], ["f102-l0w1", 176.773], ["f102-l0w2", 176.863], ["f102-l0w3", 176.953]]);
+        tl.set("#f102-cam", { transformOrigin: "825.833px 432.0px" }, 0);
+        tl.fromTo("#f102-cam", { scale: 1 }, { scale: 1.07, duration: 6.267, ease: "none", immediateRender: false }, 176.333);
+        tl.fromTo("#f102-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.14, ease: "power1.inOut" }, 180.653);
+        tl.fromTo("#f102-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.236, ease: "power1.inOut" }, 180.933);
+        Q([["f104-l0w0", 188.058]]);
+        tl.fromTo("#f104-l", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 182.68);
+        tl.fromTo("#f104-op", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.2, ease: "back.out(2)" }, 182.9);
+        tl.fromTo("#f104-r", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 183.02);
+        W([["f105-l0w0", 188.367], ["f105-l0w1", 188.502], ["f105-l0w2", 188.664], ["f105-l1w0", 188.858], ["f105-l1w1", 189.213], ["f105-l1w2", 189.407]]);
+        Q([["f105-l1t", 188.848]]);
+        Q([["f107-lt", 203.533], ["f107-l0w0", 203.583], ["f107-l0w1", 203.673], ["f107-l0w2", 203.763], ["f107-l0w3", 203.853], ["f107-l0w4", 203.943], ["f107-l0w5", 204.033], ["f107-l0w6", 204.123]]);
+        tl.set("#f107-cam", { transformOrigin: "1264.319px 432.0px" }, 0);
+        tl.fromTo("#f107-cam", { scale: 1 }, { scale: 1.042, duration: 3.034, ease: "none", immediateRender: false }, 203.233);
+        tl.fromTo("#f107-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 205.455);
+        Q([["f108-lt", 206.567], ["f108-l0w0", 206.617], ["f108-l0w1", 206.707], ["f108-l0w2", 206.797]]);
+        tl.set("#f108-cam", { transformOrigin: "482.153px 432.0px" }, 0);
+        tl.fromTo("#f108-cam", { scale: 1 }, { scale: 1.028, duration: 1.966, ease: "none", immediateRender: false }, 206.267);
+        tl.fromTo("#f108-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.326, ease: "power1.inOut" }, 206.717);
+        tl.fromTo("#f109-fig", { opacity: 0, scale: 1.25, filter: "blur(18px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, 208.333);
+        tl.fromTo("#f109 .bg-unit", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }, 208.633);
+        window.__timelines["full-03"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/paper.html (composition id "paper"), written by scripts/paper-flash-build.py
+  WHAT: the paper flash: a sheet of crumpled white paper washes over the outgoing shot, covers the cut,
+    and clears from the incoming one, in about a third of a second. Each flash lasts 0.39 s. This film has six, on its
+    phrase seams at 2.08, 10.18, 15.28, 26.54, 31.88 and 36.14 s. Mounted over the whole 40.24 s film.
+  STRUCTURE: mounted over the whole film (z-index 8, the paper-slot in index.html); one img element with id="paper" at full frame,
+    opacity 0 at rest. One keyframed tween per seam: the opacity rises to 0.55 over 0.12 s before the seam (RISE), snaps
+    to full (1), holds over the cut for 0.07 s (HOLD), and falls back to 0 over 0.2 s (FALL).
+  CUSTOMIZE: which shots arrive under a flash is cut.json "paper" (shot ids). change the manifests (shots.json, cut.json, captions.txt) and build again, never this file:
+    it is rewritten on every build. The seam timings are RISE, HOLD, FALL, TEAR, ZOOM_IN, ZOOM_OUT
+    at the head of scripts/paper-flash-build.py. The seam times written here (2.075 s and the rest) must match the cuts
+    in index.html, and the RISE, HOLD and FALL lengths (0.12 s, 0.07 s, 0.2 s) set how long each flash lasts.
+  MEDIA: no media file is bundled. The one slot is the photo img element with id="paper" (no data-media-kind, so it is a photo slot).
+    It showed a photo of crumpled white paper, data-media="assets/paper/crumpled-white.jpg", which the original build copied
+    from the skill's assets/paper-flash/ folder. Now it shows the labelled hatch stand-in, a faint grey hatch with the label
+    "PHOTO: assets/paper/crumpled-white.jpg", so each flash washes grey hatch over the cut. To plug in your own photo, set
+    the img's src to "assets/paper/crumpled-white.jpg" (or your own path) in place of its data:image/svg+xml value. Any
+    light crumpled-paper photo at that path works. The photo fills the frame (object-fit cover).
+  WHEN TO USE: a vertical Short (1080x1920) cut fast on the spoken words, in the paper flash transitions style
+    (references/paper-flash-transitions.md). For a calm or long-form film use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The paper flash: a sheet of crumpled white paper washes over the outgoing shot, covers the
+           cut, and clears from the incoming one. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #paper { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; opacity: 0; }
+      </style>
+      <!-- The paper sheet: one photo slot over the whole frame, hidden until a flash. -->
+      <div id="root" data-composition-id="paper" data-width="1080" data-height="1920">
+        <img id="paper" src="data:image/svg+xml,%3C!--crumpled-white.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/paper/crumpled-white.jpg%3C/text%3E%3C/svg%3E" data-media="assets/paper/crumpled-white.jpg" alt="" />
+      </div>
+      <script>
+        /* One flash per seam: rise, snap to full, hold, then fall. */
+        const tl = gsap.timeline({ paused: true });
+        tl.to("#paper", { keyframes: [{ opacity: 0.55, duration: 0.12, ease: "power1.in" }, { opacity: 1, duration: 0.001 }, { opacity: 1, duration: 0.07 }, { opacity: 0, duration: 0.2, ease: "power1.out" }] }, 2.075);
+        tl.to("#paper", { keyframes: [{ opacity: 0.55, duration: 0.12, ease: "power1.in" }, { opacity: 1, duration: 0.001 }, { opacity: 1, duration: 0.07 }, { opacity: 0, duration: 0.2, ease: "power1.out" }] }, 10.175);
+        tl.to("#paper", { keyframes: [{ opacity: 0.55, duration: 0.12, ease: "power1.in" }, { opacity: 1, duration: 0.001 }, { opacity: 1, duration: 0.07 }, { opacity: 0, duration: 0.2, ease: "power1.out" }] }, 15.275);
+        tl.to("#paper", { keyframes: [{ opacity: 0.55, duration: 0.12, ease: "power1.in" }, { opacity: 1, duration: 0.001 }, { opacity: 1, duration: 0.07 }, { opacity: 0, duration: 0.2, ease: "power1.out" }] }, 26.542);
+        tl.to("#paper", { keyframes: [{ opacity: 0.55, duration: 0.12, ease: "power1.in" }, { opacity: 1, duration: 0.001 }, { opacity: 1, duration: 0.07 }, { opacity: 0, duration: 0.2, ease: "power1.out" }] }, 31.875);
+        tl.to("#paper", { keyframes: [{ opacity: 0.55, duration: 0.12, ease: "power1.in" }, { opacity: 1, duration: 0.001 }, { opacity: 1, duration: 0.07 }, { opacity: 0, duration: 0.2, ease: "power1.out" }] }, 36.142);
+        window.__timelines["paper"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

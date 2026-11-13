@@ -1,0 +1,194 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/field.html (composition id "field")
+  WHAT: An event diagram of the landing field at Lakehurst, seen from above on cream paper. The hangar and the
+    mooring mast are drawn in ink. The airship, a dark token with its tag HINDENBURG, arrives from the left over
+    the field, flies a red dashed circuit drawn ahead of it, and comes to rest short of the mast, as the stamp
+    12 HOURS LATE slams down. A thunderstorm, a torn dark scrap with a yellow bolt, drops in, flashes twice and
+    lifts away. The mast is then named, two landing lines drop to the ground crews, and a yellow burst appears
+    at the tail. It runs 6.03 s; index.html mounts it at 45.17 s, the last scene of the collage block.
+    The file plays no sound of its own.
+  STRUCTURE: Inside #fd-cam (a push from scale 1 to 1.16 over the whole scene), back to front: the faint grid
+    #fd-grid; the ink plan svg #fd-plan (hangar with the hatch pattern #fd-hatch, the road, the mooring circle and
+    mast, the north arrow, the red route path under the mask #fd-route-mask, the crew dots in #fd-crew and the
+    landing lines #fd-line-1 and #fd-line-2); the mast label #fd-mast-label; the stamp #fd-stamp; the token #fd-ship
+    with its tag #fd-ship-tag; the storm #fd-storm (with the bolt #fd-bolt and the label #fd-storm-label); and the
+    burst #fd-burst. #fd-tag, at the top left, is a fixed caption that stays on. Timeline: the ship and its tag move
+    together along the path array (time, duration, x, y, heading, ease), from 0 to 5.6 s; the stamp slams at 1.14 s;
+    the route is drawn through its mask from 2.5 s over 0.85 s; the storm drops in at 2.75 s; the bolt flashes at
+    3.8 s and 4.0 s; the storm lifts at 4.25 s; the mast label shows at 4.95 s and types from 5.0 s; the lines drop
+    at 5.5 s and 5.56 s; the burst scales in at 5.84 s.
+  CUSTOMIZE: The flight is the path array in the script. Each row is [time, duration, x, y, heading in degrees,
+    ease]; change a row and the ship and its tag both follow. The red route is written twice, once in the mask as
+    #fd-route-reveal and once as the visible path, so change both to the same curve. Texts: the stamp "12 HOURS
+    LATE", the caption in #fd-tag, the label "MOORING MAST" and the storm label. Colours: stamp #b3271e, bolt
+    #f4c430, storm #56534b, ink #2a2620 and #1c1a16, paper #e6dcc3. The hatch is set in the #fd-hatch pattern.
+    Every timeline time must fall inside the 6.03 s scene length.
+  MEDIA: No media file is bundled. The file has no photo, video or sound slot, and two font slots.
+    Font slot 1, Anton, used by #fd-stamp (12 HOURS LATE) and #fd-ship-tag (HINDENBURG): it now uses an installed
+    Anton, or the fallback sans-serif. To bundle it, change the src of the Anton @font-face rule to
+    url("assets/fonts/anton-latin.woff2") format("woff2"), local("Anton").
+    Font slot 2, Special Elite, used by the .fd-type plan labels, #fd-storm-label, #fd-mast-text and #fd-tag: it now
+    uses an installed Special Elite, or the fallback monospace. To bundle it, change the src of the Special Elite
+    @font-face rule to url("assets/fonts/special-elite-latin.woff2") format("woff2"), local("Special Elite").
+    The plan, the ship, the storm and the burst are inline SVG and CSS shapes, so they need no file.
+  WHEN TO USE: An event shown as a plan: a route drawn ahead of a moving token, labels that stamp and type, and a
+    weather event laid over the plan. Pick another when the event is a photograph or has no layout to draw.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* Scene root: cream paper ground for the plan. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #e6dcc3; }
+        /* The event diagram: the landing field from above. The camera pushes toward the mast all scene long. */
+        #fd-cam { position: absolute; inset: 0; transform-origin: 1300px 620px; }
+        /* A faint grid of squares printed under the plan, like squared paper. */
+        #fd-grid { position: absolute; inset: -120px; background-image: linear-gradient(rgba(70, 58, 32, 0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(70, 58, 32, 0.1) 2px, transparent 2px); background-size: 80px 80px; }
+        #fd-plan { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        .fd-type { font-family: "Special Elite", monospace; fill: #2a2620; }
+        #fd-tag { position: absolute; left: 70px; top: 60px; padding: 10px 18px 6px; background: #f7f3e8; border: 3px solid #1c1a16; font-family: "Special Elite", monospace; font-size: 32px; line-height: 1.2; color: #1c1a16; white-space: nowrap; }
+        /* The ship is a token seen from above; it turns as it travels (allow-orbit), so its name tag is a separate element. */
+        #fd-ship { position: absolute; left: -130px; top: -32px; width: 260px; height: 64px; }
+        #fd-ship svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        #fd-ship-tag { position: absolute; left: -92px; top: -92px; padding: 5px 12px 3px; background: #1c1a16; font-family: "Anton", sans-serif; font-size: 28px; line-height: 1.15; letter-spacing: 0.04em; color: #f7f3e8; white-space: nowrap; }
+        /* Rubber stamp: red ink, a double border, a rough mask so the ink is uneven. */
+        #fd-stamp { position: absolute; left: 260px; top: 452px; padding: 2px 26px 6px; border: 9px double #b3271e; font-family: "Anton", sans-serif; font-size: 104px; line-height: 1.15; color: #b3271e; white-space: nowrap; mix-blend-mode: multiply; filter: url(#fd-ink); transform: rotate(-6deg); }
+        /* The storm: a torn scrap of dark paper with a bolt and a typed label. */
+        #fd-storm { position: absolute; left: 880px; top: 400px; width: 600px; height: 360px; }
+        #fd-storm-bg { position: absolute; inset: 0; background: #56534b; border-radius: 46% 54% 50% 50% / 58% 52% 48% 42%; filter: url(#fd-tear); box-shadow: 0 14px 18px rgba(40, 32, 14, 0.35); }
+        #fd-bolt { position: absolute; left: 250px; top: 70px; width: 110px; height: 210px; overflow: visible; }
+        #fd-storm-label { position: absolute; left: 120px; top: 266px; padding: 8px 16px 4px; background: #f7f3e8; font-family: "Special Elite", monospace; font-size: 36px; line-height: 1.2; color: #24211b; white-space: nowrap; transform: rotate(-2deg); }
+        /* The mast label: a typed cream strip beside the mooring circle, hidden until its time. */
+        #fd-mast-label { position: absolute; left: 880px; top: 452px; transform: rotate(-1deg); }
+        #fd-mast-bg { position: absolute; inset: 0; background: #f7f3e8; }
+        #fd-mast-text { position: relative; padding: 8px 14px 4px; font-family: "Special Elite", monospace; font-size: 32px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        /* The burst at the tail: a yellow starburst that scales in at the end of the scene. */
+        #fd-burst { position: absolute; left: 1420px; top: 678px; width: 180px; height: 180px; overflow: visible; }
+      </style>
+      <div id="root" data-composition-id="field" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="fd-tear"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="12" /><feDisplacementMap in="SourceGraphic" scale="22" /></filter>
+          <filter id="fd-ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n" /><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.6" result="m" /><feComposite in="SourceGraphic" in2="m" operator="in" /></filter>
+        </svg>
+        <div id="fd-cam" data-layout-allow-overflow>
+          <div id="fd-grid"></div>
+          <!-- The plan, drawn in SVG on the 1920 by 1080 frame: hangar, mooring circle, route and crews. -->
+          <svg id="fd-plan" viewBox="0 0 1920 1080">
+            <defs>
+              <pattern id="fd-hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="14" stroke="#7b6f57" stroke-width="3" /></pattern>
+              <!-- The planned circuit is revealed through this mask as it is drawn. -->
+              <mask id="fd-route-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080">
+                <path id="fd-route-reveal" d="M 640 322 Q 860 300 1080 240 Q 1340 170 1560 230 Q 1780 300 1760 500 Q 1750 720 1690 800 Q 1630 850 1563 795 L 1394 709" fill="none" stroke="#ffffff" stroke-width="20" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+              </mask>
+            </defs>
+            <!-- Hangar No. 1 and the road to it. -->
+            <rect x="150" y="760" width="560" height="190" fill="url(#fd-hatch)" stroke="#2a2620" stroke-width="5" />
+            <rect x="150" y="760" width="560" height="190" fill="rgba(230, 220, 195, 0.35)" stroke="none" />
+            <text class="fd-type" x="430" y="870" font-size="36" text-anchor="middle">HANGAR NO. 1</text>
+            <path d="M 710 850 L 1020 690" fill="none" stroke="#9c8f73" stroke-width="16" />
+            <!-- The mooring circle and the mast. -->
+            <circle cx="1180" cy="600" r="150" fill="rgba(247, 243, 232, 0.55)" stroke="#2a2620" stroke-width="4" stroke-dasharray="14 12" />
+            <circle cx="1180" cy="600" r="16" fill="#1c1a16" />
+            <circle cx="1180" cy="600" r="34" fill="none" stroke="#1c1a16" stroke-width="4" />
+            <!-- North arrow. -->
+            <path d="M 1800 150 L 1800 70 M 1784 96 L 1800 66 L 1816 96" fill="none" stroke="#2a2620" stroke-width="5" />
+            <text class="fd-type" x="1800" y="196" font-size="34" text-anchor="middle">N</text>
+            <!-- The circuit flown while the storm passes. -->
+            <path d="M 640 322 Q 860 300 1080 240 Q 1340 170 1560 230 Q 1780 300 1760 500 Q 1750 720 1690 800 Q 1630 850 1563 795 L 1394 709" fill="none" stroke="#b3271e" stroke-width="6" stroke-dasharray="20 14" mask="url(#fd-route-mask)" />
+            <!-- Ground crews and the landing lines dropped to them. -->
+            <g id="fd-crew" fill="#1c1a16">
+              <circle cx="1206" cy="716" r="6" /><circle cx="1222" cy="728" r="6" /><circle cx="1196" cy="734" r="6" /><circle cx="1214" cy="746" r="6" />
+              <circle cx="1262" cy="552" r="6" /><circle cx="1280" cy="542" r="6" /><circle cx="1250" cy="536" r="6" /><circle cx="1272" cy="524" r="6" />
+            </g>
+            <path id="fd-line-1" d="M 1278 650 L 1212 728" fill="none" stroke="#1c1a16" stroke-width="3" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+            <path id="fd-line-2" d="M 1278 650 L 1266 540" fill="none" stroke="#1c1a16" stroke-width="3" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+          </svg>
+          <div id="fd-mast-label">
+            <div id="fd-mast-bg"></div>
+            <div id="fd-mast-text">MOORING MAST</div>
+          </div>
+          <div id="fd-stamp" data-layout-allow-overlap>12 HOURS LATE</div>
+          <!-- The ship token and its name tag: the script moves them together along one path. -->
+          <div id="fd-ship" data-layout-allow-orbit data-layout-allow-overlap>
+            <svg viewBox="0 0 260 64">
+              <path d="M 6 32 C 30 6 150 2 222 12 C 246 18 258 26 258 32 C 258 38 246 46 222 52 C 150 62 30 58 6 32 Z" fill="#26241f" />
+              <path d="M 4 32 L 40 0 L 62 12 L 52 32 L 62 52 L 40 64 Z" fill="#26241f" />
+              <path d="M 40 32 L 236 32" stroke="#6d675b" stroke-width="2" />
+            </svg>
+          </div>
+          <div id="fd-ship-tag" data-layout-allow-overlap>HINDENBURG</div>
+          <div id="fd-storm" data-layout-allow-overlap>
+            <div id="fd-storm-bg"></div>
+            <svg id="fd-bolt" viewBox="0 0 110 210"><path d="M 70 0 L 14 112 L 52 112 L 30 210 L 100 84 L 60 84 Z" fill="#f4c430" stroke="#1c1a16" stroke-width="4" stroke-linejoin="round" /></svg>
+            <div id="fd-storm-label">THUNDERSTORM</div>
+          </div>
+          <svg id="fd-burst" viewBox="-90 -90 180 180" data-layout-allow-overlap>
+            <path d="M 0 -88 L 18 -34 L 62 -62 L 38 -14 L 88 0 L 38 16 L 60 64 L 16 36 L 0 88 L -18 36 L -62 62 L -38 14 L -88 0 L -38 -16 L -62 -62 L -16 -36 Z" fill="#f4c430" stroke="#1c1a16" stroke-width="5" stroke-linejoin="round" />
+            <path d="M 0 -44 L 10 -16 L 34 -30 L 20 -6 L 46 0 L 20 8 L 32 32 L 8 18 L 0 44 L -10 18 L -32 32 L -20 6 L -46 0 L -20 -8 L -34 -30 L -8 -18 Z" fill="#fffdf2" />
+          </svg>
+        </div>
+        <!-- The date and time caption, fixed at the top left and visible for the whole scene. -->
+        <div id="fd-tag">LAKEHURST · 6 MAY 1937 · 7:21 PM</div>
+      </div>
+      <script>
+        /* Setup: the scene timeline, paused so the host seeks it. */
+        const tl = gsap.timeline({ paused: true });
+        /* typeOn: reveals the text one character at a time, from a start time, at a fixed rate. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        /* The stamp, storm, burst, mast label and bolt start hidden; the timeline reveals them. */
+        gsap.set(["#fd-stamp", "#fd-storm", "#fd-burst", "#fd-mast-label", "#fd-bolt"], { opacity: 0 });
+        gsap.set("#fd-ship", { x: -220, y: 330, rotation: 0 });
+        gsap.set("#fd-ship-tag", { x: -220, y: 330 });
+        // The ship and its tag share one path: [time, duration, x, y, heading, ease]. It arrives, drifts, flies the
+        // circuit drawn ahead of it on "circles" (47.73 s), and comes in short of the mast on "nears the mast".
+        const path = [
+          [0.0, 1.0, 430, 330, 0, "power2.out"],
+          [1.0, 1.9, 640, 322, -3, "none"],
+          [2.9, 0.45, 1080, 240, -14, "power1.in"],
+          [3.35, 0.4, 1560, 230, 20, "none"],
+          [3.75, 0.35, 1760, 500, 92, "none"],
+          [4.1, 0.35, 1690, 800, 150, "none"],
+          [4.45, 0.4, 1563, 795, 207, "none"],
+          [4.85, 0.75, 1393.8, 709, 207, "power2.out"],
+        ];
+        path.forEach(([t, d, x, y, r, ease]) => {
+          tl.to("#fd-ship", { x, y, rotation: r, duration: d, ease }, t);
+          tl.to("#fd-ship-tag", { x, y, duration: d, ease }, t);
+        });
+        // "12 HOURS LATE" is stamped on "twelve" (46.38 s).
+        tl.fromTo("#fd-stamp", { scale: 1.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power4.in" }, 1.14);
+        tl.to("#fd-route-reveal", { strokeDashoffset: 0, duration: 0.85, ease: "power1.inOut" }, 2.5);
+        // The storm sits over the field, flashes on "storm" (49.00 s), and clears before the approach.
+        tl.fromTo("#fd-storm", { y: -700, rotation: -8, opacity: 0 }, { y: 0, rotation: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, 2.75);
+        tl.to("#fd-bolt", { opacity: 1, duration: 0.05 }, 3.8);
+        tl.to("#fd-bolt", { opacity: 0.25, duration: 0.08 }, 3.9);
+        tl.to("#fd-bolt", { opacity: 1, duration: 0.05 }, 4.0);
+        tl.to("#fd-storm", { y: -820, rotation: 6, duration: 0.45, ease: "power2.in" }, 4.25);
+        // The mast is named as it is spoken (50.39 s); the lines drop to the ground crews.
+        tl.to("#fd-mast-label", { opacity: 1, duration: 0.05 }, 4.95);
+        typeOn("#fd-mast-text", 5.0, 26);
+        tl.to("#fd-line-1", { strokeDashoffset: 0, duration: 0.22, ease: "power2.out" }, 5.5);
+        tl.to("#fd-line-2", { strokeDashoffset: 0, duration: 0.22, ease: "power2.out" }, 5.56);
+        // A burst at the tail, then the cut to the film.
+        tl.fromTo("#fd-burst", { scale: 0.2, rotation: -20, opacity: 0 }, { scale: 1, rotation: 0, opacity: 1, duration: 0.12, ease: "back.out(2.5)" }, 5.84);
+        tl.fromTo("#fd-cam", { scale: 1 }, { scale: 1.16, duration: 6.03, ease: "sine.inOut" }, 0);
+        window.__timelines["field"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 750,
-    "refused": 183,
-    "translated": 311
+    "approximated": 747,
+    "refused": 18,
+    "translated": 475
   },
   "duration": 538.36,
   "entries": [
@@ -85,10 +85,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#dc-all\\\", \\\"#dc-bg\\\", \\\"#dc-play\\\"]\" is not a DOM selector (\"[\\\"#dc-all\\\", \\\"#dc-bg\\\", \\\"#dc-play\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#dc-all\", \"#dc-bg\", \"#dc-play\"] at start=7.2500 duration=0.7000",
       "file": "compositions/disclaimer.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -164,10 +164,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #la-a-video references remote asset \"data:image/svg+xml,%3C!--laa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/laa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #la-a-video data: URI decoded to assets/data-la-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/launch.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -179,10 +179,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #la-b-video references remote asset \"data:image/svg+xml,%3C!--lab.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/lab.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #la-b-video data: URI decoded to assets/data-la-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/launch.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -194,10 +194,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #la-c-video references remote asset \"data:image/svg+xml,%3C!--lac.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/lac.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #la-c-video data: URI decoded to assets/data-la-c-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/launch.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -209,10 +209,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #la-d-img references remote asset \"data:image/svg+xml,%3C!--v1-launch-c.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/v1-launch-c.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #la-d-img data: URI decoded to assets/data-la-d-img.svg (560 bytes, percent-encoded)",
       "file": "compositions/launch.html",
       "line": 76,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -345,10 +345,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #vo-a-video references remote asset \"data:image/svg+xml,%3C!--voa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/voa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #vo-a-video data: URI decoded to assets/data-vo-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/voyager.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -360,10 +360,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #vo-b-video references remote asset \"data:image/svg+xml,%3C!--vob.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/vob.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #vo-b-video data: URI decoded to assets/data-vo-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/voyager.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -375,10 +375,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #vo-c-video references remote asset \"data:image/svg+xml,%3C!--voc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/voc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #vo-c-video data: URI decoded to assets/data-vo-c-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/voyager.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -497,10 +497,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #si-a-video references remote asset \"data:image/svg+xml,%3C!--sia.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/sia.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #si-a-video data: URI decoded to assets/data-si-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/signal.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -512,10 +512,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #si-b-video references remote asset \"data:image/svg+xml,%3C!--sib.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/sib.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #si-b-video data: URI decoded to assets/data-si-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/signal.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -527,10 +527,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #si-c-video references remote asset \"data:image/svg+xml,%3C!--sic.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/sic.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #si-c-video data: URI decoded to assets/data-si-c-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/signal.html",
       "line": 62,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -672,10 +672,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #fa-a-video references remote asset \"data:image/svg+xml,%3C!--faa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/faa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #fa-a-video data: URI decoded to assets/data-fa-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/farthest.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -687,10 +687,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #fa-b-video references remote asset \"data:image/svg+xml,%3C!--fab.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/fab.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #fa-b-video data: URI decoded to assets/data-fa-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/farthest.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -702,10 +702,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #fa-c-video references remote asset \"data:image/svg+xml,%3C!--fac.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/fac.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #fa-c-video data: URI decoded to assets/data-fa-c-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/farthest.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -717,10 +717,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #fa-d-video references remote asset \"data:image/svg+xml,%3C!--fad.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/fad.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #fa-d-video data: URI decoded to assets/data-fa-d-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/farthest.html",
       "line": 61,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -823,10 +823,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #qu-a-video references remote asset \"data:image/svg+xml,%3C!--qua.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/qua.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #qu-a-video data: URI decoded to assets/data-qu-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/questions.html",
       "line": 62,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -838,10 +838,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #qu-b-video references remote asset \"data:image/svg+xml,%3C!--qub.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/qub.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #qu-b-video data: URI decoded to assets/data-qu-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/questions.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -853,10 +853,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #qu-c-img references remote asset \"data:image/svg+xml,%3C!--record.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/record.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #qu-c-img data: URI decoded to assets/data-qu-c-img.svg (550 bytes, percent-encoded)",
       "file": "compositions/questions.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -958,10 +958,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #in-a-video references remote asset \"data:image/svg+xml,%3C!--ina.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/ina.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #in-a-video data: URI decoded to assets/data-in-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/invite.html",
       "line": 52,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -973,10 +973,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #in-b-video references remote asset \"data:image/svg+xml,%3C!--inb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/inb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #in-b-video data: URI decoded to assets/data-in-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/invite.html",
       "line": 53,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -1071,13 +1071,6 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.fromTo",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/sting.html",
-      "line": 63,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.set",
       "detail": "tl.set on \"#sg-box\" at start=61.7200 duration=0.5000",
       "file": "compositions/sting.html",
@@ -1107,34 +1100,24 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "detail": "typeOn definition does not match a known per-glyph template (the per-glyph fromTo grammar, or the set display grammar at t + i / cps); refusing the call site",
       "file": "compositions/sting.html",
-      "line": 55,
+      "line": 69,
       "verdict": "refused"
     },
     {
       "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 300.0000 chars/s instead of 12.0000 chars/s",
-      "detail": "typeOn \"#sg-a-text\" at 0.4000 for 5 chars at 12.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.4167s)",
-      "file": "compositions/sting.html",
-      "line": 69,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 600.0000 chars/s instead of 12.0000 chars/s",
-      "detail": "typeOn \"#sg-b-text\" at 0.9000 for 10 chars at 12.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.8333s)",
+      "detail": "typeOn definition does not match a known per-glyph template (the per-glyph fromTo grammar, or the set display grammar at t + i / cps); refusing the call site",
       "file": "compositions/sting.html",
       "line": 70,
-      "verdict": "approximated"
+      "verdict": "refused"
     },
     {
       "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 960.0000 chars/s instead of 22.0000 chars/s",
-      "detail": "typeOn \"#sg-sub\" at 2.9000 for 16 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.7273s)",
+      "detail": "typeOn definition does not match a known per-glyph template (the per-glyph fromTo grammar, or the set display grammar at t + i / cps); refusing the call site",
       "file": "compositions/sting.html",
       "line": 73,
-      "verdict": "approximated"
+      "verdict": "refused"
     },
     {
       "construct": "gsap.timeline",
@@ -1183,10 +1166,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1a-a-video references remote asset \"data:image/svg+xml,%3C!--c1aa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1aa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1a-a-video data: URI decoded to assets/data-c1a-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-chance.html",
       "line": 50,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -1283,12 +1266,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #al-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-al-svg.svg (1195 bytes; xmlns added: true)",
       "file": "compositions/c1-alignment.html",
       "line": 64,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1424,10 +1406,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"[\\\"#al-head\\\", \\\"#al-foot\\\", \\\"#al-earth-l\\\"]\" is not a DOM selector (\"[\\\"#al-head\\\", \\\"#al-foot\\\", \\\"#al-earth-l\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.fromTo on [\"#al-head\", \"#al-foot\", \"#al-earth-l\"] at start=78.7600 duration=0.5000",
       "file": "compositions/c1-alignment.html",
       "line": 98,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1565,10 +1547,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1b-a-video references remote asset \"data:image/svg+xml,%3C!--c1ba.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ba.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1b-a-video data: URI decoded to assets/data-c1b-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-slingshot.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1580,10 +1562,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1b-b-video references remote asset \"data:image/svg+xml,%3C!--c1bb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1bb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1b-b-video data: URI decoded to assets/data-c1b-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-slingshot.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1595,10 +1577,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1b-c-video references remote asset \"data:image/svg+xml,%3C!--c1bc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1bc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1b-c-video data: URI decoded to assets/data-c1b-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-slingshot.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -1686,10 +1668,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1c-a-video references remote asset \"data:image/svg+xml,%3C!--c1ca.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ca.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1c-a-video data: URI decoded to assets/data-c1c-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-jupiter.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1701,10 +1683,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1c-b-video references remote asset \"data:image/svg+xml,%3C!--c1cb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1cb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1c-b-video data: URI decoded to assets/data-c1c-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-jupiter.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1716,10 +1698,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1c-c-video references remote asset \"data:image/svg+xml,%3C!--c1cc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1cc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1c-c-video data: URI decoded to assets/data-c1c-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-jupiter.html",
       "line": 69,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -1814,10 +1796,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1d-a-video references remote asset \"data:image/svg+xml,%3C!--c1da.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1da.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1d-a-video data: URI decoded to assets/data-c1d-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-finds.html",
       "line": 54,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1829,10 +1811,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1d-b-video references remote asset \"data:image/svg+xml,%3C!--c1db.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1db.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1d-b-video data: URI decoded to assets/data-c1d-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-finds.html",
       "line": 55,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -1953,10 +1935,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1e-a-video references remote asset \"data:image/svg+xml,%3C!--c1ea.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ea.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1e-a-video data: URI decoded to assets/data-c1e-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-io.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1968,10 +1950,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1e-b-video references remote asset \"data:image/svg+xml,%3C!--c1eb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1eb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1e-b-video data: URI decoded to assets/data-c1e-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-io.html",
       "line": 75,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1983,10 +1965,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1e-c-video references remote asset \"data:image/svg+xml,%3C!--c1ec.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ec.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1e-c-video data: URI decoded to assets/data-c1e-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-io.html",
       "line": 78,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2006,10 +1988,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1e-d-video references remote asset \"data:image/svg+xml,%3C!--c1ed.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ed.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1e-d-video data: URI decoded to assets/data-c1e-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-io.html",
       "line": 81,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2021,10 +2003,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1e-e-video references remote asset \"data:image/svg+xml,%3C!--c1ee.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ee.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1e-e-video data: URI decoded to assets/data-c1e-e-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-io.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -2164,10 +2146,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1f-a-video references remote asset \"data:image/svg+xml,%3C!--c1fa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1fa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1f-a-video data: URI decoded to assets/data-c1f-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-volcano.html",
       "line": 55,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2179,10 +2161,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1f-b-img references remote asset \"data:image/svg+xml,%3C!--io-disk.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/io-disk.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1f-b-img data: URI decoded to assets/data-c1f-b-img.svg (552 bytes, percent-encoded)",
       "file": "compositions/c1-volcano.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -2277,10 +2259,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1g-a-video references remote asset \"data:image/svg+xml,%3C!--c1ga.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ga.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1g-a-video data: URI decoded to assets/data-c1g-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-saturn.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2292,10 +2274,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1g-b-video references remote asset \"data:image/svg+xml,%3C!--c1gb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1gb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1g-b-video data: URI decoded to assets/data-c1g-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-saturn.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -2415,10 +2397,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1h-a-video references remote asset \"data:image/svg+xml,%3C!--c1ha.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ha.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1h-a-video data: URI decoded to assets/data-c1h-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-titan.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2430,10 +2412,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1h-b-img references remote asset \"data:image/svg+xml,%3C!--titan-v1.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/titan-v1.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1h-b-img data: URI decoded to assets/data-c1h-b-img.svg (554 bytes, percent-encoded)",
       "file": "compositions/c1-titan.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2445,10 +2427,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1h-c-img references remote asset \"data:image/svg+xml,%3C!--titan-haze.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/titan-haze.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1h-c-img data: URI decoded to assets/data-c1h-c-img.svg (558 bytes, percent-encoded)",
       "file": "compositions/c1-titan.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2460,10 +2442,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1h-d-img references remote asset \"data:image/svg+xml,%3C!--titan-haze-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'896' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/titan-haze-close.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1h-d-img data: URI decoded to assets/data-c1h-d-img.svg (570 bytes, percent-encoded)",
       "file": "compositions/c1-titan.html",
       "line": 72,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -2610,10 +2592,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1i-a-video references remote asset \"data:image/svg+xml,%3C!--c1ia.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ia.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1i-a-video data: URI decoded to assets/data-c1i-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-price.html",
       "line": 44,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -2694,12 +2676,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #pl-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-pl-svg.svg (852 bytes; xmlns added: true)",
       "file": "compositions/c1-plane.html",
       "line": 57,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2790,10 +2771,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#pl-craft\\\", \\\"#pl-craft-l\\\", \\\"#pl-deg\\\"]\" is not a DOM selector (\"[\\\"#pl-craft\\\", \\\"#pl-craft-l\\\", \\\"#pl-deg\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#pl-craft\", \"#pl-craft-l\", \"#pl-deg\"] at start=155.8700 duration=0.5000",
       "file": "compositions/c1-plane.html",
       "line": 85,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -2825,10 +2806,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#pl-craft\\\", \\\"#pl-craft-l\\\"]\" is not a DOM selector (\"[\\\"#pl-craft\\\", \\\"#pl-craft-l\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#pl-craft\", \"#pl-craft-l\"] at start=158.3300 duration=0.3000",
       "file": "compositions/c1-plane.html",
       "line": 91,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -2879,10 +2860,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1j-a-video references remote asset \"data:image/svg+xml,%3C!--c1ja.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1ja.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1j-a-video data: URI decoded to assets/data-c1j-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-end.html",
       "line": 56,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2894,10 +2875,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c1j-b-video references remote asset \"data:image/svg+xml,%3C!--c1jb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1jb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c1j-b-video data: URI decoded to assets/data-c1j-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c1-end.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -3002,10 +2983,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #is-a-video references remote asset \"data:image/svg+xml,%3C!--isa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/isa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #is-a-video data: URI decoded to assets/data-is-a-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/c1-interstellar.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3017,10 +2998,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #is-b-video references remote asset \"data:image/svg+xml,%3C!--isb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/isb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #is-b-video data: URI decoded to assets/data-is-b-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/c1-interstellar.html",
       "line": 83,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3032,10 +3013,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #is-c-video references remote asset \"data:image/svg+xml,%3C!--isc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/isc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #is-c-video data: URI decoded to assets/data-is-c-video.svg (535 bytes, percent-encoded)",
       "file": "compositions/c1-interstellar.html",
       "line": 87,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3055,10 +3036,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #is-d-img references remote asset \"data:image/svg+xml,%3C!--page-body.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'839' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/page-body.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #is-d-img data: URI decoded to assets/data-is-d-img.svg (560 bytes, percent-encoded)",
       "file": "compositions/c1-interstellar.html",
       "line": 90,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3175,10 +3156,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender false not expressible in KDL (no carryback flag); the from-state starts at its position 176.7600s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#is-d\" at start=176.7600 duration=4.5400",
       "file": "compositions/c1-interstellar.html",
       "line": 110,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -3250,15 +3232,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2a-b-img has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/c2-rtg.html",
-      "line": 75,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2a-c has no own left/top; placed by flow approximation at (0, 0)",
+      "detail": "element #c2a-c has no own left/top; placed by flow approximation at (560, 60)",
       "file": "compositions/c2-rtg.html",
       "line": 77,
       "verdict": "approximated"
@@ -3266,7 +3240,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2a-c-video has no own left/top; placed by flow approximation at (0, 0)",
+      "detail": "element #c2a-c-video has no own left/top; placed by flow approximation at (560, 60)",
       "file": "compositions/c2-rtg.html",
       "line": 77,
       "verdict": "approximated"
@@ -3281,10 +3255,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2a-a-img references remote asset \"data:image/svg+xml,%3C!--rtg.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/rtg.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2a-a-img data: URI decoded to assets/data-c2a-a-img.svg (544 bytes, percent-encoded)",
       "file": "compositions/c2-rtg.html",
       "line": 71,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3304,10 +3278,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2a-b-img references remote asset \"data:image/svg+xml,%3C!--rtg-diagram.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/rtg-diagram.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2a-b-img data: URI decoded to assets/data-c2a-b-img.svg (560 bytes, percent-encoded)",
       "file": "compositions/c2-rtg.html",
       "line": 75,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3351,10 +3325,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2a-c-video references remote asset \"data:image/svg+xml,%3C!--c2ac.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ac.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2a-c-video data: URI decoded to assets/data-c2a-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-rtg.html",
       "line": 77,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -3411,10 +3385,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender false not expressible in KDL (no carryback flag); the from-state starts at its position 187.5800s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#c2a-b\" at start=187.5800 duration=1.9800",
       "file": "compositions/c2-rtg.html",
       "line": 92,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -3501,12 +3476,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #pw-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-pw-svg.svg (1297 bytes; xmlns added: true)",
       "file": "compositions/c2-power.html",
       "line": 67,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3653,17 +3627,17 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#pw-fig-a\\\", \\\"#pw-fig-b\\\", \\\"#pw-proj\\\", \\\"#pw-l2\\\", \\\"#pw-l3\\\"]\" is not a DOM selector (\"[\\\"#pw-fig-a\\\", \\\"#pw-fig-b\\\", \\\"#pw-proj\\\", \\\"#pw-l2\\\", \\\"#pw-l3\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#pw-fig-a\", \"#pw-fig-b\", \"#pw-proj\", \"#pw-l2\", \"#pw-l3\"] at start=194.7600 duration=0.5000",
       "file": "compositions/c2-power.html",
       "line": 94,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\".pw-pt\\\"]\" is not a DOM selector (\"[\\\".pw-pt\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\".pw-pt\"] at start=390.0200 duration=0.5000",
       "file": "compositions/c2-power.html",
       "line": 96,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -3717,10 +3691,11 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#pw-proj\\\", \\\"#pw-fig-b\\\"]\" is not a DOM selector (\"[\\\"#pw-proj\\\", \\\"#pw-fig-b\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "delta": "duration 0.0010s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "tl.to on [\"#pw-proj\", \"#pw-fig-b\"] at start=202.9300 duration=0.0010",
       "file": "compositions/c2-power.html",
       "line": 106,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -3740,15 +3715,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2b-a-img has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/c2-computer.html",
-      "line": 72,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2b-b has no own left/top; placed by flow approximation at (0, 0)",
+      "detail": "element #c2b-b has no own left/top; placed by flow approximation at (616, 60)",
       "file": "compositions/c2-computer.html",
       "line": 74,
       "verdict": "approximated"
@@ -3756,7 +3723,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2b-b-video has no own left/top; placed by flow approximation at (0, 0)",
+      "detail": "element #c2b-b-video has no own left/top; placed by flow approximation at (616, 60)",
       "file": "compositions/c2-computer.html",
       "line": 74,
       "verdict": "approximated"
@@ -3764,7 +3731,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2b-c has no own left/top; placed by flow approximation at (0, 500)",
+      "detail": "element #c2b-c has no own left/top; placed by flow approximation at (600, 500)",
       "file": "compositions/c2-computer.html",
       "line": 78,
       "verdict": "approximated"
@@ -3772,7 +3739,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #c2b-c-video has no own left/top; placed by flow approximation at (0, 500)",
+      "detail": "element #c2b-c-video has no own left/top; placed by flow approximation at (600, 500)",
       "file": "compositions/c2-computer.html",
       "line": 78,
       "verdict": "approximated"
@@ -3795,10 +3762,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2b-a-img references remote asset \"data:image/svg+xml,%3C!--structure.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/structure.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2b-a-img data: URI decoded to assets/data-c2b-a-img.svg (556 bytes, percent-encoded)",
       "file": "compositions/c2-computer.html",
       "line": 72,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3834,10 +3801,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2b-b-video references remote asset \"data:image/svg+xml,%3C!--c2bb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2bb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2b-b-video data: URI decoded to assets/data-c2b-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-computer.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -3849,10 +3816,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2b-c-video references remote asset \"data:image/svg+xml,%3C!--c2bc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2bc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2b-c-video data: URI decoded to assets/data-c2b-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-computer.html",
       "line": 78,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -3871,10 +3838,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"true\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender true not expressible in KDL (no carryback flag); the from-state starts at its position 205.0200s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#c2b-a\" at start=205.0200 duration=2.9600",
       "file": "compositions/c2-computer.html",
       "line": 86,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -3985,10 +3953,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2c-a-video references remote asset \"data:image/svg+xml,%3C!--c2ca.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ca.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2c-a-video data: URI decoded to assets/data-c2c-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-antenna.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4000,10 +3968,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2c-b-video references remote asset \"data:image/svg+xml,%3C!--c2cb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2cb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2c-b-video data: URI decoded to assets/data-c2c-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-antenna.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4015,10 +3983,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2c-c-video references remote asset \"data:image/svg+xml,%3C!--c2cc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2cc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2c-c-video data: URI decoded to assets/data-c2c-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-antenna.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4145,10 +4113,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2d-a-video references remote asset \"data:image/svg+xml,%3C!--c2da.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2da.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2d-a-video data: URI decoded to assets/data-c2d-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-whisper.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4160,10 +4128,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2d-b-video references remote asset \"data:image/svg+xml,%3C!--c2db.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2db.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2d-b-video data: URI decoded to assets/data-c2d-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-whisper.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4175,10 +4143,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2d-c-img references remote asset \"data:image/svg+xml,%3C!--dss43.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/dss43.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2d-c-img data: URI decoded to assets/data-c2d-c-img.svg (548 bytes, percent-encoded)",
       "file": "compositions/c2-whisper.html",
       "line": 69,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4190,10 +4158,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2d-d-video references remote asset \"data:image/svg+xml,%3C!--c2dd.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2dd.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2d-d-video data: URI decoded to assets/data-c2d-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-whisper.html",
       "line": 73,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4350,10 +4318,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2e-a-video references remote asset \"data:image/svg+xml,%3C!--c2ea.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ea.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2e-a-video data: URI decoded to assets/data-c2e-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-off.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4365,10 +4333,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2e-b-video references remote asset \"data:image/svg+xml,%3C!--c2eb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2eb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2e-b-video data: URI decoded to assets/data-c2e-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-off.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4380,10 +4348,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2e-c-video references remote asset \"data:image/svg+xml,%3C!--c2ec.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ec.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2e-c-video data: URI decoded to assets/data-c2e-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-off.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4395,10 +4363,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2e-d-video references remote asset \"data:image/svg+xml,%3C!--c2ed.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ed.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2e-d-video data: URI decoded to assets/data-c2e-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-off.html",
       "line": 61,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4477,10 +4445,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2f-a-video references remote asset \"data:image/svg+xml,%3C!--c2fa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2fa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2f-a-video data: URI decoded to assets/data-c2f-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-two.html",
       "line": 56,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4492,10 +4460,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2f-b-video references remote asset \"data:image/svg+xml,%3C!--c2fb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2fb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2f-b-video data: URI decoded to assets/data-c2f-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-two.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4584,10 +4552,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2g-a-video references remote asset \"data:image/svg+xml,%3C!--c2ga.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ga.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2g-a-video data: URI decoded to assets/data-c2g-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fault.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4599,10 +4567,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2g-b-video references remote asset \"data:image/svg+xml,%3C!--c2gb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2gb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2g-b-video data: URI decoded to assets/data-c2g-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fault.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4614,10 +4582,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2g-c-video references remote asset \"data:image/svg+xml,%3C!--c2gc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2gc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2g-c-video data: URI decoded to assets/data-c2g-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fault.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4720,10 +4688,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2h-a-video references remote asset \"data:image/svg+xml,%3C!--c2ha.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ha.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2h-a-video data: URI decoded to assets/data-c2h-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-team.html",
       "line": 63,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4743,10 +4711,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2h-b-video references remote asset \"data:image/svg+xml,%3C!--c2hb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2hb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2h-b-video data: URI decoded to assets/data-c2h-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-team.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4851,10 +4819,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2i-a-video references remote asset \"data:image/svg+xml,%3C!--c2ia.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ia.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2i-a-video data: URI decoded to assets/data-c2i-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fix.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4866,10 +4834,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2i-b-video references remote asset \"data:image/svg+xml,%3C!--c2ib.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ib.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2i-b-video data: URI decoded to assets/data-c2i-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fix.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4881,10 +4849,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2i-c-video references remote asset \"data:image/svg+xml,%3C!--c2ic.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2ic.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2i-c-video data: URI decoded to assets/data-c2i-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fix.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -4896,10 +4864,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2i-d-video references remote asset \"data:image/svg+xml,%3C!--c2id.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2id.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2i-d-video data: URI decoded to assets/data-c2i-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-fix.html",
       "line": 61,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -4970,10 +4938,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2j-a-img references remote asset \"data:image/svg+xml,%3C!--team-2024.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/team-2024.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2j-a-img data: URI decoded to assets/data-c2j-a-img.svg (556 bytes, percent-encoded)",
       "file": "compositions/c2-back.html",
       "line": 52,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -5015,10 +4983,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2k-a-img references remote asset \"data:image/svg+xml,%3C!--page-thr.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/page-thr.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2k-a-img data: URI decoded to assets/data-c2k-a-img.svg (558 bytes, percent-encoded)",
       "file": "compositions/c2-thrusters.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5053,10 +5021,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"true\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender true not expressible in KDL (no carryback flag); the from-state starts at its position 283.9200s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#c2k-a\" at start=283.9200 duration=6.9000",
       "file": "compositions/c2-thrusters.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -5130,10 +5099,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2l-a-video references remote asset \"data:image/svg+xml,%3C!--c2la.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2la.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2l-a-video data: URI decoded to assets/data-c2l-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-how.html",
       "line": 54,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5145,10 +5114,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2l-b-video references remote asset \"data:image/svg+xml,%3C!--c2lb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2lb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2l-b-video data: URI decoded to assets/data-c2l-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-how.html",
       "line": 55,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5160,10 +5129,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c2l-c-video references remote asset \"data:image/svg+xml,%3C!--c2lc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2lc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c2l-c-video data: URI decoded to assets/data-c2l-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c2-how.html",
       "line": 56,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -5288,10 +5257,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3a-a-video references remote asset \"data:image/svg+xml,%3C!--c3aa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3aa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3a-a-video data: URI decoded to assets/data-c3a-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-record.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5303,10 +5272,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3a-b-img references remote asset \"data:image/svg+xml,%3C!--gr-cover.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-cover.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3a-b-img data: URI decoded to assets/data-c3a-b-img.svg (554 bytes, percent-encoded)",
       "file": "compositions/c3-record.html",
       "line": 69,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5318,10 +5287,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3a-c-video references remote asset \"data:image/svg+xml,%3C!--c3ac.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3ac.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3a-c-video data: URI decoded to assets/data-c3a-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-record.html",
       "line": 71,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5333,10 +5302,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3a-d-img references remote asset \"data:image/svg+xml,%3C!--gr-disc.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-disc.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3a-d-img data: URI decoded to assets/data-c3a-d-img.svg (552 bytes, percent-encoded)",
       "file": "compositions/c3-record.html",
       "line": 75,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -5508,10 +5477,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3b-a-img references remote asset \"data:image/svg+xml,%3C!--gr-plating.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-plating.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3b-a-img data: URI decoded to assets/data-c3b-a-img.svg (558 bytes, percent-encoded)",
       "file": "compositions/c3-sagan.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5523,10 +5492,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3b-b-img references remote asset \"data:image/svg+xml,%3C!--record.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/record.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3b-b-img data: URI decoded to assets/data-c3b-b-img.svg (550 bytes, percent-encoded)",
       "file": "compositions/c3-sagan.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5546,10 +5515,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3b-b-face-img references remote asset \"data:image/svg+xml,%3C!--sagan.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sagan.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3b-b-face-img data: URI decoded to assets/data-c3b-b-face-img.svg (548 bytes, percent-encoded)",
       "file": "compositions/c3-sagan.html",
       "line": 72,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -5690,10 +5659,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3c-a-img references remote asset \"data:image/svg+xml,%3C!--gr-lamination.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'839' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-lamination.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3c-a-img data: URI decoded to assets/data-c3c-a-img.svg (564 bytes, percent-encoded)",
       "file": "compositions/c3-contents.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5705,10 +5674,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3c-b-img references remote asset \"data:image/svg+xml,%3C!--gr-etching.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-etching.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3c-b-img data: URI decoded to assets/data-c3c-b-img.svg (558 bytes, percent-encoded)",
       "file": "compositions/c3-contents.html",
       "line": 69,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5720,10 +5689,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3c-c-video references remote asset \"data:image/svg+xml,%3C!--c3cc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3cc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3c-c-video data: URI decoded to assets/data-c3c-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-contents.html",
       "line": 71,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -5818,10 +5787,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3d-a-img references remote asset \"data:image/svg+xml,%3C!--page-music.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/page-music.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3d-a-img data: URI decoded to assets/data-c3d-a-img.svg (562 bytes, percent-encoded)",
       "file": "compositions/c3-gamelan.html",
       "line": 55,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5864,10 +5833,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"true\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender true not expressible in KDL (no carryback flag); the from-state starts at its position 331.7000s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#c3d-a\" at start=331.7000 duration=3.7000",
       "file": "compositions/c3-gamelan.html",
       "line": 61,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -5948,10 +5918,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3e-a-img references remote asset \"data:image/svg+xml,%3C!--gr-flag.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-flag.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3e-a-img data: URI decoded to assets/data-c3e-a-img.svg (552 bytes, percent-encoded)",
       "file": "compositions/c3-greetings.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5963,10 +5933,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3e-b-img references remote asset \"data:image/svg+xml,%3C!--gr-art.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-art.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3e-b-img data: URI decoded to assets/data-c3e-b-img.svg (550 bytes, percent-encoded)",
       "file": "compositions/c3-greetings.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -5978,10 +5948,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3e-c-img references remote asset \"data:image/svg+xml,%3C!--page-greet.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/page-greet.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3e-c-img data: URI decoded to assets/data-c3e-c-img.svg (562 bytes, percent-encoded)",
       "file": "compositions/c3-greetings.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6091,10 +6061,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender false not expressible in KDL (no carryback flag); the from-state starts at its position 342.5300s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#c3e-c\" at start=342.5300 duration=8.4900",
       "file": "compositions/c3-greetings.html",
       "line": 93,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -6145,10 +6116,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3f-a-img references remote asset \"data:image/svg+xml,%3C!--record-play.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/record-play.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3f-a-img data: URI decoded to assets/data-c3f-a-img.svg (560 bytes, percent-encoded)",
       "file": "compositions/c3-cover.html",
       "line": 54,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6160,10 +6131,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3f-b-img references remote asset \"data:image/svg+xml,%3C!--record-map.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/record-map.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3f-b-img data: URI decoded to assets/data-c3f-b-img.svg (558 bytes, percent-encoded)",
       "file": "compositions/c3-cover.html",
       "line": 56,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -6251,10 +6222,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3g-a-video references remote asset \"data:image/svg+xml,%3C!--c3ga.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3ga.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3g-a-video data: URI decoded to assets/data-c3g-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-photo.html",
       "line": 54,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6266,10 +6237,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3g-b-video references remote asset \"data:image/svg+xml,%3C!--c3gb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3gb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3g-b-video data: URI decoded to assets/data-c3g-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-photo.html",
       "line": 56,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -6374,10 +6345,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3h-a-video references remote asset \"data:image/svg+xml,%3C!--c3ha.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3ha.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3h-a-video data: URI decoded to assets/data-c3h-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-proposal.html",
       "line": 73,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6389,10 +6360,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3h-b-video references remote asset \"data:image/svg+xml,%3C!--c3hb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3hb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3h-b-video data: URI decoded to assets/data-c3h-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-proposal.html",
       "line": 75,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6412,10 +6383,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3h-c-video references remote asset \"data:image/svg+xml,%3C!--c3hc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3hc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3h-c-video data: URI decoded to assets/data-c3h-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-proposal.html",
       "line": 79,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6427,10 +6398,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3h-d-video references remote asset \"data:image/svg+xml,%3C!--c3hd.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3hd.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3h-d-video data: URI decoded to assets/data-c3h-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-proposal.html",
       "line": 81,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -6532,10 +6503,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3i-a-video references remote asset \"data:image/svg+xml,%3C!--c3ia.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3ia.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3i-a-video data: URI decoded to assets/data-c3i-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-date.html",
       "line": 63,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6547,10 +6518,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3i-b-video references remote asset \"data:image/svg+xml,%3C!--c3ib.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3ib.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3i-b-video data: URI decoded to assets/data-c3i-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-date.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -6733,12 +6704,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #fp-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-fp-svg.svg (2103 bytes; xmlns added: true)",
       "file": "compositions/c3-portrait.html",
       "line": 74,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -6965,10 +6935,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#fp-fig\\\", \\\".fp-frame\\\", \\\".fp-pl\\\"]\" is not a DOM selector (\"[\\\"#fp-fig\\\", \\\".fp-frame\\\", \\\".fp-pl\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#fp-fig\", \".fp-frame\", \".fp-pl\"] at start=380.6500 duration=0.5000",
       "file": "compositions/c3-portrait.html",
       "line": 104,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -6986,10 +6956,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#fp-f0\\\", \\\"#fp-l0\\\"]\" is not a DOM selector (\"[\\\"#fp-f0\\\", \\\"#fp-l0\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#fp-f0\", \"#fp-l0\"] at start=382.2300 duration=0.2000",
       "file": "compositions/c3-portrait.html",
       "line": 109,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -7000,10 +6970,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#fp-f1\\\", \\\"#fp-l1\\\"]\" is not a DOM selector (\"[\\\"#fp-f1\\\", \\\"#fp-l1\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#fp-f1\", \"#fp-l1\"] at start=382.4300 duration=0.2000",
       "file": "compositions/c3-portrait.html",
       "line": 111,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -7014,10 +6984,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#fp-f2\\\", \\\"#fp-l2\\\"]\" is not a DOM selector (\"[\\\"#fp-f2\\\", \\\"#fp-l2\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#fp-f2\", \"#fp-l2\"] at start=382.6300 duration=0.2000",
       "file": "compositions/c3-portrait.html",
       "line": 113,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -7028,10 +6998,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#fp-f3\\\", \\\"#fp-l3\\\"]\" is not a DOM selector (\"[\\\"#fp-f3\\\", \\\"#fp-l3\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#fp-f3\", \"#fp-l3\"] at start=382.8300 duration=0.2000",
       "file": "compositions/c3-portrait.html",
       "line": 115,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -7042,10 +7012,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#fp-f4\\\", \\\"#fp-l4\\\"]\" is not a DOM selector (\"[\\\"#fp-f4\\\", \\\"#fp-l4\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#fp-f4\", \"#fp-l4\"] at start=383.0300 duration=0.2000",
       "file": "compositions/c3-portrait.html",
       "line": 117,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -7056,10 +7026,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#fp-f5\\\", \\\"#fp-l5\\\"]\" is not a DOM selector (\"[\\\"#fp-f5\\\", \\\"#fp-l5\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#fp-f5\", \"#fp-l5\"] at start=383.2300 duration=0.2000",
       "file": "compositions/c3-portrait.html",
       "line": 119,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -7110,10 +7080,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3j-a-img references remote asset \"data:image/svg+xml,%3C!--mosaic.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/mosaic.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3j-a-img data: URI decoded to assets/data-c3j-a-img.svg (550 bytes, percent-encoded)",
       "file": "compositions/c3-family.html",
       "line": 51,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7187,10 +7157,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3k-a-video references remote asset \"data:image/svg+xml,%3C!--c3ka.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3ka.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3k-a-video data: URI decoded to assets/data-c3k-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-dot.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7202,10 +7172,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3k-b-img references remote asset \"data:image/svg+xml,%3C!--pbd.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pbd.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3k-b-img data: URI decoded to assets/data-c3k-b-img.svg (544 bytes, percent-encoded)",
       "file": "compositions/c3-dot.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7217,10 +7187,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3k-c-img references remote asset \"data:image/svg+xml,%3C!--pbd-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pbd-close.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3k-c-img data: URI decoded to assets/data-c3k-c-img.svg (556 bytes, percent-encoded)",
       "file": "compositions/c3-dot.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7369,10 +7339,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3l-a-video references remote asset \"data:image/svg+xml,%3C!--c3la.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3la.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3l-a-video data: URI decoded to assets/data-c3l-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-off.html",
       "line": 61,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7384,10 +7354,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3l-b-video references remote asset \"data:image/svg+xml,%3C!--c3lb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3lb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3l-b-video data: URI decoded to assets/data-c3l-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-off.html",
       "line": 63,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7399,10 +7369,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c3l-c-video references remote asset \"data:image/svg+xml,%3C!--c3lc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c3lc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c3l-c-video data: URI decoded to assets/data-c3l-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c3-off.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7511,10 +7481,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4a-a-video references remote asset \"data:image/svg+xml,%3C!--c4aa.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4aa.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4a-a-video data: URI decoded to assets/data-c4a-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-wind.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7526,10 +7496,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4a-b-video references remote asset \"data:image/svg+xml,%3C!--c4ab.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ab.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4a-b-video data: URI decoded to assets/data-c4a-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-wind.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7541,10 +7511,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4a-c-img references remote asset \"data:image/svg+xml,%3C!--helio.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/helio.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4a-c-img data: URI decoded to assets/data-c4a-c-img.svg (548 bytes, percent-encoded)",
       "file": "compositions/c4-wind.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7646,10 +7616,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4b-a-video references remote asset \"data:image/svg+xml,%3C!--c4ba.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ba.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4b-a-video data: URI decoded to assets/data-c4b-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-edge.html",
       "line": 50,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7661,10 +7631,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4b-b-video references remote asset \"data:image/svg+xml,%3C!--c4bb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4bb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4b-b-video data: URI decoded to assets/data-c4b-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-edge.html",
       "line": 51,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7729,10 +7699,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4c-a-video references remote asset \"data:image/svg+xml,%3C!--c4ca.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ca.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4c-a-video data: URI decoded to assets/data-c4c-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-blind.html",
       "line": 51,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7744,10 +7714,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4c-b-video references remote asset \"data:image/svg+xml,%3C!--c4cb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4cb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4c-b-video data: URI decoded to assets/data-c4c-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-blind.html",
       "line": 52,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7828,10 +7798,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4d-a-video references remote asset \"data:image/svg+xml,%3C!--c4da.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4da.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4d-a-video data: URI decoded to assets/data-c4d-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-flare.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7843,10 +7813,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4d-b-video references remote asset \"data:image/svg+xml,%3C!--c4db.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4db.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4d-b-video data: URI decoded to assets/data-c4d-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-flare.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7858,10 +7828,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4d-c-video references remote asset \"data:image/svg+xml,%3C!--c4dc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4dc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4d-c-video data: URI decoded to assets/data-c4d-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-flare.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -7965,10 +7935,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4e-a-video references remote asset \"data:image/svg+xml,%3C!--c4ea.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ea.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4e-a-video data: URI decoded to assets/data-c4e-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-plasma.html",
       "line": 63,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7980,10 +7950,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4e-b-img references remote asset \"data:image/svg+xml,%3C!--plasma-plot.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/plasma-plot.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4e-b-img data: URI decoded to assets/data-c4e-b-img.svg (560 bytes, percent-encoded)",
       "file": "compositions/c4-plasma.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -7995,10 +7965,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4e-c-video references remote asset \"data:image/svg+xml,%3C!--c4ec.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ec.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4e-c-video data: URI decoded to assets/data-c4e-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-plasma.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -8163,10 +8133,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4f-a-img references remote asset \"data:image/svg+xml,%3C!--plasma-faint.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/plasma-faint.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4f-a-img data: URI decoded to assets/data-c4f-a-img.svg (562 bytes, percent-encoded)",
       "file": "compositions/c4-date.html",
       "line": 63,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8178,10 +8148,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4f-b-video references remote asset \"data:image/svg+xml,%3C!--c4fb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4fb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4f-b-video data: URI decoded to assets/data-c4f-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-date.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8193,10 +8163,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4f-c-video references remote asset \"data:image/svg+xml,%3C!--c4fc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4fc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4f-c-video data: URI decoded to assets/data-c4f-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-date.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8208,10 +8178,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4f-d-video references remote asset \"data:image/svg+xml,%3C!--c4fd.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4fd.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4f-d-video data: URI decoded to assets/data-c4f-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-date.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -8352,12 +8322,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #sc-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-sc-svg.svg (715 bytes; xmlns added: true)",
       "file": "compositions/c4-scale.html",
       "line": 60,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8432,10 +8401,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#sc-fig\\\", \\\"#sc-now\\\", \\\"#sc-now-t\\\"]\" is not a DOM selector (\"[\\\"#sc-fig\\\", \\\"#sc-now\\\", \\\"#sc-now-t\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#sc-fig\", \"#sc-now\", \"#sc-now-t\"] at start=475.0400 duration=0.5000",
       "file": "compositions/c4-scale.html",
       "line": 86,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -8482,10 +8451,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#sc-now\\\", \\\"#sc-now-t\\\"]\" is not a DOM selector (\"[\\\"#sc-now\\\", \\\"#sc-now-t\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#sc-now\", \"#sc-now-t\"] at start=480.2200 duration=0.3000",
       "file": "compositions/c4-scale.html",
       "line": 93,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -8552,10 +8521,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4g-a-video references remote asset \"data:image/svg+xml,%3C!--c4ga.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ga.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4g-a-video data: URI decoded to assets/data-c4g-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-lightday.html",
       "line": 64,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8567,10 +8536,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4g-b-img references remote asset \"data:image/svg+xml,%3C!--page-lightday.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'915' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/page-lightday.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4g-b-img data: URI decoded to assets/data-c4g-b-img.svg (568 bytes, percent-encoded)",
       "file": "compositions/c4-lightday.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8606,10 +8575,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4g-c-video references remote asset \"data:image/svg+xml,%3C!--c4gc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4gc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4g-c-video data: URI decoded to assets/data-c4g-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-lightday.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -8658,10 +8627,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "delta": "immediateRender false not expressible in KDL (no carryback flag); the from-state starts at its position 485.7200s, so evaluation before the start differs from GSAP",
+      "detail": "tl.fromTo on \"#c4g-b\" at start=485.7200 duration=4.0100",
       "file": "compositions/c4-lightday.html",
       "line": 77,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -8758,10 +8728,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4h-a-video references remote asset \"data:image/svg+xml,%3C!--c4ha.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ha.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4h-a-video data: URI decoded to assets/data-c4h-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-power.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8773,10 +8743,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4h-b-video references remote asset \"data:image/svg+xml,%3C!--c4hb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4hb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4h-b-video data: URI decoded to assets/data-c4h-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-power.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8788,10 +8758,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4h-c-video references remote asset \"data:image/svg+xml,%3C!--c4hc.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4hc.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4h-c-video data: URI decoded to assets/data-c4h-c-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-power.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8803,10 +8773,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4h-d-video references remote asset \"data:image/svg+xml,%3C!--c4hd.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4hd.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4h-d-video data: URI decoded to assets/data-c4h-d-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-power.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -8900,10 +8870,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4i-a-video references remote asset \"data:image/svg+xml,%3C!--c4ia.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ia.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4i-a-video data: URI decoded to assets/data-c4i-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-silent.html",
       "line": 52,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8915,10 +8885,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4i-b-video references remote asset \"data:image/svg+xml,%3C!--c4ib.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ib.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4i-b-video data: URI decoded to assets/data-c4i-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-silent.html",
       "line": 53,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -8983,10 +8953,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4j-a-video references remote asset \"data:image/svg+xml,%3C!--c4ja.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4ja.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4j-a-video data: URI decoded to assets/data-c4j-a-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-star.html",
       "line": 57,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -8998,10 +8968,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4j-b-video references remote asset \"data:image/svg+xml,%3C!--c4jb.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c4jb.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4j-b-video data: URI decoded to assets/data-c4j-b-video.svg (537 bytes, percent-encoded)",
       "file": "compositions/c4-star.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -9074,10 +9044,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4k-a-img references remote asset \"data:image/svg+xml,%3C!--gr-art.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/gr-art.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4k-a-img data: URI decoded to assets/data-c4k-a-img.svg (550 bytes, percent-encoded)",
       "file": "compositions/c4-close.html",
       "line": 50,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -9089,10 +9059,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #c4k-b-img references remote asset \"data:image/svg+xml,%3C!--pbd.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pbd.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #c4k-b-img data: URI decoded to assets/data-c4k-b-img.svg (544 bytes, percent-encoded)",
       "file": "compositions/c4-close.html",
       "line": 51,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -9415,12 +9385,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #gt-dust is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-gt-dust.svg (3243 bytes; xmlns added: true)",
       "file": "compositions/gate.html",
       "line": 64,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -9431,10 +9400,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"steps(8)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#gt-dust\" at start=0.0000 duration=0.6400",
       "file": "compositions/gate.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",

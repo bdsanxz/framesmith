@@ -1,0 +1,66 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/tear.html (composition id "tear"), written by scripts/paper-flash-build.py
+  WHAT: the paper tear out of the hook: a ragged gap opens down the middle of the outgoing shot; inside it
+    the incoming shot shows as a black-and-white halftone print, and white torn paper lines both edges. It lasts 0.33 s,
+    mounted from 4.14 s to 4.47 s, just before the shot it opens on (shot s06, which starts at 4.47 s).
+  STRUCTURE: mounted for 0.33 s before its shot (z-index 5, the tear-slot in index.html); #gap (a clip-path polygon along
+    a seeded ragged line) holds the video #tear-in (0 to 0.33 s of this composition, shot s06) and the #dots halftone, a
+    CSS dot pattern; #edge-l and #edge-r are the two torn paper edges, each with a drop shadow (.edge-shadow). tl (paused,
+    registered as "tear") drives two custom properties on #root, named e and w in the CSS (their names start with a double
+    dash): e goes from 0 to 1 over 0.07 s, a thin white line for about two frames, and w goes from 0 to 190px from 0.05 s
+    to 0.33 s, opening the gap to a third of the frame.
+  CUSTOMIZE: the shot it opens on is cut.json "tear"; "seed" changes the line of the tear. change the manifests (shots.json, cut.json, captions.txt) and build again, never this file:
+    it is rewritten on every build. The seam timings are RISE, HOLD, FALL, TEAR, ZOOM_IN, ZOOM_OUT
+    at the head of scripts/paper-flash-build.py. The numbers here that must change together: the 190px gap width in the
+    w tween, the 0.33 s length (the clip's data-duration, the #tear-in data-duration and the tween end must agree), and
+    the 0.07 s line time. The polygon points are generated from the seed.
+  MEDIA: no media file is bundled. Three slots:
+    1. Video #tear-in, inside #gap. It is a video slot (data-media-kind="video"). It showed footage/s06.mp4, the incoming
+       shot, for 0.33 s, in black and white (the grayscale rule for #gap [data-media-kind="video"]). Now it is a labelled
+       hatch stand-in (VIDEO: footage/s06.mp4) seen through the halftone. To plug in your own clip, replace that img with
+       a video element with id="tear-in", src="footage/s06.mp4", muted, playsinline, data-start="0", data-duration="0.33", data-media-start="0", data-track-index="0" and data-media-kind="video". Keep the id and data-media-kind, so the grey rule still matches.
+    2. CSS image, the edge paper of #edge-l and #edge-r (the .edge rule). It was a photo of crumpled white paper,
+       assets/paper/crumpled-white.jpg. Now the rule shows its #f6f5f1 colour where the word none stands. To plug in the
+       photo, change none in that background rule to url("assets/paper/crumpled-white.jpg").
+    3. Sound: none in this file. The rip sound is the sound slot #sfx-tear-6 in index.html.
+    No font is used here.
+  WHEN TO USE: a vertical Short (1080x1920) cut fast on the spoken words, in the paper flash transitions style
+    (references/paper-flash-transitions.md). For a calm or long-form film use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The tear: a ragged gap opens down the middle of the outgoing shot. Inside it the incoming
+           shot shows as a black-and-white halftone print; white torn paper lines both edges. */
+        #root { position: absolute; inset: 0; overflow: hidden; --w: 0px; --e: 0; }
+        #gap { position: absolute; inset: 0; clip-path: polygon(calc(530px - var(--w) * 1.20) -20px, calc(562px - var(--w) * 1.02) 60px, calc(512px - var(--w) * 0.82) 140px, calc(545px - var(--w) * 0.97) 220px, calc(550px - var(--w) * 1.06) 300px, calc(524px - var(--w) * 0.80) 380px, calc(519px - var(--w) * 1.02) 460px, calc(547px - var(--w) * 1.03) 540px, calc(546px - var(--w) * 0.81) 620px, calc(539px - var(--w) * 1.04) 700px, calc(560px - var(--w) * 0.86) 780px, calc(543px - var(--w) * 1.00) 860px, calc(548px - var(--w) * 1.21) 940px, calc(558px - var(--w) * 0.93) 1020px, calc(552px - var(--w) * 0.81) 1100px, calc(554px - var(--w) * 0.93) 1180px, calc(563px - var(--w) * 0.82) 1260px, calc(556px - var(--w) * 1.09) 1340px, calc(555px - var(--w) * 0.95) 1420px, calc(532px - var(--w) * 0.85) 1500px, calc(559px - var(--w) * 0.91) 1580px, calc(568px - var(--w) * 1.16) 1660px, calc(545px - var(--w) * 0.90) 1740px, calc(555px - var(--w) * 0.96) 1820px, calc(519px - var(--w) * 0.82) 1900px, calc(541px - var(--w) * 1.15) 1980px, calc(541px + var(--w) * 0.86) 1980px, calc(519px + var(--w) * 0.85) 1900px, calc(555px + var(--w) * 0.94) 1820px, calc(545px + var(--w) * 0.84) 1740px, calc(568px + var(--w) * 0.82) 1660px, calc(559px + var(--w) * 1.10) 1580px, calc(532px + var(--w) * 0.83) 1500px, calc(555px + var(--w) * 1.07) 1420px, calc(556px + var(--w) * 1.06) 1340px, calc(563px + var(--w) * 0.90) 1260px, calc(554px + var(--w) * 1.00) 1180px, calc(552px + var(--w) * 1.03) 1100px, calc(558px + var(--w) * 1.19) 1020px, calc(548px + var(--w) * 0.83) 940px, calc(543px + var(--w) * 0.93) 860px, calc(560px + var(--w) * 1.12) 780px, calc(539px + var(--w) * 0.98) 700px, calc(546px + var(--w) * 0.87) 620px, calc(547px + var(--w) * 0.86) 540px, calc(519px + var(--w) * 1.03) 460px, calc(524px + var(--w) * 1.16) 380px, calc(550px + var(--w) * 1.20) 300px, calc(545px + var(--w) * 1.14) 220px, calc(512px + var(--w) * 0.96) 140px, calc(562px + var(--w) * 0.94) 60px, calc(530px + var(--w) * 0.95) -20px); background: #1b1b1b; }
+        #gap [data-media-kind="video"] { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; filter: grayscale(1) contrast(1.3) brightness(0.95); }
+        #dots { position: absolute; inset: 0; background-image: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.6) 0 1.6px, rgba(0, 0, 0, 0) 2.3px); background-size: 7px 7px; }
+        .edge-shadow { position: absolute; inset: 0; filter: drop-shadow(0 0 7px rgba(0, 0, 0, 0.55)); }
+        .edge { position: absolute; inset: 0; background: #f6f5f1 none /* image slot: assets/paper/crumpled-white.jpg, not bundled */ center / cover; }
+        #edge-l { clip-path: polygon(calc(530px - var(--w) * 1.20 - var(--e) * 10px) -20px, calc(562px - var(--w) * 1.02 - var(--e) * 10px) 60px, calc(512px - var(--w) * 0.82 - var(--e) * 16px) 140px, calc(545px - var(--w) * 0.97 - var(--e) * 12px) 220px, calc(550px - var(--w) * 1.06 - var(--e) * 21px) 300px, calc(524px - var(--w) * 0.80 - var(--e) * 18px) 380px, calc(519px - var(--w) * 1.02 - var(--e) * 14px) 460px, calc(547px - var(--w) * 1.03 - var(--e) * 12px) 540px, calc(546px - var(--w) * 0.81 - var(--e) * 22px) 620px, calc(539px - var(--w) * 1.04 - var(--e) * 18px) 700px, calc(560px - var(--w) * 0.86 - var(--e) * 11px) 780px, calc(543px - var(--w) * 1.00 - var(--e) * 23px) 860px, calc(548px - var(--w) * 1.21 - var(--e) * 22px) 940px, calc(558px - var(--w) * 0.93 - var(--e) * 22px) 1020px, calc(552px - var(--w) * 0.81 - var(--e) * 19px) 1100px, calc(554px - var(--w) * 0.93 - var(--e) * 23px) 1180px, calc(563px - var(--w) * 0.82 - var(--e) * 11px) 1260px, calc(556px - var(--w) * 1.09 - var(--e) * 23px) 1340px, calc(555px - var(--w) * 0.95 - var(--e) * 9px) 1420px, calc(532px - var(--w) * 0.85 - var(--e) * 10px) 1500px, calc(559px - var(--w) * 0.91 - var(--e) * 21px) 1580px, calc(568px - var(--w) * 1.16 - var(--e) * 23px) 1660px, calc(545px - var(--w) * 0.90 - var(--e) * 22px) 1740px, calc(555px - var(--w) * 0.96 - var(--e) * 21px) 1820px, calc(519px - var(--w) * 0.82 - var(--e) * 16px) 1900px, calc(541px - var(--w) * 1.15 - var(--e) * 18px) 1980px, calc(541px - var(--w) * 1.15) 1980px, calc(519px - var(--w) * 0.82) 1900px, calc(555px - var(--w) * 0.96) 1820px, calc(545px - var(--w) * 0.90) 1740px, calc(568px - var(--w) * 1.16) 1660px, calc(559px - var(--w) * 0.91) 1580px, calc(532px - var(--w) * 0.85) 1500px, calc(555px - var(--w) * 0.95) 1420px, calc(556px - var(--w) * 1.09) 1340px, calc(563px - var(--w) * 0.82) 1260px, calc(554px - var(--w) * 0.93) 1180px, calc(552px - var(--w) * 0.81) 1100px, calc(558px - var(--w) * 0.93) 1020px, calc(548px - var(--w) * 1.21) 940px, calc(543px - var(--w) * 1.00) 860px, calc(560px - var(--w) * 0.86) 780px, calc(539px - var(--w) * 1.04) 700px, calc(546px - var(--w) * 0.81) 620px, calc(547px - var(--w) * 1.03) 540px, calc(519px - var(--w) * 1.02) 460px, calc(524px - var(--w) * 0.80) 380px, calc(550px - var(--w) * 1.06) 300px, calc(545px - var(--w) * 0.97) 220px, calc(512px - var(--w) * 0.82) 140px, calc(562px - var(--w) * 1.02) 60px, calc(530px - var(--w) * 1.20) -20px); }
+        #edge-r { clip-path: polygon(calc(530px + var(--w) * 0.95) -20px, calc(562px + var(--w) * 0.94) 60px, calc(512px + var(--w) * 0.96) 140px, calc(545px + var(--w) * 1.14) 220px, calc(550px + var(--w) * 1.20) 300px, calc(524px + var(--w) * 1.16) 380px, calc(519px + var(--w) * 1.03) 460px, calc(547px + var(--w) * 0.86) 540px, calc(546px + var(--w) * 0.87) 620px, calc(539px + var(--w) * 0.98) 700px, calc(560px + var(--w) * 1.12) 780px, calc(543px + var(--w) * 0.93) 860px, calc(548px + var(--w) * 0.83) 940px, calc(558px + var(--w) * 1.19) 1020px, calc(552px + var(--w) * 1.03) 1100px, calc(554px + var(--w) * 1.00) 1180px, calc(563px + var(--w) * 0.90) 1260px, calc(556px + var(--w) * 1.06) 1340px, calc(555px + var(--w) * 1.07) 1420px, calc(532px + var(--w) * 0.83) 1500px, calc(559px + var(--w) * 1.10) 1580px, calc(568px + var(--w) * 0.82) 1660px, calc(545px + var(--w) * 0.84) 1740px, calc(555px + var(--w) * 0.94) 1820px, calc(519px + var(--w) * 0.85) 1900px, calc(541px + var(--w) * 0.86) 1980px, calc(541px + var(--w) * 0.86 + var(--e) * 9px) 1980px, calc(519px + var(--w) * 0.85 + var(--e) * 9px) 1900px, calc(555px + var(--w) * 0.94 + var(--e) * 16px) 1820px, calc(545px + var(--w) * 0.84 + var(--e) * 17px) 1740px, calc(568px + var(--w) * 0.82 + var(--e) * 21px) 1660px, calc(559px + var(--w) * 1.10 + var(--e) * 21px) 1580px, calc(532px + var(--w) * 0.83 + var(--e) * 15px) 1500px, calc(555px + var(--w) * 1.07 + var(--e) * 23px) 1420px, calc(556px + var(--w) * 1.06 + var(--e) * 18px) 1340px, calc(563px + var(--w) * 0.90 + var(--e) * 10px) 1260px, calc(554px + var(--w) * 1.00 + var(--e) * 11px) 1180px, calc(552px + var(--w) * 1.03 + var(--e) * 19px) 1100px, calc(558px + var(--w) * 1.19 + var(--e) * 10px) 1020px, calc(548px + var(--w) * 0.83 + var(--e) * 14px) 940px, calc(543px + var(--w) * 0.93 + var(--e) * 18px) 860px, calc(560px + var(--w) * 1.12 + var(--e) * 18px) 780px, calc(539px + var(--w) * 0.98 + var(--e) * 16px) 700px, calc(546px + var(--w) * 0.87 + var(--e) * 19px) 620px, calc(547px + var(--w) * 0.86 + var(--e) * 11px) 540px, calc(519px + var(--w) * 1.03 + var(--e) * 12px) 460px, calc(524px + var(--w) * 1.16 + var(--e) * 22px) 380px, calc(550px + var(--w) * 1.20 + var(--e) * 10px) 300px, calc(545px + var(--w) * 1.14 + var(--e) * 16px) 220px, calc(512px + var(--w) * 0.96 + var(--e) * 11px) 140px, calc(562px + var(--w) * 0.94 + var(--e) * 15px) 60px, calc(530px + var(--w) * 0.95 + var(--e) * 11px) -20px); }
+      </style>
+      <!-- The gap with the incoming shot, then the two torn paper edges. -->
+      <div id="root" data-composition-id="tear" data-width="1080" data-height="1920">
+        <div id="gap">
+          <img id="tear-in" data-start="0" data-duration="0.33" data-media-start="0" data-track-index="0" src="data:image/svg+xml,%3C!--s06.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/s06.mp4%3C/text%3E%3C/svg%3E" data-media="footage/s06.mp4" data-media-kind="video" alt="" />
+          <div id="dots"></div>
+        </div>
+        <div class="edge-shadow"><div id="edge-l" class="edge"></div></div>
+        <div class="edge-shadow"><div id="edge-r" class="edge"></div></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // A thin white line for two frames, then the gap runs open to a third of the frame.
+        tl.set("#root", { "--e": 0, "--w": "0px" }, 0);
+        tl.to("#root", { "--e": 1, duration: 0.07, ease: "none" }, 0);
+        tl.to("#root", { "--w": "190px", duration: 0.28, ease: "power2.in" }, 0.05);
+        window.__timelines["tear"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

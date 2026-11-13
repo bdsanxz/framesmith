@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/rings.html (composition id "rings")
+  WHAT: The longest collage scene, 13.17 s, mounted at 39.81 s. On a paper map of the Indian Ocean the
+    camera pushes in while a burst goes off on Krakatoa and a yellow ring grows outward from it
+    without stopping. Two thick yellow arrows and a black tag, THE SOUND, ride the ring's front toward
+    Batavia, Perth and Rodrigues. Each place gets a paper name strip and a dashed ring drawn around it,
+    and each distance (160 KM, 3,110 KM, 4,800 KM) a yellow card. A police chief's note types in on the
+    lower left, and ROAR OF HEAVY GUNS is stamped at its end. index.html mounts it after the villages
+    scene and before barographs; the far-off guns sound is in index.html.
+  STRUCTURE: Inside #rg-cam (the camera, scaling 1 to 1.16 over 13.17 s, origin 950,470), back to front:
+    the ruled grid #rg-grid, the ocean map #rg-map (assets/generated/ocean.svg at -960,-540, 3840x2160),
+    the SVG #rg-plan with the labels INDIAN OCEAN and AUSTRALIA, a north arrow, the three dashed rings
+    #rg-m1-c, #rg-m2-c and #rg-m3-c revealed through the masks rg-m1, rg-m2 and rg-m3, and the front
+    #rg-front (two circles, #rg-front-ink and #rg-front-y); the arrows #rg-arrow-p (to Perth) and
+    #rg-arrow-r (to Rodrigues), each a shaft and a head; the burst #rg-burst; the label #rg-k; the
+    place strips #rg-name-b, #rg-name-p and #rg-name-r with the cards #rg-card-b, #rg-card-p and
+    #rg-card-r; the token #rg-token; the note #rg-note; and the stamp #rg-stamp. The overlay SVG #rg-over
+    holds the dots and the Batavia leader. The caption tag #rg-tag sits outside the camera. Timeline,
+    in seconds from the scene start: 0.04 the burst pops; 0.14 the KRAKATOA label blurs in; 0.15 the
+    front shows, and its radius (in frame pixels) reaches 26 by 1.55 s, 547.7 by 4.8 s, 821.3 by 7.04 s
+    and 1500 by 9.34 s; the front fades from 8.3 s. The arrows and the token ride from 2.17 s to about
+    6.9 s. The place dots, strips and rings come in at 1.5 (Batavia), 4.72 (Perth) and 6.95 (Rodrigues)
+    s, each card at 2.5, 5.58 and 7.67 s. The note types from 9.34 s at 28 characters a second, and the
+    stamp slams at 10.5 s.
+  CUSTOMIZE: The places are the pins in ocean.json (Krakatoa 1370.3,293.2; Batavia 1396.3,294.5; Perth
+    1563.8,805.6; Rodrigues 591.5,552.9, in frame pixels; one pixel is about 5.8 km). Moving a place means
+    moving its dot, its ring path, its arrow's rotation (#rg-arrow-p 69.31deg, #rg-arrow-r 161.56deg), its
+    shaft length and its token positions together. The ring radii are 26, 547.7 and 821.3 pixels. Card
+    texts are 160 KM, 3,110 KM and 4,800 KM; the stamp is ROAR OF HEAVY GUNS and the note is "the chief of
+    police reports:". Colours: sea paper #d9cdb0, strips #f7f3e8, yellow #f2c230, ink #1c1a16. Type: Anton
+    for the places, cards, the token, the label and the stamp; Special Elite for the labels and the note.
+    The note types at 28 characters a second (the third argument of typeOn).
+  MEDIA: No media file is bundled. Bundled drawings (SVG, kept): assets/generated/ocean.svg, the Indian Ocean
+    on paper loaded by #rg-map (src="assets/generated/ocean.svg", drawn by map-svg.py; the CSS notes it draws
+    half a frame past each edge), sized 3840 by 2160 px at -960,-540. It renders as it is and is not a media
+    slot, so it needs nothing plugged in. To use your own map, set the img's src to your SVG, keeping the size
+    and the pins in step with the CUSTOMIZE section. Font slots 1 and 2, fonts: no font file is bundled.
+    Anton (the places, the cards, the token, the label and the stamp) and Special Elite (the map labels
+    and the note) load with src: local(); each is used if installed, else the sans-serif and monospace
+    fallbacks show. To plug in the files, add url("assets/fonts/anton-latin.woff2") and
+    url("assets/fonts/special-elite-latin.woff2") as sources in the two @font-face rules. Sound slots:
+    none; the far-off guns sound sits in index.html. CSS image slots: none; the torn edges come from an
+    SVG filter. No video here.
+  WHEN TO USE: A to-scale diagram in which a sound or wave spreads from one point and reaches named places
+    at stated distances. Use a static map when nothing needs to move across it.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton and Special Elite, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The sea-paper ground under the map. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #d9cdb0; }
+        /* The event diagram: the Indian Ocean on paper, the sound spreading from Krakatoa. The camera
+           pushes in all scene long. Places are the pins in ocean.json: Krakatoa 1370.3,293.2; Batavia
+           1396.3,294.5; Perth 1563.8,805.6; Rodrigues 591.5,552.9. One frame pixel is about 5.8 km. */
+        #rg-cam { position: absolute; inset: 0; transform-origin: 950px 470px; }
+        /* The ruled paper grid under the map, drawn with two repeating gradients. */
+        #rg-grid { position: absolute; inset: -120px; background-image: linear-gradient(rgba(70, 58, 32, 0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(70, 58, 32, 0.1) 2px, transparent 2px); background-size: 92px 92px; }
+        /* map-svg.py draws half a frame beyond each edge, so the image sits at -960,-540 and is twice the frame. */
+        #rg-map { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; }
+        .rg-svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        /* The map type: Special Elite labels in dark olive ink, set in the SVG. */
+        .rg-type { font-family: "Special Elite", monospace; fill: #3f382c; }
+        /* Torn edges: the displacement filter applied to every paper piece. */
+        .rg-torn { filter: url(#rg-tear); }
+        /* The caption tag at the top left: a bordered paper box with the place, the date and the time. */
+        #rg-tag { position: absolute; left: 70px; top: 60px; padding: 10px 18px 6px; background: #f7f3e8; border: 3px solid #1c1a16; font-family: "Special Elite", monospace; font-size: 32px; line-height: 1.2; color: #1c1a16; white-space: nowrap; }
+        /* Thick yellow arrows grow from Krakatoa with the front of the sound. Each wrapper is turned to
+           its bearing once, in CSS; the shaft stretches and the head slides inside it. */
+        .rg-arrow { position: absolute; left: 1370.3px; top: 293.2px; width: 0; height: 0; transform-origin: 0 0; }
+        #rg-arrow-p { transform: rotate(69.31deg); }
+        #rg-arrow-r { transform: rotate(161.56deg); }
+        .rg-shaft { position: absolute; left: 62px; top: -12px; height: 24px; background: #f2c230; border-top: 4px solid #1c1a16; border-bottom: 4px solid #1c1a16; transform-origin: 0 50%; }
+        #rg-shaft-p { width: 411px; }
+        #rg-shaft-r { width: 684px; }
+        .rg-head { position: absolute; left: 0; top: -32px; width: 68px; height: 64px; overflow: visible; }
+        /* The token: a tag that rides the front toward Rodrigues. */
+        #rg-token { position: absolute; left: 0; top: 0; padding: 5px 12px 3px; background: #1c1a16; font-family: "Anton", sans-serif; font-size: 28px; line-height: 1.15; letter-spacing: 0.04em; color: #f7f3e8; white-space: nowrap; }
+        /* The burst on Krakatoa: a yellow starburst with a white inner star, popped in at the start. */
+        #rg-burst { position: absolute; left: 1300.3px; top: 223.2px; width: 140px; height: 140px; overflow: visible; }
+        /* The Krakatoa label: a dark box with the name in Anton, at the source of the sound. */
+        #rg-k { position: absolute; left: 1128px; top: 182px; padding: 5px 14px 3px; background: #1c1a16; font-family: "Anton", sans-serif; font-size: 36px; line-height: 1.15; letter-spacing: 0.04em; color: #f7f3e8; white-space: nowrap; }
+        /* Place names on paper strips; distances on torn yellow cards. */
+        .rg-name { position: absolute; }
+        .rg-name-bg { position: absolute; inset: 0; background: #f7f3e8; box-shadow: 0 6px 10px rgba(40, 32, 14, 0.25); }
+        .rg-name-text { position: relative; padding: 4px 18px 6px; font-family: "Anton", sans-serif; font-size: 42px; line-height: 1.15; color: #1c1a16; white-space: nowrap; }
+        .rg-card { position: absolute; }
+        .rg-card-bg { position: absolute; inset: 0; background: #f2c230; box-shadow: 0 8px 12px rgba(40, 32, 14, 0.3); }
+        .rg-card-text { position: relative; padding: 2px 22px 6px; font-family: "Anton", sans-serif; font-size: 62px; line-height: 1.15; color: #1c1a16; white-space: nowrap; }
+        /* Placement of the three place strips and their distance cards: Batavia, Perth and Rodrigues. */
+        #rg-name-b { left: 1462px; top: 146px; transform: rotate(-1.5deg); }
+        #rg-card-b { left: 1466px; top: 214px; transform: rotate(2deg); }
+        #rg-card-b .rg-card-text { font-size: 54px; }
+        #rg-name-p { left: 1318px; top: 740px; transform: rotate(-2deg); }
+        #rg-card-p { left: 1236px; top: 812px; transform: rotate(1.5deg); }
+        #rg-name-r { left: 230px; top: 394px; transform: rotate(-2deg); }
+        #rg-card-r { left: 220px; top: 476px; transform: rotate(2deg); }
+        /* The police chief's note: a paper strip on the lower left, typed in Special Elite. */
+        #rg-note { position: absolute; left: 228px; top: 642px; transform: rotate(-1deg); }
+        #rg-note-bg { position: absolute; inset: 0; background: #f7f3e8; }
+        #rg-note-text { position: relative; padding: 8px 16px 4px; font-family: "Special Elite", monospace; font-size: 34px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        /* Rubber stamp: black ink, a double border, a rough mask so the ink is uneven. */
+        #rg-stamp { position: absolute; left: 222px; top: 716px; padding: 2px 26px 6px; border: 9px double #1c1a16; font-family: "Anton", sans-serif; font-size: 84px; line-height: 1.15; color: #1c1a16; white-space: nowrap; mix-blend-mode: multiply; filter: url(#rg-ink); transform: rotate(-4deg); }
+      </style>
+      <div id="root" data-composition-id="rings" data-width="1920" data-height="1080">
+        <!-- Hidden SVG filters: rg-tear roughens the paper edges, rg-ink makes the stamp ink uneven. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="rg-tear"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="12" /><feDisplacementMap in="SourceGraphic" scale="10" /></filter>
+          <filter id="rg-ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n" /><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.0 2.0" result="m" /><feComposite in="SourceGraphic" in2="m" operator="in" /></filter>
+        </svg>
+        <!-- The camera group: the map, the diagram, the arrows, the burst and the labels, back to front. -->
+        <div id="rg-cam" data-layout-allow-overflow>
+          <div id="rg-grid"></div>
+          <img id="rg-map" src="assets/generated/ocean.svg" alt="" />
+          <svg id="rg-plan" class="rg-svg" viewBox="0 0 1920 1080">
+            <defs>
+              <!-- Each dashed ring is revealed through a mask as it is drawn. -->
+              <mask id="rg-m1" maskUnits="userSpaceOnUse" x="0" y="-200" width="1920" height="1480"><circle id="rg-m1-c" cx="1370.3" cy="293.2" r="26" fill="none" stroke="#ffffff" stroke-width="14" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" /></mask>
+              <mask id="rg-m2" maskUnits="userSpaceOnUse" x="0" y="-200" width="1920" height="1480"><path id="rg-m2-c" d="M 1789.9 -58.9 A 547.7 547.7 0 1 1 950.7 -58.9" fill="none" stroke="#ffffff" stroke-width="18" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" /></mask>
+              <mask id="rg-m3" maskUnits="userSpaceOnUse" x="0" y="-200" width="1920" height="1480"><path id="rg-m3-c" d="M 1717.4 1037.6 A 821.3 821.3 0 0 1 659 -117.5" fill="none" stroke="#ffffff" stroke-width="18" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" /></mask>
+            </defs>
+            <text class="rg-type" x="1140" y="610" font-size="34" text-anchor="middle" letter-spacing="14">INDIAN OCEAN</text>
+            <text class="rg-type" x="1640" y="696" font-size="26" text-anchor="middle" letter-spacing="5">AUSTRALIA</text>
+            <!-- North arrow. -->
+            <path d="M 1000 196 L 1000 126 M 986 150 L 1000 122 L 1014 150" fill="none" stroke="#3f382c" stroke-width="4" />
+            <text class="rg-type" x="1000" y="236" font-size="28" text-anchor="middle">N</text>
+            <!-- The rings the sound has reached: 160 km, 3,110 km, 4,800 km. -->
+            <circle cx="1370.3" cy="293.2" r="26" fill="none" stroke="#1c1a16" stroke-width="3" stroke-dasharray="6 5" mask="url(#rg-m1)" />
+            <path d="M 1789.9 -58.9 A 547.7 547.7 0 1 1 950.7 -58.9" fill="none" stroke="#1c1a16" stroke-width="5" stroke-dasharray="20 14" mask="url(#rg-m2)" />
+            <path d="M 1717.4 1037.6 A 821.3 821.3 0 0 1 659 -117.5" fill="none" stroke="#1c1a16" stroke-width="5" stroke-dasharray="20 14" mask="url(#rg-m3)" />
+            <!-- The front of the sound: a yellow ring that keeps growing. -->
+            <g id="rg-front">
+              <circle id="rg-front-ink" cx="1370.3" cy="293.2" r="1" fill="none" stroke="#1c1a16" stroke-width="16" />
+              <circle id="rg-front-y" cx="1370.3" cy="293.2" r="1" fill="none" stroke="#f2c230" stroke-width="9" />
+            </g>
+          </svg>
+          <div class="rg-arrow" id="rg-arrow-p" data-layout-allow-overflow data-layout-allow-overlap>
+            <div class="rg-shaft" id="rg-shaft-p"></div>
+            <svg class="rg-head" id="rg-head-p" viewBox="0 0 68 64"><path d="M 4 4 L 64 32 L 4 60 L 16 32 Z" fill="#f2c230" stroke="#1c1a16" stroke-width="4" stroke-linejoin="round" /></svg>
+          </div>
+          <div class="rg-arrow" id="rg-arrow-r" data-layout-allow-overflow data-layout-allow-overlap>
+            <div class="rg-shaft" id="rg-shaft-r"></div>
+            <svg class="rg-head" id="rg-head-r" viewBox="0 0 68 64"><path d="M 4 4 L 64 32 L 4 60 L 16 32 Z" fill="#f2c230" stroke="#1c1a16" stroke-width="4" stroke-linejoin="round" /></svg>
+          </div>
+          <svg id="rg-burst" viewBox="-90 -90 180 180" data-layout-allow-overlap>
+            <path d="M 0 -88 L 18 -34 L 62 -62 L 38 -14 L 88 0 L 38 16 L 60 64 L 16 36 L 0 88 L -18 36 L -62 62 L -38 14 L -88 0 L -38 -16 L -62 -62 L -16 -36 Z" fill="#f2c230" stroke="#1c1a16" stroke-width="5" stroke-linejoin="round" />
+            <path d="M 0 -44 L 10 -16 L 34 -30 L 20 -6 L 46 0 L 20 8 L 32 32 L 8 18 L 0 44 L -10 18 L -32 32 L -20 6 L -46 0 L -20 -8 L -34 -30 L -8 -18 Z" fill="#fffdf2" />
+          </svg>
+          <!-- The overlay: the dot on Krakatoa, the Batavia dot with its leader, and the Perth and Rodrigues dots. -->
+          <svg id="rg-over" class="rg-svg" viewBox="0 0 1920 1080">
+            <circle cx="1370.3" cy="293.2" r="7" fill="#1c1a16" />
+            <g id="rg-dot-b"><path id="rg-lead-b" d="M 1396.3 294.5 L 1440 206 L 1462 186" fill="none" stroke="#1c1a16" stroke-width="3" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" /><circle cx="1396.3" cy="294.5" r="6" fill="#1c1a16" stroke="#f7f3e8" stroke-width="2" /></g>
+            <circle id="rg-dot-p" cx="1563.8" cy="805.6" r="10" fill="#1c1a16" stroke="#f7f3e8" stroke-width="3" />
+            <circle id="rg-dot-r" cx="591.5" cy="552.9" r="10" fill="#1c1a16" stroke="#f7f3e8" stroke-width="3" />
+          </svg>
+          <div id="rg-k" data-layout-allow-overlap>KRAKATOA</div>
+          <div class="rg-name" id="rg-name-b"><div class="rg-name-bg rg-torn"></div><div class="rg-name-text">BATAVIA</div></div>
+          <div class="rg-card" id="rg-card-b" data-layout-allow-overlap><div class="rg-card-bg rg-torn"></div><div class="rg-card-text">160 KM</div></div>
+          <div class="rg-name" id="rg-name-p"><div class="rg-name-bg rg-torn"></div><div class="rg-name-text">PERTH</div></div>
+          <div class="rg-card" id="rg-card-p" data-layout-allow-overlap><div class="rg-card-bg rg-torn"></div><div class="rg-card-text">3,110 KM</div></div>
+          <div class="rg-name" id="rg-name-r"><div class="rg-name-bg rg-torn"></div><div class="rg-name-text">RODRIGUES</div></div>
+          <div class="rg-card" id="rg-card-r" data-layout-allow-overlap><div class="rg-card-bg rg-torn"></div><div class="rg-card-text">4,800 KM</div></div>
+          <div id="rg-token" data-layout-allow-overlap>THE SOUND</div>
+          <div id="rg-note">
+            <div id="rg-note-bg" class="rg-torn"></div>
+            <div id="rg-note-text">the chief of police reports:</div>
+          </div>
+          <div id="rg-stamp" data-layout-allow-overlap>ROAR OF HEAVY GUNS</div>
+        </div>
+        <!-- The caption tag sits outside the camera, so it does not move with the push. -->
+        <div id="rg-tag">SUNDA STRAIT · 27 AUG 1883 · 10:02 AM</div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: shows a text one character at a time, each character at its own time. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        /* Every piece of the scene starts hidden, and its tween shows it at its own time. */
+        gsap.set(["#rg-burst", "#rg-k", "#rg-dot-b", "#rg-dot-p", "#rg-dot-r", "#rg-name-b", "#rg-name-p", "#rg-name-r", "#rg-card-b", "#rg-card-p", "#rg-card-r", "#rg-token", "#rg-note", "#rg-stamp", "#rg-head-p", "#rg-head-r", "#rg-front"], { opacity: 0 });
+        /* The two arrow shafts start at zero length and grow with the front. */
+        gsap.set(["#rg-shaft-p", "#rg-shaft-r"], { scaleX: 0 });
+        // "The sound keeps going" (39.85 s): a burst on Krakatoa, and the front starts out.
+        tl.to("#rg-burst", { opacity: 1, duration: 0.02 }, 0.04);
+        tl.fromTo("#rg-burst", { scale: 0.2, rotation: -20 }, { scale: 1, rotation: 0, duration: 0.14, ease: "back.out(2.5)" }, 0.04);
+        tl.fromTo("#rg-k", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 0.14);
+        tl.to("#rg-front", { opacity: 1, duration: 0.1 }, 0.15);
+        // The front, radius in frame pixels by time: Batavia (26) on its name at 1.55 s, Perth (547.7)
+        // at 4.80 s, Rodrigues (821.3) at 7.04 s, then on out of the frame.
+        const front = [[0.15, 1.4, 26, "power1.out"], [1.55, 3.25, 547.7, "none"], [4.8, 2.24, 821.3, "none"], [7.04, 2.3, 1500, "none"]];
+        front.forEach(([t, d, r, ease]) => {
+          tl.to("#rg-front-ink", { attr: { r }, duration: d, ease }, t);
+          tl.to("#rg-front-y", { attr: { r }, duration: d, ease }, t);
+        });
+        /* The front fades out at 8.3 s, after its last radius keyframe has carried it off the frame. */
+        tl.to("#rg-front", { opacity: 0, duration: 0.9, ease: "power1.in" }, 8.3);
+        // The arrows ride the front: the head's tip is the front's radius. Perth's stops at 533, Rodrigues's at 806.
+        tl.to(["#rg-head-p", "#rg-head-r", "#rg-token"], { opacity: 1, duration: 0.08 }, 2.17);
+        tl.fromTo("#rg-head-p", { x: 58 }, { x: 465, duration: 2.54, ease: "none" }, 2.17);
+        tl.fromTo("#rg-shaft-p", { scaleX: 0.005 }, { scaleX: 1, duration: 2.54, ease: "none" }, 2.17);
+        tl.fromTo("#rg-head-r", { x: 58 }, { x: 479.7, duration: 2.63, ease: "none" }, 2.17);
+        tl.to("#rg-head-r", { x: 738, duration: 2.115, ease: "none" }, 4.8);
+        tl.fromTo("#rg-shaft-r", { scaleX: 0.005 }, { scaleX: 0.622, duration: 2.63, ease: "none" }, 2.17);
+        tl.to("#rg-shaft-r", { scaleX: 1, duration: 2.115, ease: "none" }, 4.8);
+        // The token tag travels under the Rodrigues arrow, at the head.
+        tl.fromTo("#rg-token", { x: 1190.8, y: 363.1 }, { x: 790.7, y: 496.4, duration: 2.63, ease: "none" }, 2.17);
+        tl.to("#rg-token", { x: 545.6, y: 578.1, duration: 2.115, ease: "none" }, 4.8);
+        // Batavia (41.36 s): the dot, the leader, the name; the ring draws; the card slaps on "one hundred and sixty" (42.41 s).
+        tl.to("#rg-dot-b", { opacity: 1, duration: 0.05 }, 1.5);
+        tl.to("#rg-lead-b", { strokeDashoffset: 0, duration: 0.25, ease: "power2.out" }, 1.52);
+        tl.fromTo("#rg-name-b", { opacity: 0, scale: 1.08, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 1.55);
+        tl.to("#rg-m1-c", { strokeDashoffset: 0, duration: 0.55, ease: "power1.inOut" }, 1.55);
+        tl.fromTo("#rg-card-b", { scale: 1.3, rotation: -6, opacity: 0 }, { scale: 1, rotation: 2, opacity: 1, duration: 0.18, ease: "power4.out" }, 2.5);
+        // Perth (44.61 s); "three thousand one hundred" (45.49 s).
+        tl.to("#rg-dot-p", { opacity: 1, duration: 0.05 }, 4.72);
+        tl.fromTo("#rg-name-p", { opacity: 0, scale: 1.08, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 4.78);
+        tl.to("#rg-m2-c", { strokeDashoffset: 0, duration: 0.55, ease: "power1.inOut" }, 4.8);
+        tl.fromTo("#rg-card-p", { scale: 1.3, rotation: -6, opacity: 0 }, { scale: 1, rotation: 1.5, opacity: 1, duration: 0.18, ease: "power4.out" }, 5.58);
+        // Rodrigues (46.85 s); "four thousand eight hundred" (47.58 s).
+        tl.to("#rg-dot-r", { opacity: 1, duration: 0.05 }, 6.95);
+        tl.fromTo("#rg-name-r", { opacity: 0, scale: 1.08, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 7.02);
+        tl.to("#rg-m3-c", { strokeDashoffset: 0, duration: 0.55, ease: "power1.inOut" }, 7.04);
+        tl.fromTo("#rg-card-r", { scale: 1.3, rotation: 7, opacity: 0 }, { scale: 1, rotation: 2, opacity: 1, duration: 0.18, ease: "power4.out" }, 7.67);
+        // "A police chief reports" (49.15 s) types; the stamp slams on "the roar of heavy guns" (50.42 s).
+        tl.to("#rg-note", { opacity: 1, duration: 0.05 }, 9.3);
+        typeOn("#rg-note-text", 9.34, 28);
+        tl.fromTo("#rg-stamp", { scale: 1.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power4.in" }, 10.5);
+        /* The camera push runs for the whole scene, 13.17 s, to 1.16. */
+        tl.fromTo("#rg-cam", { scale: 1 }, { scale: 1.16, duration: 13.17, ease: "sine.inOut" }, 0);
+        window.__timelines["rings"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

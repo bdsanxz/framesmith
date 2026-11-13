@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main", the root composition)
+  WHAT: A 16-second, 1920x1080 piece with no narration in which every sound effect gets its own
+    beat-cut moment. A terminal types a catalog search (0 to 2.02s); then five sound-led scenes
+    play in order, WHOOSH, MOUSE CLICK, KEYBOARD TYPING, IMPACT and RISER (2.02 to 14s, from
+    demos.html); and the end card "EVERY SOUND GETS ITS MOMENT." slams in on the final hit at
+    14s (14 to 16s, from end.html). A music bed runs under all of it.
+  STRUCTURE: The root #root (data-composition-id "main", data-duration 16) holds three graphics
+    slots on track 0, in time order: #slot-terminal (compositions/terminal.html) at 0s for 2.02s;
+    #slot-demos (compositions/demos.html) at 2.02s for 11.98s; #slot-end (compositions/end.html)
+    at 14s for 2s. Audio sits on its own tracks: #bgm on track 10 (0 to 16s, volume 0.8); the
+    sound effects on tracks 11 and 12, each with a data-start and data-volume: typing at 0.3
+    (media start 0.45, volume 0.5), key-press at 1.8 (0.6), whoosh at 1.85 (0.6), click at
+    4.989 (0.7), typing again at 6.25 (media start 0.45, 0.5), impact-bass-1 at 7.914 (0.7),
+    riser at 10.98 for 3.02s (0.6), and impact-bass-1 at 13.88 (0.8). The root script makes a
+    paused, empty GSAP timeline and registers it as "main"; the motion lives in the slots.
+  CUSTOMIZE: Sound timing: each data-start is the target minus the measured peak (or onset), as
+    the comment above the audio tags says; the cuts follow the audiomap.json downbeats (2.02,
+    4.017, 6.037, 8.034, 10.031) and the final hit (14.0). To swap a sound, replace its file in
+    assets/sfx, re-measure its peak, and update its data-start and data-duration. Loudness: the
+    data-volume values (0.5 to 0.8). The slot times must match the scene cuts inside demos.html,
+    whose frame-local times are the track time minus 2.02, and the root data-duration (16) must
+    stay at the end of the end card. Keep the music on track 10 and the sound effects on 11 and
+    12 so they do not share a track.
+  MEDIA: No media file is bundled. This file has no photo, video, font or CSS image slot of its own, and
+    its three slot compositions (terminal, demos and end) have none either. Its slots are sound slots,
+    shown as SOUND SLOT comments in the body, and they play nothing now. Music: bgm (track 10, 0 to 16 s,
+    volume 0.8), from assets/bgm.wav, the 16-second music bed that audiomap.json was analysed from. Effects,
+    all from assets/sfx/: sfx-typing and sfx-typing-2 (typing.mp3, each starting 0.45 s into the file),
+    sfx-enter (key-press.mp3), sfx-whoosh (whoosh.mp3), sfx-click (click.mp3), sfx-impact and sfx-impact-end
+    (impact-bass-1.mp3) and sfx-riser (riser.mp3). Sources and licences are in CREDITS.md. To hear
+    one slot, add an audio element with its id, set its start, duration and track (data-start, data-duration
+    and data-track-index) and its volume from its SOUND SLOT comment, and point its src at your own sound
+    file. A missing file plays nothing, so the picture still cuts on the same clock but goes silent at that
+    beat; a replacement must keep the same peak time, or its data-start must move. The only network file is
+    the GSAP script from cdn.jsdelivr.net, which is a script, not media.
+  WHEN TO USE: A sound-design explainer, a sound library demo, or a music-led piece where each
+    sound must hit a visual cut. Pick another format when the piece is narrated or has no
+    sound-led beats.
+-->
+<html lang="en">
+  <head>
+    <!-- Document head: charset, a fixed 1920x1080 viewport, the title, and the GSAP script. -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Sound shopping list — SFX on the beat</title>
+    <!-- GSAP 3.14.2 from jsdelivr: the animation library the slots use. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset: zero margins and padding, border-box sizing, and a fixed 1920x1080 black canvas. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      /* Root composition: fills the 1920x1080 canvas on black and clips what it holds. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    </style>
+  </head>
+  <body>
+    <!-- Cuts: audiomap.json downbeats (2.02, 4.017, 6.037, 8.034, 10.031) and the final hit (14.0). -->
+    <!-- Root composition: 16 seconds from 0, holding the graphics slots and the audio tracks. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1920" data-height="1080">
+      <!-- Graphics slots: three sub-compositions played back to back on track 0. -->
+      <div id="slot-terminal" data-composition-id="terminal" data-composition-src="compositions/terminal.html"
+        data-start="0" data-duration="2.02" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="slot-demos" data-composition-id="demos" data-composition-src="compositions/demos.html"
+        data-start="2.02" data-duration="11.98" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="slot-end" data-composition-id="end" data-composition-src="compositions/end.html"
+        data-start="14" data-duration="2" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- Music bed. -->
+      <!-- SOUND SLOT (id "bgm", from 0 s, for 16 s, volume 0.8, track 10): an audio element played assets/bgm.wav here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SFX. Placement = target − measured peak (swells, hits) or target − onset (actions). Peaks from scripts/audio-peak.py. -->
+      <!-- SOUND SLOT (id "sfx-typing", from 0.3 s, for 1.05 s, volume 0.5, track 11): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-enter", from 1.8 s, for 0.4 s, volume 0.6, track 12): an audio element played assets/sfx/key-press.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-whoosh", from 1.85 s, for 0.57 s, volume 0.6, track 11): an audio element played assets/sfx/whoosh.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-click", from 4.989 s, for 0.37 s, volume 0.7, track 12): an audio element played assets/sfx/click.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-typing-2", from 6.25 s, for 1.05 s, volume 0.5, track 11): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-impact", from 7.914 s, for 2.12 s, volume 0.7, track 12): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-riser", from 10.98 s, for 3.02 s, volume 0.6, track 11): an audio element played assets/sfx/riser.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-impact-end", from 13.88 s, for 2.12 s, volume 0.8, track 12): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+    </div>
+    <script>
+      /* Root timeline: paused and empty, since the slots and audio tags run on their own clocks. */
+      const tl = gsap.timeline({ paused: true });
+      /* Register the root timeline under the root composition id. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

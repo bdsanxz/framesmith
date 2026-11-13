@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/cards/registry.html (composition id "card-registry")
+  WHAT: The first stat card, mounted by index.html at 2.85 s for 3.92 s, while the presenter slides
+    to the left half. A dark panel covering the right half of the frame slides in from the right at
+    2.95 s. Its number counts up from 0 to 400 between 3.52 s and 4.72 s, shown with a leading
+    tilde, and the label "blocks and components, searchable with one command" rises at 5.19 s, on
+    the spoken word blocks. The kicker THE REGISTRY stays fixed above the number.
+  STRUCTURE: #root (full frame) holds #registry-panel (class .panel: a dark box at left 960 px, 960
+    px wide, full height) with three parts: .kicker (the small blue kicker line), #registry-num
+    (.num, the big number, starting as "~0") and #registry-label (.label). Timeline in card-local
+    time (global minus 2.85 s): the panel fades in and slides 60 px from the right over 0.6 s,
+    starting at 0.1 s; a plain counter object n (v from 0 to 400, power3.out over 1.2 s, starting at
+    0.67 s) writes "~" plus the rounded value into #registry-num on every update; the label fades
+    and rises over 0.4 s, starting at 2.34 s.
+  CUSTOMIZE: The final number: the v target (400) in the counter tween. The prefix: the "~" in the
+    onUpdate text. The starting text in the markup. Kicker and label text. Colours: panel #111113,
+    kicker #0a84ff, label #c7c7cc, number white. Sizes: number 260 px (Inter 900), label 44 px,
+    kicker 26 px in JetBrains Mono. Panel placement: left 960 px, width 960 px. The count lands on
+    the spoken number, so when the target or the narration changes, re-time the counter start and
+    the label cue together.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its fonts are Inter (the number and label, from #root) and JetBrains Mono (the kicker, from
+    .kicker), both named in font stacks with no @font-face rule. HyperFrames bundles both, so no font file is
+    added here. If either is not available where you render, the sans-serif or monospace fallback is used.
+  WHEN TO USE: A stat the speaker reads out, shown as a count-up beside the speaker. Pick a static
+    number when the figure is not the point of the moment, or a chart when several figures must be
+    compared.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the card never blocks the video beneath. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #ffffff; pointer-events: none; }
+        /* The stat panel: the right half of the frame, dark, with its content centred vertically. */
+        .panel { position: absolute; left: 960px; top: 0; width: 960px; height: 1080px; background: #111113;
+          display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 0 120px 240px; }
+        /* The small blue kicker line above the number. */
+        .kicker { font-family: "JetBrains Mono", monospace; font-size: 26px; letter-spacing: 0.06em; color: #0a84ff; }
+        /* The big number: tabular figures, so the digits do not shift while the count runs. */
+        .num { font-size: 260px; font-weight: 900; letter-spacing: -0.05em; line-height: 0.9; font-variant-numeric: tabular-nums; }
+        /* The line under the number, in soft grey. */
+        .label { font-size: 44px; color: #c7c7cc; line-height: 1.2; }
+      </style>
+      <div id="root" data-composition-id="card-registry" data-width="1920" data-height="1080">
+        <!-- The panel: kicker, counting number and label, in that order from top to bottom. -->
+        <div id="registry-panel" class="panel">
+          <div class="kicker">THE REGISTRY</div>
+          <div id="registry-num" class="num">~0</div>
+          <div id="registry-label" class="label">blocks and components, searchable with one command</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this card's paused timeline, in card-local seconds. */
+        const tl = gsap.timeline({ paused: true });
+        // Card-local = global − 2.85: panel in with the slide; the count lands on "400" (1.87); label on "blocks" (2.34).
+        tl.fromTo("#registry-panel", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, 0.1);
+        /* Counter: a plain object whose v is tweened from 0 to 400; the text is written from it on each update. */
+        const n = { v: 0 };
+        const el = document.getElementById("registry-num");
+        tl.fromTo(n, { v: 0 }, { v: 400, duration: 1.2, ease: "power3.out", onUpdate: () => { el.textContent = "~" + Math.round(n.v); } }, 0.67);
+        tl.fromTo("#registry-label", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 2.34);
+        /* Registration: the host finds this timeline by the composition id "card-registry". */
+        window.__timelines["card-registry"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

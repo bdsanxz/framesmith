@@ -1,0 +1,542 @@
+[
+  {
+    "text": "Banyak",
+    "start": 0.191,
+    "end": 0.541,
+    "id": "w0"
+  },
+  {
+    "text": "yang",
+    "start": 0.541,
+    "end": 0.795,
+    "id": "w1"
+  },
+  {
+    "text": "ngira",
+    "start": 0.795,
+    "end": 1.097,
+    "id": "w2"
+  },
+  {
+    "text": "micin",
+    "start": 1.107,
+    "end": 1.419,
+    "id": "w3"
+  },
+  {
+    "text": "bikin",
+    "start": 1.419,
+    "end": 1.731,
+    "id": "w4"
+  },
+  {
+    "text": "bodoh",
+    "start": 1.731,
+    "end": 2.092,
+    "id": "w5"
+  },
+  {
+    "text": "padahal",
+    "start": 2.189,
+    "end": 2.482,
+    "id": "w6"
+  },
+  {
+    "text": "nggak",
+    "start": 2.482,
+    "end": 2.725,
+    "id": "w7"
+  },
+  {
+    "text": "ada",
+    "start": 2.764,
+    "end": 2.92,
+    "id": "w8"
+  },
+  {
+    "text": "bukti",
+    "start": 2.92,
+    "end": 3.184,
+    "id": "w9"
+  },
+  {
+    "text": "ilmiahnya.",
+    "start": 3.184,
+    "end": 3.72,
+    "id": "w10"
+  },
+  {
+    "text": "Micin",
+    "start": 4.451,
+    "end": 5.125,
+    "id": "w11"
+  },
+  {
+    "text": "itu",
+    "start": 5.125,
+    "end": 5.609,
+    "id": "w12"
+  },
+  {
+    "text": "MSG,",
+    "start": 5.72,
+    "end": 6.032,
+    "id": "w13"
+  },
+  {
+    "text": "isinya",
+    "start": 6.426,
+    "end": 6.819,
+    "id": "w14"
+  },
+  {
+    "text": "glutamat,",
+    "start": 6.889,
+    "end": 7.359,
+    "id": "w15"
+  },
+  {
+    "text": "zat",
+    "start": 7.801,
+    "end": 7.847,
+    "id": "w16"
+  },
+  {
+    "text": "yang",
+    "start": 7.847,
+    "end": 8.008,
+    "id": "w17"
+  },
+  {
+    "text": "bikin",
+    "start": 8.089,
+    "end": 8.381,
+    "id": "w18"
+  },
+  {
+    "text": "makanan",
+    "start": 8.381,
+    "end": 8.855,
+    "id": "w19"
+  },
+  {
+    "text": "terasa",
+    "start": 8.855,
+    "end": 9.258,
+    "id": "w20"
+  },
+  {
+    "text": "gurih.",
+    "start": 9.258,
+    "end": 9.762,
+    "id": "w21"
+  },
+  {
+    "text": "Glutamat",
+    "start": 10.306,
+    "end": 10.538,
+    "id": "w22"
+  },
+  {
+    "text": "ini",
+    "start": 10.538,
+    "end": 10.8,
+    "id": "w23"
+  },
+  {
+    "text": "ada",
+    "start": 10.8,
+    "end": 10.981,
+    "id": "w24"
+  },
+  {
+    "text": "alami",
+    "start": 11.092,
+    "end": 11.475,
+    "id": "w25"
+  },
+  {
+    "text": "di",
+    "start": 11.536,
+    "end": 11.647,
+    "id": "w26"
+  },
+  {
+    "text": "tomat,",
+    "start": 11.818,
+    "end": 12.015,
+    "id": "w27"
+  },
+  {
+    "text": "keju,",
+    "start": 12.443,
+    "end": 12.786,
+    "id": "w28"
+  },
+  {
+    "text": "jamur,",
+    "start": 12.786,
+    "end": 13.348,
+    "id": "w29"
+  },
+  {
+    "text": "bahkan",
+    "start": 13.637,
+    "end": 13.914,
+    "id": "w30"
+  },
+  {
+    "text": "di",
+    "start": 13.935,
+    "end": 14.086,
+    "id": "w31"
+  },
+  {
+    "text": "asi.",
+    "start": 14.086,
+    "end": 14.63,
+    "id": "w32"
+  },
+  {
+    "text": "Yang",
+    "start": 15.4,
+    "end": 15.5,
+    "id": "w33"
+  },
+  {
+    "text": "pertama,",
+    "start": 15.5,
+    "end": 16.1,
+    "id": "w34"
+  },
+  {
+    "text": "nemuin",
+    "start": 16.478,
+    "end": 16.65,
+    "id": "w35"
+  },
+  {
+    "text": "seorang",
+    "start": 16.65,
+    "end": 17.1,
+    "id": "w36"
+  },
+  {
+    "text": "profesor",
+    "start": 17.1,
+    "end": 17.61,
+    "id": "w37"
+  },
+  {
+    "text": "Jepang",
+    "start": 17.61,
+    "end": 18.02,
+    "id": "w38"
+  },
+  {
+    "text": "tahun",
+    "start": 18.09,
+    "end": 18.54,
+    "id": "w39"
+  },
+  {
+    "text": "1908",
+    "start": 18.54,
+    "end": 19.65,
+    "id": "w40"
+  },
+  {
+    "text": "dari",
+    "start": 19.8,
+    "end": 19.93,
+    "id": "w41"
+  },
+  {
+    "text": "kaldu",
+    "start": 19.96,
+    "end": 20.2,
+    "id": "w42"
+  },
+  {
+    "text": "rumput",
+    "start": 20.2,
+    "end": 20.51,
+    "id": "w43"
+  },
+  {
+    "text": "laut.",
+    "start": 20.51,
+    "end": 20.9,
+    "id": "w44"
+  },
+  {
+    "text": "Soal",
+    "start": 20.9,
+    "end": 21.57,
+    "id": "w45"
+  },
+  {
+    "text": "pusing",
+    "start": 21.57,
+    "end": 21.7,
+    "id": "w46"
+  },
+  {
+    "text": "habis",
+    "start": 21.8,
+    "end": 22.08,
+    "id": "w47"
+  },
+  {
+    "text": "makan",
+    "start": 22.08,
+    "end": 22.47,
+    "id": "w48"
+  },
+  {
+    "text": "mikin",
+    "start": 22.47,
+    "end": 22.85,
+    "id": "w49"
+  },
+  {
+    "text": "itu",
+    "start": 22.89,
+    "end": 23.08,
+    "id": "w50"
+  },
+  {
+    "text": "berawal",
+    "start": 23.08,
+    "end": 23.61,
+    "id": "w51"
+  },
+  {
+    "text": "dari",
+    "start": 23.61,
+    "end": 23.92,
+    "id": "w52"
+  },
+  {
+    "text": "satu",
+    "start": 23.92,
+    "end": 24.12,
+    "id": "w53"
+  },
+  {
+    "text": "surat",
+    "start": 24.26,
+    "end": 24.61,
+    "id": "w54"
+  },
+  {
+    "text": "pembaca",
+    "start": 24.61,
+    "end": 25.14,
+    "id": "w55"
+  },
+  {
+    "text": "tahun",
+    "start": 25.15,
+    "end": 25.54,
+    "id": "w56"
+  },
+  {
+    "text": "1968.",
+    "start": 25.54,
+    "end": 26.65,
+    "id": "w57"
+  },
+  {
+    "text": "Dan",
+    "start": 26.65,
+    "end": 27.1,
+    "id": "w58"
+  },
+  {
+    "text": "uji",
+    "start": 27.1,
+    "end": 27.115,
+    "id": "w59"
+  },
+  {
+    "text": "ilmiah",
+    "start": 27.597,
+    "end": 27.61,
+    "id": "w60"
+  },
+  {
+    "text": "setelahnya",
+    "start": 27.78,
+    "end": 28.41,
+    "id": "w61"
+  },
+  {
+    "text": "nggak",
+    "start": 28.41,
+    "end": 28.48,
+    "id": "w62"
+  },
+  {
+    "text": "pernah",
+    "start": 28.87,
+    "end": 29.261,
+    "id": "w63"
+  },
+  {
+    "text": "konsisten",
+    "start": 29.494,
+    "end": 30.05,
+    "id": "w64"
+  },
+  {
+    "text": "ngebuktiin.",
+    "start": 30.05,
+    "end": 31.19,
+    "id": "w65"
+  },
+  {
+    "text": "Malah,",
+    "start": 31.996,
+    "end": 32.219,
+    "id": "w66"
+  },
+  {
+    "text": "kandungan",
+    "start": 32.229,
+    "end": 32.768,
+    "id": "w67"
+  },
+  {
+    "text": "natrium",
+    "start": 32.768,
+    "end": 33.187,
+    "id": "w68"
+  },
+  {
+    "text": "micin",
+    "start": 33.187,
+    "end": 33.486,
+    "id": "w69"
+  },
+  {
+    "text": "cuma",
+    "start": 33.486,
+    "end": 33.725,
+    "id": "w70"
+  },
+  {
+    "text": "sekitar",
+    "start": 33.725,
+    "end": 34.144,
+    "id": "w71"
+  },
+  {
+    "text": "1",
+    "start": 34.144,
+    "end": 34.323,
+    "id": "w72"
+  },
+  {
+    "text": "per",
+    "start": 34.323,
+    "end": 34.443,
+    "id": "w73"
+  },
+  {
+    "text": "3",
+    "start": 34.523,
+    "end": 34.593,
+    "id": "w74"
+  },
+  {
+    "text": "garam",
+    "start": 34.682,
+    "end": 34.982,
+    "id": "w75"
+  },
+  {
+    "text": "dapur.",
+    "start": 34.982,
+    "end": 35.54,
+    "id": "w76"
+  },
+  {
+    "text": "Jadi,",
+    "start": 36.251,
+    "end": 36.413,
+    "id": "w77"
+  },
+  {
+    "text": "lo",
+    "start": 36.413,
+    "end": 36.485,
+    "id": "w78"
+  },
+  {
+    "text": "masih",
+    "start": 36.587,
+    "end": 36.822,
+    "id": "w79"
+  },
+  {
+    "text": "tim",
+    "start": 36.822,
+    "end": 36.986,
+    "id": "w80"
+  },
+  {
+    "text": "anti-micin",
+    "start": 36.996,
+    "end": 37.568,
+    "id": "w81"
+  },
+  {
+    "text": "atau",
+    "start": 37.568,
+    "end": 37.803,
+    "id": "w82"
+  },
+  {
+    "text": "tim",
+    "start": 37.803,
+    "end": 37.946,
+    "id": "w83"
+  },
+  {
+    "text": "micin",
+    "start": 38.007,
+    "end": 38.263,
+    "id": "w84"
+  },
+  {
+    "text": "garis",
+    "start": 38.263,
+    "end": 38.549,
+    "id": "w85"
+  },
+  {
+    "text": "keras?",
+    "start": 38.549,
+    "end": 39.111,
+    "id": "w86"
+  },
+  {
+    "text": "Tulis",
+    "start": 39.356,
+    "end": 39.397,
+    "id": "w87"
+  },
+  {
+    "text": "di",
+    "start": 39.397,
+    "end": 39.54,
+    "id": "w88"
+  },
+  {
+    "text": "komen.",
+    "start": 39.54,
+    "end": 40.01,
+    "id": "w89"
+  }
+]

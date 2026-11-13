@@ -1,0 +1,28 @@
+{
+ "size": [
+  1920,
+  1080
+ ],
+ "pins": {
+  "Lakehurst": [
+   1565.8,
+   424.1
+  ]
+ },
+ "focus_box": [
+  211,
+  74,
+  1709,
+  1006
+ ],
+ "highlights": {
+  "New Jersey": [
+   1537,
+   379,
+   1575,
+   467
+  ]
+ },
+ "scale_px_per_unit": 2076.37,
+ "projection": "albers"
+}

@@ -1,0 +1,158 @@
+<!-- hyperframes-registry-item: organic-light-leak-overlay -->
+<!--
+  GUIDE: compositions/organic-light-leak-overlay.html (composition id "organic-light-leak-overlay")
+  WHAT: a soft warm light leak: amber, red and gold blurred gradients drift across the frame in
+    screen blend. The overlay fades up to about 0.9 opacity, dips to about 0.46, then fades to
+    nothing, which makes a warm handoff. Mounted by index.html at 15.1 s for 1.4 s on track 7, as
+    the print card appears. This file's own data-duration is 4; all of its timings are shares of
+    the window length, so they scale with the host.
+  STRUCTURE: #hf-light-leak is the root, oversized by 16 percent and screen blended, with three
+    layers: .hf-leak-amber (a warm radial pair, blurred), .hf-leak-red (a red and pink radial glow
+    on the right) and .hf-leak-gold (a diagonal gold band). Timeline: the root opacity rises from 0
+    to 0.9 over the first 0.24 of the window (starting at 0.08 of it), dips to 0.46 between 0.42 and
+    0.62, and fades to 0 from 0.68 to the end. Each layer drifts across the whole window on sine
+    easing: amber and gold move right, and red moves left.
+  CUSTOMIZE: the gradient colors (amber 255 241 197 and 255 126 57; red 255 79 61 and 255 44 92; gold
+    255 144 62, 255 247 205 and 255 124 48) and their blur radii are in the three layer rules. The
+    peak opacity 0.9 and the dip 0.46 are in the root tweens. The drift amounts (16 to 28 percent)
+    are in the script. Change the host start and length in index.html together.
+  MEDIA: No media file is bundled. The file has no slots: the leak is CSS gradients with blur, with no
+    picture, video, sound or font, so nothing is to be plugged in.
+  WHEN TO USE: a warm, analog handoff between two shots or into a reveal. Pick a hard cut or a clean
+    fade when the look should stay cool or clinical.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      /* Root layer: oversized beyond the frame, screen blended, and invisible until the timeline fades it in. */
+      #hf-light-leak {
+        position: absolute;
+        inset: -16%;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+        mix-blend-mode: screen;
+      }
+
+      /* Shared layer rule: each layer is oversized and free to move. */
+      #hf-light-leak .hf-leak-layer {
+        position: absolute;
+        inset: -20%;
+        will-change: opacity, transform;
+      }
+
+      /* Warm amber glow: a bright core plus a wider orange falloff, softly blurred. */
+      #hf-light-leak .hf-leak-amber {
+        background:
+          radial-gradient(ellipse 52% 110% at 10% 58%, rgb(255 241 197 / 92%), transparent 45%),
+          radial-gradient(ellipse 72% 120% at 24% 54%, rgb(255 126 57 / 78%), transparent 66%);
+        filter: blur(2.8vmin);
+      }
+
+      /* Red and pink glow on the right side of the frame. */
+      #hf-light-leak .hf-leak-red {
+        background: radial-gradient(
+          ellipse 58% 105% at 78% 34%,
+          rgb(255 79 61 / 72%),
+          rgb(255 44 92 / 28%) 48%,
+          transparent 76%
+        );
+        filter: blur(4vmin);
+      }
+
+      /* Diagonal gold band that streaks across the glow. */
+      #hf-light-leak .hf-leak-gold {
+        background: linear-gradient(
+          104deg,
+          transparent 24%,
+          rgb(255 144 62 / 30%) 40%,
+          rgb(255 247 205 / 72%) 51%,
+          rgb(255 124 48 / 22%) 62%,
+          transparent 78%
+        );
+        filter: blur(2vmin);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="organic-light-leak-overlay"
+      data-composition-id="organic-light-leak-overlay"
+      data-start="0"
+      data-duration="4"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Light leak root with three layers: amber, red and gold. -->
+      <div id="hf-light-leak" aria-hidden="true">
+        <div class="hf-leak-layer hf-leak-amber"></div>
+        <div class="hf-leak-layer hf-leak-red"></div>
+        <div class="hf-leak-layer hf-leak-gold"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      /* Lookup: the leak root and its composition host, which gives the window length. */
+      var leak = document.getElementById("hf-light-leak");
+      var host = leak && leak.closest("[data-composition-id]");
+      if (!host) throw new Error("Organic Light Leak could not find its composition host");
+
+      var compositionId = host.getAttribute("data-composition-id");
+      var duration = Number(host.getAttribute("data-duration")) || 4;
+      var tl = gsap.timeline({ paused: true });
+
+      /* Empty tween that gives the timeline the full window length. */
+      tl.to({}, { duration: duration, ease: "none" }, 0);
+      /* Brightness envelope: fades in to 0.9, dips to 0.46, then fades to 0, all as shares of the window. */
+      tl.fromTo(
+        leak,
+        { opacity: 0 },
+        { opacity: 0.9, duration: duration * 0.24, ease: "sine.out" },
+        duration * 0.08,
+      );
+      tl.to(leak, { opacity: 0.46, duration: duration * 0.2, ease: "sine.inOut" }, duration * 0.42);
+      tl.to(leak, { opacity: 0, duration: duration * 0.26, ease: "sine.in" }, duration * 0.68);
+      /* Drift: each layer slides across the whole window, and the red layer moves the opposite way. */
+      tl.fromTo(
+        ".hf-leak-amber",
+        { xPercent: -20, scale: 0.92, rotation: -4 },
+        { xPercent: 18, scale: 1.1, rotation: 2, duration: duration, ease: "sine.inOut" },
+        0,
+      );
+      tl.fromTo(
+        ".hf-leak-red",
+        { xPercent: 20, yPercent: -8, scale: 1.08 },
+        { xPercent: -16, yPercent: 8, scale: 0.94, duration: duration, ease: "sine.inOut" },
+        0,
+      );
+      tl.fromTo(
+        ".hf-leak-gold",
+        { xPercent: -28, rotation: -6 },
+        { xPercent: 24, rotation: 4, duration: duration, ease: "sine.inOut" },
+        0,
+      );
+
+      window.__timelines[compositionId] = tl;
+    </script>
+  </body>
+</html>

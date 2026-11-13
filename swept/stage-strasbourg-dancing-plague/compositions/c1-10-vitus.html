@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-10-vitus.html (composition id "c1-10-vitus")
+  WHAT: A beat on Saint Vitus, whose name the film sets in red, and on the dancers who were cursed.
+    It opens on a wide picture of the Martyrdom of Saint Vitus (a panel of about 1450) held from
+    the start. At 2.5 s it cuts to a carving of Saint Vitus in a kettle (about
+    1500) with the red name "Santo Vitus" over it, and the name goes at 4.58 s. From 4.58 s a close
+    view of the same panel shows, and from 6.17 s an engraving of the dancers of Kölbigk, with the
+    caption "Para penari terkutuk dari Kölbigk" (the cursed dancers of Kölbigk), runs to the end at
+    9.86 s. index.html mounts it as c1-10-vitus-slot at 152.58 s.
+  STRUCTURE: four .dr-shot wrappers in document order: #c110vitus-a (the wide panel), #c110vitus-b
+    (the carving) with its red name #c110vitus-b-name after it, #c110vitus-c (the close panel) and
+    #c110vitus-d (the engraving) with its caption #c110vitus-d-cap after it. The paused GSAP timeline,
+    registered as window.__timelines["c1-10-vitus"], pushes the wide panel from 0 s (scale 1.014 to
+    1.057 over 2.5 s); from 2.5 s shows the carving and the name and pushes it (to 1.050 over 2.08 s);
+    at 4.58 s hides the name and pushes the close panel (to 1.043 over 1.59 s) from 4.58 s; and from
+    6.17 s shows the engraving and its caption and pushes it (to 1.075 over 3.69 s).
+  CUSTOMIZE: the red name is the text "Santo Vitus", with top 660 px and font-size 220 px set inline.
+    The caption text is in the markup: "Para penari terkutuk dari Kölbigk" on the first line and
+    "Ukiran dalam kronik J. L. Gottfried, 1674" (an engraving in Gottfried's chronicle of 1674) on the
+    second; its place is left 207 px and top 800 px in .dr-cap. The engraving's grade adds exposure
+    -0.25 in its data-color-grading, so the white caption reads. The cut times 2.5, 4.58 and 6.17 are
+    in the tweens. The last tween ends at 9.86 s, which must match the data-duration that index.html
+    gives c1-10-vitus-slot.
+  MEDIA: no media file is bundled. This file has four photo slots and one font slot. It has no sound
+    and no CSS image.
+    1. The wide panel, img #c110vitus-a-img (inside #c110vitus-a, on screen from the start). It showed the
+       Martyrdom of Saint Vitus, a panel of about 1450. It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/vitusmart-wide.jpg". To plug in your picture, set the img's src to your
+       file (for example assets/generated/vitusmart-wide.jpg). The data-media attribute only names the
+       expected path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The carving, img #c110vitus-b-img (inside #c110vitus-b, which cuts in at 2.5 s; the red name is
+       over it until 4.58 s). It showed a carving of Saint Vitus in a kettle (about 1500). It now shows a
+       stand-in labeled "PHOTO: assets/generated/vitus.jpg". To plug in your picture, set the img's src to
+       your file.
+    3. The close panel, img #c110vitus-c-img (inside #c110vitus-c, which cuts in at 4.58 s). It showed a
+       close view of the same panel. It now shows a stand-in labeled
+       "PHOTO: assets/generated/vitusmart-close.jpg". To plug in your picture, set the img's src to your file.
+    4. The engraving, img #c110vitus-d-img (inside #c110vitus-d, which cuts in at 6.17 s, with the caption
+       #c110vitus-d-cap). It showed the dancers of Kölbigk, an engraving of 1674 set in a legend of about
+       1020. It now shows a stand-in labeled "PHOTO: assets/generated/kolbeck.jpg". To plug in your picture,
+       set the img's src to your file.
+    5. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-name and .dr-cap. It was a
+       bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a beat that names a saint or a place of worship in red, then shows a legend with a
+    dated caption. Pick another composition when the beat names no saint or shows no legend.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The big red name: on screen from the first frame of its shot, no animation. */
+        .dr-name { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: rgba(198, 58, 36, 0.92); text-shadow: 0 0 22px rgba(198, 58, 36, 0.4); white-space: nowrap; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+      </style>
+      <!-- "Salah satu yang paling ..." (152.58 s): vitusmart-wide from the start; vitus + red name Santo Vitus on "Santo" (155.08 s); vitusmart-close on "setempat" (157.16 s); kolbeck + caption on "mengutuk" (158.75 s). -->
+      <div id="root" data-composition-id="c1-10-vitus" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c110vitus-a" data-layout-allow-overflow><img id="c110vitus-a-img" src="data:image/svg+xml,%3C!--vitusmart-wide.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/vitusmart-wide.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/vitusmart-wide.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The carving shot, with the red name over it from 2.5 s to 4.58 s. -->
+        <div class="dr-shot" id="c110vitus-b" data-layout-allow-overflow><img id="c110vitus-b-img" src="data:image/svg+xml,%3C!--vitus.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/vitus.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/vitus.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-name" id="c110vitus-b-name" style="top: 660px; font-size: 220px;">Santo Vitus</div>
+        <div class="dr-shot" id="c110vitus-c" data-layout-allow-overflow><img id="c110vitus-c-img" src="data:image/svg+xml,%3C!--vitusmart-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'877' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/vitusmart-close.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/vitusmart-close.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The engraving of the dancers of Kölbigk, cut in at 6.17 s with its caption. -->
+        <div class="dr-shot" id="c110vitus-d" data-layout-allow-overflow><img id="c110vitus-d-img" src="data:image/svg+xml,%3C!--kolbeck.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/kolbeck.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/kolbeck.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c110vitus-d-cap">Para penari terkutuk dari Kölbigk<br />Ukiran dalam kronik J. L. Gottfried, 1674</div>
+      </div>
+      <script>
+        /* The timeline: the wide panel push, the carving with its name, the close panel, then the engraving. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c110vitus-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.057, x: 6, y: -2, duration: 2.5, ease: "none" }, 0.0);
+        tl.fromTo("#c110vitus-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.050, x: -5, y: 3, duration: 2.08, ease: "none" }, 2.5);
+        gsap.set("#c110vitus-b", { opacity: 0 });
+        tl.to("#c110vitus-b", { opacity: 1, duration: 0.001 }, 2.5);
+        gsap.set("#c110vitus-b-name", { opacity: 0 });
+        tl.to("#c110vitus-b-name", { opacity: 1, duration: 0.001 }, 2.5);
+        tl.to("#c110vitus-b-name", { opacity: 0, duration: 0.001 }, 4.58);
+        tl.fromTo("#c110vitus-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.043, x: 4, y: 3, duration: 1.59, ease: "none" }, 4.58);
+        gsap.set("#c110vitus-c", { opacity: 0 });
+        tl.to("#c110vitus-c", { opacity: 1, duration: 0.001 }, 4.58);
+        tl.fromTo("#c110vitus-d", { scale: 1.014, x: 6, y: 3 }, { scale: 1.075, x: -6, y: -3, duration: 3.69, ease: "none" }, 6.17);
+        gsap.set("#c110vitus-d", { opacity: 0 });
+        tl.to("#c110vitus-d", { opacity: 1, duration: 0.001 }, 6.17);
+        gsap.set("#c110vitus-d-cap", { opacity: 0 });
+        tl.to("#c110vitus-d-cap", { opacity: 1, duration: 0.001 }, 6.17);
+        window.__timelines["c1-10-vitus"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

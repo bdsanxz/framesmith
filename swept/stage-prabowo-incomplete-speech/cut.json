@@ -1,0 +1,1780 @@
+{
+  "title": "PIDATO TIDAK PARIPURNA PRABOWO",
+  "design": "tracery",
+  "lang": "id",
+  "aroll": {
+    "src": "footage/aroll.mp4",
+    "face": [
+      0.52,
+      0.36
+    ],
+    "look": {
+      "brightness": 0.7,
+      "contrast": 1.14,
+      "saturate": 0.8
+    },
+    "background": "keep",
+    "volume": 1
+  },
+  "fonts": {
+    "sans": {
+      "family": "Archivo",
+      "files": {
+        "500": "assets/fonts/archivo-latin.woff2",
+        "700": "assets/fonts/archivo-latin.woff2",
+        "800": "assets/fonts/archivo-latin.woff2"
+      }
+    },
+    "serif": {
+      "family": "Instrument Serif",
+      "files": {
+        "400i": "assets/fonts/instrument-serif-italic-latin.woff2"
+      }
+    },
+    "slab": {
+      "family": "Bricolage Grotesque",
+      "files": {
+        "800": "assets/fonts/bricolage-grotesque-latin.woff2"
+      }
+    },
+    "mono": {
+      "family": "JetBrains Mono",
+      "files": {
+        "500": "assets/fonts/jetbrains-mono-latin.woff2"
+      }
+    }
+  },
+  "chapters": [
+    {
+      "at": 107,
+      "title": "KENAPA PIDATO INI SAYANG KALAU NGGAK DIBAHAS?"
+    },
+    {
+      "at": 237,
+      "title": "SEBERAPA BAGUS PRABOWO SEBAGAI PUBLIC SPEAKER?"
+    },
+    {
+      "at": 444,
+      "title": "BACA PROMPTER ATAU NGOMONG LANGSUNG?"
+    },
+    {
+      "at": 562,
+      "title": "KENAPA PRESIDEN HADIR SENDIRI DI DPR?"
+    },
+    {
+      "at": 776,
+      "title": "KENAPA DIA MASANG BINGKAI DULU?"
+    },
+    {
+      "at": 1213,
+      "title": "APA YANG MAU DIA SAMPAIKAN LEWAT PDB BELANDA?"
+    }
+  ],
+  "end": {
+    "at": 1482,
+    "name": "Pandji Pragiwaksono",
+    "handles": [
+      "YouTube  @pandji.pragiwaksono"
+    ]
+  },
+  "music": {
+    "src": "assets/audio/bed.mp3",
+    "from": 0
+  },
+  "scenes": [
+    {
+      "type": "say",
+      "w": [
+        5,
+        15
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "kita akan coba membahas"
+        ],
+        [
+          "bold",
+          "pidato Presiden Prabowo"
+        ],
+        [
+          "serif",
+          "di rapat paripurna DPR"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        19,
+        33
+      ],
+      "img": "assets/pages/p01-antara-first-time.png",
+      "meta": "assets/pages/p01-antara-first-time.json",
+      "marks": "meta",
+      "mark_at": 23,
+      "label": "PERTAMA KALINYA",
+      "source": "antaranews.com",
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        39,
+        48
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "siap-siap, ini akan jadi"
+        ],
+        [
+          "low",
+          "*video yang cukup panjang*"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        46,
+        56
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/book.svg",
+          "label": "apa aja yang dibahas",
+          "at": 48
+        },
+        {
+          "icon": "assets/icons/question-mark.svg",
+          "label": "kenapa beliau hadir",
+          "at": 52
+        }
+      ],
+      "label": "YANG BAKAL KITA BAHAS"
+    },
+    {
+      "type": "stage",
+      "w": [
+        61,
+        68
+      ],
+      "lead": "yang harusnya jadi pidato yang",
+      "word": "PARIPURNA"
+    },
+    {
+      "type": "say",
+      "w": [
+        70,
+        76
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "sayangnya jadi *retorika yang biasa saja*"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        83,
+        93
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/prabowo.jpg",
+      "name": "PRABOWO SUBIANTO",
+      "role": "Presiden RI",
+      "width": 480
+    },
+    {
+      "type": "say",
+      "w": [
+        94,
+        102
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "teramat sayang"
+        ],
+        [
+          "caps",
+          "kalau nggak kita bahas"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        121,
+        133
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "Pak Prabowo itu"
+        ],
+        [
+          "bold",
+          "banyak ngasih"
+        ],
+        [
+          "serif",
+          "momen-momen bagus"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        138,
+        147
+      ],
+      "src": "footage/b01.mp4",
+      "lines": [
+        [
+          "caps",
+          "beliau menyediakan dirinya"
+        ],
+        [
+          "red",
+          "untuk masyarakat"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        148,
+        167
+      ],
+      "img": "assets/pages/p03-setkab-why-in-person.png",
+      "meta": "assets/pages/p03-setkab-why-in-person.json",
+      "marks": "meta",
+      "mark_at": 153,
+      "label": "KATA PRABOWO",
+      "source": "setkab.go.id",
+      "seam_out": "flash"
+    },
+    {
+      "type": "page",
+      "w": [
+        168,
+        177
+      ],
+      "img": "assets/pages/p15-detik-prabowo-menjawab-2025.png",
+      "meta": "assets/pages/p15-detik-prabowo-menjawab-2025.json",
+      "marks": "meta",
+      "mark_at": 171,
+      "label": "PRABOWO MENJAWAB",
+      "source": "news.detik.com"
+    },
+    {
+      "type": "clip",
+      "w": [
+        178,
+        184
+      ],
+      "src": "footage/c11.mp4",
+      "tag": "Prabowo Menjawab"
+    },
+    {
+      "type": "say",
+      "w": [
+        184,
+        200
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "ini bukan sesuatu yang lazim"
+        ],
+        [
+          "bold",
+          "nggak dilakukan"
+        ],
+        [
+          "serif",
+          "presiden-presiden sebelumnya"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        208,
+        219
+      ],
+      "img": "assets/pages/p16-cnn-hambalang-2026.png",
+      "meta": "assets/pages/p16-cnn-hambalang-2026.json",
+      "marks": "meta",
+      "mark_at": 212,
+      "label": "HAMBALANG, 17 MARET 2026",
+      "source": "cnnindonesia.com"
+    },
+    {
+      "type": "say",
+      "w": [
+        219,
+        223
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "pidato selama *satu setengah jam*"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        224,
+        236
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "menyediakan dirinya"
+        ],
+        [
+          "capsserif",
+          "untuk diakses publik"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        245,
+        261
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/soeharto.jpg",
+      "name": "SOEHARTO",
+      "role": "Presiden ke-2 RI",
+      "width": 480
+    },
+    {
+      "type": "say",
+      "w": [
+        274,
+        292
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "dibandingkan presiden-presiden yang lain"
+        ],
+        [
+          "bold",
+          "mungkin public speaker"
+        ],
+        [
+          "serif",
+          "yang paling baik"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        288,
+        303
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "paling baiknya itu"
+        ],
+        [
+          "bold",
+          "bukan cuma berapi-api"
+        ],
+        [
+          "serif",
+          "bukan cuma artikulatif"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        305,
+        315
+      ],
+      "src": "footage/b02.mp4",
+      "lines": [
+        [
+          "caps",
+          "dia nggak perlu hafal"
+        ],
+        [
+          "red",
+          "dia memang baca prompter"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        316,
+        338
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/check.svg",
+          "label": "stressing-nya bagus",
+          "at": 317
+        },
+        {
+          "icon": "assets/icons/check.svg",
+          "label": "tahu kapan mesti stop",
+          "at": 322
+        },
+        {
+          "icon": "assets/icons/check.svg",
+          "label": "icebreaking",
+          "at": 327
+        }
+      ],
+      "label": "TAPI",
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        345,
+        350
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "kayaknya public speaker"
+        ],
+        [
+          "capsserif",
+          "terbaik"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        351,
+        358
+      ],
+      "side": "right",
+      "kind": "portrait",
+      "img": "assets/pic/sby.jpg",
+      "name": "SUSILO BAMBANG YUDHOYONO",
+      "role": "Presiden ke-6 RI",
+      "width": 480
+    },
+    {
+      "type": "float",
+      "w": [
+        359,
+        363
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/soekarno-portrait.jpg",
+      "name": "SOEKARNO",
+      "role": "Presiden pertama RI",
+      "width": 480
+    },
+    {
+      "type": "versus",
+      "w": [
+        364,
+        372
+      ],
+      "left": {
+        "label": "Soekarno",
+        "value": "terbaik"
+      },
+      "right": {
+        "label": "Prabowo",
+        "value": "di bawahnya"
+      },
+      "op": ">"
+    },
+    {
+      "type": "say",
+      "w": [
+        373,
+        385
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "itu yang disediakan Pak Prabowo"
+        ],
+        [
+          "bold",
+          "sayang kalau"
+        ],
+        [
+          "serif",
+          "nggak kita bahas"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        392,
+        413
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "nanti lo akan lihat"
+        ],
+        [
+          "caps",
+          "omongannya sering bertolak belakang"
+        ],
+        [
+          "capsserif",
+          "dengan realita, dan dirinya sendiri"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        414,
+        435
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "habis itu, gue kasih tau"
+        ],
+        [
+          "low",
+          "*kesimpulan gue*"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        437,
+        443
+      ],
+      "ground": "dark",
+      "lines": [
+        [
+          "caps",
+          "kita mulai aja ya"
+        ],
+        [
+          "serif",
+          "bakal panjang nih"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        451,
+        461
+      ],
+      "side": "left",
+      "kind": "photo",
+      "img": "assets/pic/teleprompter-glass.jpg",
+      "width": 620
+    },
+    {
+      "type": "broll",
+      "w": [
+        465,
+        473
+      ],
+      "src": "footage/b04.mp4",
+      "lines": [
+        [
+          "caps",
+          "yang terhormat ini,"
+        ],
+        [
+          "red",
+          "yang terhormat itu"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        474,
+        483
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "semuanya dibaca, *pasti harus baca* lah"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        484,
+        496
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "tapi ada momen"
+        ],
+        [
+          "bold",
+          "dia off script,"
+        ],
+        [
+          "serif",
+          "dia impromptu"
+        ]
+      ]
+    },
+    {
+      "type": "stage",
+      "w": [
+        498,
+        509
+      ],
+      "lead": "itu membuat pidato jadi lebih",
+      "word": "ENGAGING",
+      "lines": [
+        [
+          "low",
+          "daripada dia baca"
+        ]
+      ]
+    },
+    {
+      "type": "clip",
+      "before": 510,
+      "len": 6.2,
+      "src": "footage/c10.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.05,
+          1.1,
+          "Kau masuk keluar kan"
+        ],
+        [
+          1.1,
+          2.1,
+          "tiap lima tahun."
+        ],
+        [
+          2.2,
+          2.9,
+          "Iya kan?"
+        ],
+        [
+          3.93,
+          6.2,
+          "Itu kalau enggak di-reshuffle ya."
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        512,
+        534
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "kalaupun dia baca, cukup oke"
+        ],
+        [
+          "bold",
+          "dia tahu kapan"
+        ],
+        [
+          "serif",
+          "mesti pindah"
+        ]
+      ]
+    },
+    {
+      "type": "rank",
+      "w": [
+        547,
+        561
+      ],
+      "title": "Baca prompter vs ngomong langsung",
+      "rows": [
+        [
+          "Matanya",
+          "beda"
+        ],
+        [
+          "Pace-nya",
+          "beda"
+        ],
+        [
+          "Isi omongannya",
+          "beda"
+        ],
+        [
+          "Blundernya",
+          "beda"
+        ]
+      ],
+      "pick": 3,
+      "pick_at": 560,
+      "seam_out": "flash"
+    },
+    {
+      "type": "page",
+      "w": [
+        567,
+        578
+      ],
+      "img": "assets/pages/p02-kompastv-dasco-first.png",
+      "meta": "assets/pages/p02-kompastv-dasco-first.json",
+      "marks": "meta",
+      "mark_at": 577,
+      "label": "HADIR LANGSUNG",
+      "source": "kompas.tv"
+    },
+    {
+      "type": "clip",
+      "before": 579,
+      "len": 4.6,
+      "src": "footage/c01.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.0,
+          2.0,
+          "Saya berpendapat bahwa Presiden Republik"
+        ],
+        [
+          2.0,
+          4.6,
+          "Indonesia harus hadir langsung."
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        579,
+        601
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/chart-line.svg",
+          "label": "arah ekonomi",
+          "at": 584
+        },
+        {
+          "icon": "assets/icons/coin.svg",
+          "label": "kebijakan fiskal",
+          "at": 587
+        },
+        {
+          "icon": "assets/icons/cash.svg",
+          "label": "pemanfaatan APBN 2027",
+          "at": 598
+        }
+      ],
+      "label": "YANG MAU DIA KASIH TAHU",
+      "seam_out": "burn"
+    },
+    {
+      "type": "stage",
+      "w": [
+        602,
+        617
+      ],
+      "lead": "kenapa? kata dia",
+      "nodes": [
+        {
+          "icon": "assets/icons/world.svg",
+          "label": "geopolitik",
+          "at": 606
+        },
+        {
+          "icon": "assets/icons/chart-line.svg",
+          "label": "geoekonomi",
+          "at": 608
+        }
+      ],
+      "lines": [
+        [
+          "low",
+          "lagi *tidak pasti*"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        618,
+        643
+      ],
+      "img": "assets/pages/p04-antara-apbn-alat-perjuangan.png",
+      "meta": "assets/pages/p04-antara-apbn-alat-perjuangan.json",
+      "marks": "meta",
+      "mark_at": 632,
+      "zoom_at": 641,
+      "label": "ALAT PERJUANGAN",
+      "source": "antaranews.com"
+    },
+    {
+      "type": "say",
+      "w": [
+        644,
+        656
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "kemudian dia masuk ke *data-data statistik*"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        657,
+        668
+      ],
+      "img": "assets/pages/p06-setkab-targets-growth-poverty-unemployment.png",
+      "meta": "assets/pages/p06-setkab-targets-growth-poverty-unemployment.json",
+      "marks": "meta",
+      "mark_at": 660,
+      "source": "setkab.go.id"
+    },
+    {
+      "type": "rank",
+      "w": [
+        669,
+        693
+      ],
+      "title": "Target 2027",
+      "rows": [
+        [
+          "Pertumbuhan ekonomi",
+          "5,8 – 6,5%"
+        ],
+        [
+          "Inflasi",
+          "1,5 – 3,5%"
+        ],
+        [
+          "SBN 10 tahun",
+          "6,5 – 7,3%"
+        ],
+        [
+          "Rupiah per dolar AS",
+          "16.800 – 17.500"
+        ]
+      ],
+      "pick": 3,
+      "pick_at": 690,
+      "source": "setkab.go.id"
+    },
+    {
+      "type": "page",
+      "w": [
+        694,
+        706
+      ],
+      "img": "assets/pages/p08-kontan-rupiah-record-20may.png",
+      "meta": "assets/pages/p08-kontan-rupiah-record-20may.json",
+      "marks": "meta",
+      "mark_at": 705,
+      "label": "REKOR TERLEMAH: Rp 17.748",
+      "source": "kontan.co.id"
+    },
+    {
+      "type": "page",
+      "w": [
+        707,
+        717
+      ],
+      "img": "assets/pages/p25-kontan-rupiah-close-20may.png",
+      "meta": "assets/pages/p25-kontan-rupiah-close-20may.json",
+      "marks": "meta",
+      "mark_at": 712,
+      "label": "20 MEI: DITUTUP Rp 17.654",
+      "source": "kontan.co.id",
+      "seam_out": "burn"
+    },
+    {
+      "type": "broll",
+      "w": [
+        718,
+        734
+      ],
+      "src": "footage/b06.mp4",
+      "lines": [
+        [
+          "caps",
+          "harga minyak, lifting minyak"
+        ],
+        [
+          "red",
+          "banyak angka target"
+        ]
+      ]
+    },
+    {
+      "type": "rank",
+      "w": [
+        735,
+        775
+      ],
+      "title": "Target lainnya",
+      "rows": [
+        [
+          "Kemiskinan",
+          "6,0 – 6,5%"
+        ],
+        [
+          "Pengangguran terbuka",
+          "4,3 – 4,87%"
+        ],
+        [
+          "Lapangan kerja formal",
+          "40,81%"
+        ]
+      ],
+      "source": "setkab.go.id",
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        781,
+        797
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "sekarang masuk ke"
+        ],
+        [
+          "bold",
+          "paparan ekonomi"
+        ],
+        [
+          "serif",
+          "pembahasan utamanya"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        798,
+        815
+      ],
+      "src": "footage/b09.mp4",
+      "lines": [
+        [
+          "caps",
+          "sebelum kasih lukisannya"
+        ],
+        [
+          "red",
+          "dia kasih bingkai dulu"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        816,
+        834
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "bingkainya ini untuk membantu"
+        ],
+        [
+          "bold",
+          "orang ngerti"
+        ],
+        [
+          "serif",
+          "kenapa gue bikin seperti ini"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        835,
+        851
+      ],
+      "side": "left",
+      "kind": "photo",
+      "img": "assets/pic/gilded-frame.jpg",
+      "width": 620
+    },
+    {
+      "type": "say",
+      "w": [
+        856,
+        881
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "di seni rupa, *nge-frame sebuah gambar*"
+        ],
+        [
+          "low",
+          "itu krusial sekali"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        893,
+        917
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/photo.svg",
+          "label": "gambarnya kecil: kesan megah",
+          "at": 894
+        },
+        {
+          "icon": "assets/icons/frame.svg",
+          "label": "gambarnya gede: fokus",
+          "at": 903
+        },
+        {
+          "icon": "assets/icons/eye.svg",
+          "label": "tergantung framing",
+          "at": 915
+        }
+      ],
+      "label": "FRAMING-NYA DIPERTIMBANGKAN BANGET",
+      "seam_out": "burn"
+    },
+    {
+      "type": "card",
+      "w": [
+        918,
+        922
+      ],
+      "ground": "white",
+      "lines": [
+        [
+          "caps",
+          "nah, ini framing-nya"
+        ],
+        [
+          "bar",
+          "Pak Prabowo"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        923,
+        942
+      ],
+      "src": "assets/pic/deli-plantation.jpg",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "kita ini bangsa yang"
+        ],
+        [
+          "red",
+          "dimanfaatkan negara lain"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        943,
+        963
+      ],
+      "src": "assets/pic/voc-ships-batavia.jpg",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "bangsa jajahan"
+        ],
+        [
+          "red",
+          "ratusan tahun"
+        ]
+      ]
+    },
+    {
+      "type": "clip",
+      "before": 964,
+      "len": 9.6,
+      "src": "footage/c04.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.0,
+          3.43,
+          "Mereka melihat dan merasakan kekayaan Nusantara"
+        ],
+        [
+          3.43,
+          7.22,
+          "ratusan tahun diambil oleh penjajah-penjajah kita"
+        ],
+        [
+          7.22,
+          9.5,
+          "untuk memperkaya mereka."
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        964,
+        988
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "dia ngingetin luka"
+        ],
+        [
+          "bold",
+          "yang mendarah daging"
+        ],
+        [
+          "serif",
+          "di kita"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        990,
+        1013
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/x.svg",
+          "label": "berhenti ngasih keluar",
+          "at": 992
+        },
+        {
+          "icon": "assets/icons/x.svg",
+          "label": "berhenti dimanfaatkan",
+          "at": 998
+        },
+        {
+          "icon": "assets/icons/check.svg",
+          "label": "pro bangsa sendiri",
+          "at": 1005
+        }
+      ],
+      "label": "KITA HARUS BERHENTI",
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        1018,
+        1033
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "jangan ngikut-ngikut maunya asing"
+        ],
+        [
+          "caps",
+          "jangan mau disuruh-suruh"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1043,
+        1059
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "namanya juga orang pameran"
+        ],
+        [
+          "caps",
+          "yang penting saat itu"
+        ],
+        [
+          "capsserif",
+          "orang ngerasa apa"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1071,
+        1093
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "untuk orang yang bilang"
+        ],
+        [
+          "bold",
+          "nggak mau menghamba"
+        ],
+        [
+          "serif",
+          "ke asing"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        1096,
+        1107
+      ],
+      "img": "assets/pages/p21-setkab-investors-washington.png",
+      "meta": "assets/pages/p21-setkab-investors-washington.json",
+      "marks": "meta",
+      "mark_at": 1098,
+      "label": "WASHINGTON DC, FEBRUARI 2026",
+      "source": "setkab.go.id"
+    },
+    {
+      "type": "say",
+      "w": [
+        1112,
+        1121
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "gue nggak merasa negosiasinya"
+        ],
+        [
+          "low",
+          "*mengunggulkan kita*"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1120,
+        1134
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "nggak usah jauh-jauh"
+        ],
+        [
+          "caps",
+          "kita ngomongin simbolik aja"
+        ]
+      ]
+    },
+    {
+      "type": "clip",
+      "w": [
+        1135,
+        1147
+      ],
+      "src": "footage/c12.mp4",
+      "tag": "Kompas.com, 19 Februari 2026"
+    },
+    {
+      "type": "versus",
+      "w": [
+        1148,
+        1158
+      ],
+      "left": {
+        "label": "yang dia frame",
+        "value": ""
+      },
+      "right": {
+        "label": "apa yang terjadi",
+        "value": ""
+      },
+      "op": "vs"
+    },
+    {
+      "type": "say",
+      "w": [
+        1159,
+        1178
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "kita yang mesti"
+        ],
+        [
+          "bold",
+          "nangkep konteksnya"
+        ],
+        [
+          "serif",
+          "dia nggak mau ngasih lihat"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        1174,
+        1183
+      ],
+      "src": "footage/b11.mp4",
+      "lines": [
+        [
+          "caps",
+          "ini gue lagi pameran"
+        ],
+        [
+          "red",
+          "framenya kayak gini"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1186,
+        1199
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "kita mesti ingat"
+        ],
+        [
+          "caps",
+          "apa yang terjadi di luar pameran"
+        ]
+      ]
+    },
+    {
+      "type": "stage",
+      "w": [
+        1199,
+        1212
+      ],
+      "lead": "supaya kita sadar, ini",
+      "word": "SPEAK DOANG"
+    },
+    {
+      "type": "say",
+      "w": [
+        1221,
+        1230
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "lagi ada banyak *meme*"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        1231,
+        1249
+      ],
+      "img": "assets/pages/p10-inews-below-dogs.png",
+      "meta": "assets/pages/p10-inews-below-dogs.json",
+      "marks": "meta",
+      "mark_at": 1234,
+      "label": "KATA PRABOWO",
+      "source": "inews.id"
+    },
+    {
+      "type": "clip",
+      "before": 1250,
+      "len": 6.7,
+      "src": "footage/c05.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.0,
+          3.37,
+          "Mereka merasakan bahwa bangsa Indonesia"
+        ],
+        [
+          3.37,
+          6.6,
+          "ditempatkan derajatnya di bawah anjing."
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        1250,
+        1262
+      ],
+      "src": "assets/pic/batavia-castle.jpg",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "rakyat zaman dulu"
+        ],
+        [
+          "red",
+          "di mata para penjajah"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        1263,
+        1276
+      ],
+      "img": "assets/pages/p11-antara-do-not-admire.png",
+      "meta": "assets/pages/p11-antara-do-not-admire.json",
+      "marks": "meta",
+      "mark_at": 1266,
+      "source": "antaranews.com",
+      "seam_out": "burn"
+    },
+    {
+      "type": "clip",
+      "before": 1297,
+      "len": 9.9,
+      "src": "footage/c06.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.0,
+          4.65,
+          "Janganlah kita terlalu kagum kepada bangsa-bangsa"
+        ],
+        [
+          4.65,
+          9.8,
+          "yang kayanya dari merampas kekayaan bangsa lain."
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1277,
+        1296
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "jangan silau sama asing"
+        ],
+        [
+          "bold",
+          "padahal nggak ngelakuin"
+        ],
+        [
+          "serif",
+          "apa yang mereka ajarin"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        1297,
+        1317
+      ],
+      "img": "assets/pages/p12-antara-learn-from-history.png",
+      "meta": "assets/pages/p12-antara-learn-from-history.json",
+      "marks": "meta",
+      "mark_at": 1305,
+      "source": "antaranews.com"
+    },
+    {
+      "type": "page",
+      "w": [
+        1318,
+        1332
+      ],
+      "img": "assets/pages/p13-antara-netherlands-gdp.png",
+      "meta": "assets/pages/p13-antara-netherlands-gdp.json",
+      "marks": "meta",
+      "mark_at": 1321,
+      "label": "PDB PER KAPITA BELANDA",
+      "source": "antaranews.com",
+      "seam_out": "flash"
+    },
+    {
+      "type": "clip",
+      "before": 1333,
+      "len": 8.7,
+      "src": "footage/c08.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.0,
+          2.4,
+          "Bisa memiliki PDB tertinggi di dunia."
+        ],
+        [
+          3.1,
+          3.7,
+          "Kenapa?"
+        ],
+        [
+          4.02,
+          8.6,
+          "Karena mereka menguasai Nusantara kita."
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1333,
+        1359
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "terlepas gue setuju atau tidak"
+        ],
+        [
+          "caps",
+          "dalam konteks public speaking"
+        ],
+        [
+          "capsserif",
+          "ini bagus banget"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1368,
+        1381
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "dia pengen bilang"
+        ],
+        [
+          "bold",
+          "semua kekayaan kita"
+        ],
+        [
+          "serif",
+          "optimalin di kita"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1386,
+        1396
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "jangan semua-mua"
+        ],
+        [
+          "capsserif",
+          "serba asing"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        1400,
+        1413
+      ],
+      "src": "footage/b05.mp4",
+      "lines": [
+        [
+          "caps",
+          "jangan khawatir soal"
+        ],
+        [
+          "red",
+          "dolar naik"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1414,
+        1432
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "nggak boleh ngikutin maunya asing"
+        ],
+        [
+          "low",
+          "soal *harga kelapa sawit*"
+        ]
+      ]
+    },
+    {
+      "type": "clip",
+      "w": [
+        1439,
+        1451
+      ],
+      "src": "footage/c09.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026"
+    },
+    {
+      "type": "clip",
+      "before": 1466,
+      "len": 5.9,
+      "src": "footage/c07.mp4",
+      "tag": "Pidato KEM-PPKF di DPR, 20 Mei 2026",
+      "subs": [
+        [
+          0.0,
+          4.42,
+          "400 tahun telah memiliki PDB per kapita"
+        ],
+        [
+          4.42,
+          5.9,
+          "tertinggi."
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        1452,
+        1465
+      ],
+      "src": "assets/pic/voc-ships-batavia.jpg",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "negara nggak punya apa-apa"
+        ],
+        [
+          "red",
+          "karena ngambil dari kita"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1466,
+        1482
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "faktual, dan membantu"
+        ],
+        [
+          "bold",
+          "menyampaikan framing-nya"
+        ],
+        [
+          "serif",
+          "public speaking wise: bagus"
+        ]
+      ]
+    }
+  ]
+}

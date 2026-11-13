@@ -1,0 +1,76 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/fx.html (composition id "fx"), written by scripts/paper-flash-build.py
+  WHAT: the accents over the shots in this film: two stickers in red caps with a white outline, "1908" at 18.53 s
+    (for 1.27 s) and "1/3" at 33.73 s (for 0.94 s), and the source card, a white sheet from 23.1 s to 26.6 s: a letter
+    to the editor from 1968 (kicker "Surat pembaca"), the headline "Chinese-Restaurant Syndrome" and the source line.
+    The punch (white flash and dark vignette) and the red cross have styles below, but no element in this film uses
+    them. Mounted over the whole 40.24 s film.
+  STRUCTURE: mounted over the whole film (z-index 6, the fx-slot in index.html); the elements, back to front: #st-0
+    (sticker "1908"), #st-1 (sticker "1/3") and #card (the source card, with #card-kicker, #card-head, #card-rule and
+    #card-meta). tl: #st-0 scales from 1.5 to 1 and fades in over 0.12 s at 18.53 s; #st-1 does the same at 33.73 s;
+    #card scales from 0.9 to 1 and fades in over 0.14 s at 23.1 s.
+  CUSTOMIZE: cut.json "punch", "stickers", "cross", "card" (each with its start and end in seconds). Here only the
+    stickers and the card are used. change the manifests (shots.json, cut.json, captions.txt) and build again, never this file:
+    it is rewritten on every build. The seam timings are RISE, HOLD, FALL, TEAR, ZOOM_IN, ZOOM_OUT
+    at the head of scripts/paper-flash-build.py. The numbers written here that must change together: a sticker's top
+    (300px), height (170px) and line-height (170px), so its text stays centred; its font-size (128px) and 14px outline;
+    the card's top (500px), width (960px) and padding, its text sizes (36px kicker, 92px headline, 36px source line) and
+    the headline line-height (1.12), which together set its height; and each clip's data-duration, which must cover its tween.
+  MEDIA: no media file is bundled. The one slot is the caption font. The @font-face at the top of the style block declares
+    "Lilita One" with src local("Lilita One"), so the stickers are set in Lilita One when it is installed, and in the
+    sans-serif of the font stack when it is not. The card is set in the system fonts Georgia and Arial, so it has no slot.
+    Its background picture, the blurred shot behind the card, is the stand-in #v-s29 in index.html (class soft), not a
+    slot here. No picture, video or sound is in this file. To plug in your own font, add a url source before the local
+    one in that @font-face: src: url("fonts/your-caption-font.woff2") format("woff2"), local("Lilita One");.
+  WHEN TO USE: a vertical Short (1080x1920) cut fast on the spoken words, in the paper flash transitions style
+    (references/paper-flash-transitions.md). For a calm or long-form film use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Styles: the caption font, the frame, the punch layers, the sticker, the cross and the source card. */
+        @font-face { font-family: "Lilita One"; font-style: normal; font-weight: 400; font-display: block; src: local("Lilita One"); }
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        .clip { position: absolute; }
+        /* The punch: a white flash, then a heavy dark vignette for as long as its clip runs. */
+        .flash { inset: 0; background: #ffffff; }
+        .vignette { inset: 0; background: radial-gradient(ellipse 72% 60% at 50% 46%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.5) 80%, rgba(0, 0, 0, 0.88) 100%); }
+        /* A figure worth reading twice: red caps, a white outline, near the top. */
+        .sticker { left: 40px; width: 1000px; top: 300px; height: 170px; line-height: 170px; text-align: center; white-space: nowrap; font-family: "Lilita One", sans-serif; font-size: 128px; color: #d81e2c;
+          -webkit-text-stroke: 14px #ffffff; paint-order: stroke fill; filter: drop-shadow(0 8px 0 #1a0508) drop-shadow(0 12px 16px rgba(0, 0, 0, 0.6)); }
+        /* A red cross drawn by hand over the thing that is wrong. */
+        .cross { left: 0; top: 0; width: 1080px; height: 1920px; }
+        .cross svg { position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: visible; }
+        .cross path { fill: none; stroke: #e2202c; stroke-width: 34; stroke-linecap: round; stroke-dasharray: 1; }
+        /* The source card: a white sheet over the blurred shot, a headline in the source's own words. */
+        #card { left: 60px; width: 960px; top: 500px; padding: 64px 60px 56px; background: #ffffff; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); font-family: Georgia, "Times New Roman", serif; color: #16181b; }
+        #card-kicker { font-family: Arial, Helvetica, sans-serif; font-size: 36px; font-weight: 700; letter-spacing: 0.08em; color: #b3261e; text-transform: uppercase; }
+        #card-head { margin-top: 28px; font-size: 92px; line-height: 1.12; }
+        #card-rule { margin-top: 40px; height: 3px; background: #c9cdd2; }
+        #card-meta { margin-top: 28px; font-family: Arial, Helvetica, sans-serif; font-size: 36px; line-height: 1.35; color: #5a6068; }
+      </style>
+      <!-- The accents: two stickers and the source card, each on its own clip. -->
+      <div id="root" data-composition-id="fx" data-width="1080" data-height="1920">
+        <div id="st-0" class="clip sticker" data-start="18.53" data-duration="1.27" data-track-index="2">1908</div>
+        <div id="st-1" class="clip sticker" data-start="33.73" data-duration="0.94" data-track-index="2">1/3</div>
+        <div id="card" class="clip" data-start="23.1" data-duration="3.5" data-track-index="4">
+          <div id="card-kicker">Surat pembaca · 1968</div>
+          <div id="card-head">“Chinese-Restaurant Syndrome”</div>
+          <div id="card-rule"></div>
+          <div id="card-meta">Robert Ho Man Kwok, The New England Journal of Medicine, 4 April 1968</div>
+        </div>
+      </div>
+      <script>
+        /* One tween per accent: the stickers and the card scale in at their own times. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#st-0", { scale: 1.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.12, ease: "back.out(2)" }, 18.53);
+        tl.fromTo("#st-1", { scale: 1.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.12, ease: "back.out(2)" }, 33.73);
+        tl.fromTo("#card", { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power2.out" }, 23.1);
+        window.__timelines["fx"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-01-city.html (composition id "c1-01-city")
+  WHAT: The first beat of chapter 1. It opens on a map of Europe: a blue sea, orange land, a thin
+    route line along the Rhine, a glowing dot on Strasbourg, and the labels "Strasbourg" and
+    "Sungai Rhein" (Rhine river). The map pushes slowly in for 4.93 s, then cuts to a graded
+    picture of four horsemen that keeps pushing to the end at 8.42 s. index.html mounts it as
+    c1-01-city-slot at 74.8 s; the horsemen cut lands on the word "yang" (79.73 s).
+  STRUCTURE: back to front: #c101city-a, a .dr-shot wrapper that holds the sea (.mp-sea), the map
+    image (#c101city-a-map), the Rhine route (an svg .mp-lines path), a noise layer (.mp-grain),
+    an edge shade (.mp-shade), the glow (#c101city-a-glow), the dot (.mp-dot) and the two labels.
+    #c101city-b, a second .dr-shot with the graded horsemen image, sits above it and is hidden
+    until 4.93 s. The paused GSAP timeline, registered as window.__timelines["c1-01-city"], runs
+    the map push (scale 1.22 to 1.34, 0 to 4.93 s), the glow breathing on a 1.1 s yoyo from 0 s,
+    the horsemen drift (scale 1.014 to 1.072, x and y moving, 4.93 to 8.42 s), and a 0.001 s tween
+    that makes the horsemen visible at 4.93 s.
+  CUSTOMIZE: the labels are the text of the .mp-label and .mp-note elements; the dot and the glow
+    are placed by inline left and top values in pixels (dot at 1047, 588; glow at 1030, 571). The
+    route is one path of 16 points in a 1920 x 1080 viewBox, stroke #35708f at 4.5 px. The sea is
+    #3f7f9f in .mp-sea, and the map image is 3840 x 2160 at left -960 and top -540. The horsemen
+    grade is the data-color-grading JSON on its img (contrast 0.1, saturation -0.32, a cool shadow
+    wheel). The cut time 4.93 appears in four places (the map tween duration, the glow repeat count, the
+    horsemen tween start and the visibility tween start), so change them together. The composition's
+    end, 4.93 + 3.49 = 8.42 s, must match the data-duration that index.html gives c1-01-city-slot.
+  MEDIA: no media file is bundled. This file has two slots: a photo and a font. It has no sound and no CSS image.
+    Bundled drawing (SVG, kept): assets/generated/map-europe.svg, the map image #c101city-a-map (.mp-map, 3840 x
+    2160 px, placed at left -960 and top -540 inside #c101city-a). It shows a map of Europe: orange land with dark
+    borders on the blue sea. It renders as it is and is not a media slot, so it needs nothing plugged in. To use
+    your own map, set the img's src to your file (a 16:9 map of 3840 x 2160 px fits; for another size, change the
+    width and height together).
+    1. The horsemen photo, img #c101city-b-img (inside #c101city-b). It showed a still of the Four
+       Horsemen (Durer, 1498), graded by its data-color-grading JSON. It now shows a faint hatch
+       stand-in labeled "PHOTO: assets/generated/horsemen.jpg". To plug in your photo, set the img's src
+       to your file (for example assets/generated/horsemen.jpg). The data-media attribute only names the
+       expected path; it loads nothing.
+    2. The font, the @font-face for "Arimo" (weights 400 to 700), used by .mp-label and .mp-note. It was a
+       bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a chapter or a film opening that places one city on a map before a picture of the
+    period. Pick another composition when the film needs a route with several stops or a moving
+    map.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root frame: the whole composition sits on this dark ground. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The map: orange land on a blue sea, dark borders, paper grain, a glowing dot, small dark labels. */
+        .mp-sea { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: #3f7f9f; }
+        .mp-map { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; max-width: none; }
+        .mp-lines { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        .mp-grain { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; mix-blend-mode: multiply; opacity: 0.34; }
+        .mp-shade { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(42, 33, 24, 0) 55%, rgba(42, 33, 24, 0.32) 100%); }
+        .mp-glow { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255, 244, 205, 0.95) 0%, rgba(255, 226, 150, 0.55) 35%, rgba(255, 226, 150, 0) 70%); }
+        .mp-dot { position: absolute; border-radius: 50%; background: #fff6da; }
+        .mp-label { position: absolute; font-family: "Arimo", sans-serif; font-weight: 700; color: #170f08; white-space: nowrap; }
+        .mp-note { position: absolute; font-family: "Arimo", sans-serif; font-weight: 400; font-style: italic; font-weight: 700; color: #170f08; white-space: nowrap; }
+      </style>
+      <!-- "Strasbourg saat itu adalah ..." (74.80 s): graphic from the start; horsemen on "yang" (79.73 s). -->
+      <div id="root" data-composition-id="c1-01-city" data-width="1920" data-height="1080">
+        <!-- The map shot: sea, map, Rhine route, grain, shade, glow, dot and labels, stacked back to front. -->
+        <div class="dr-shot" id="c101city-a" data-layout-allow-overflow style="transform-origin: 1053px 595px;">
+          <div class="mp-sea" data-layout-allow-overflow></div>
+          <img class="mp-map" id="c101city-a-map" src="assets/generated/map-europe.svg" alt="" data-layout-allow-overflow />
+          <svg class="mp-lines" viewBox="0 0 1920 1080"><path d="M1148.5,732.3 L1152.3,681.2 L1129.8,668.6 L1044.9,676.5 L1056.1,595.8 L1082.8,558.5 L1090.8,520.8 L1081.2,478.7 L1061.5,481.2 L1045.4,448.7 L1011.3,399.8 L1000.6,358.1 L973.4,323.6 L917.3,320.2 L878.8,315.9 L859.6,310.7" fill="none" stroke="#35708f" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <svg class="mp-grain" viewBox="0 0 1920 1080" preserveAspectRatio="none" data-layout-allow-overflow><filter id="c101city-a-noise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" /><feColorMatrix type="matrix" values="0 0 0 0 0.16  0 0 0 0 0.13  0 0 0 0 0.09  0 0 0 0.55 0" /></filter><rect width="1920" height="1080" filter="url(#c101city-a-noise)" /></svg>
+          <div class="mp-shade" data-layout-allow-overflow></div>
+          <div class="mp-glow" id="c101city-a-glow" data-layout-allow-overflow style="left: 1029.8px; top: 571.3px; width: 46.9px; height: 46.9px;"></div>
+          <div class="mp-dot" style="left: 1047.0px; top: 588.5px; width: 12.5px; height: 12.5px; box-shadow: 0 0 0 1.6px #2a2118;"></div>
+          <div class="mp-label" style="left: 1068.8px; top: 580.6px; font-size: 23.4px; line-height: 28.1px;">Strasbourg</div>
+          <div class="mp-note" style="left: 1104.0px; top: 486.0px; font-size: 20.3px; line-height: 24.4px;">Sungai Rhein</div>
+        </div>
+        <!-- The horsemen shot: a graded still that is hidden until the cut at 4.93 s, then drifts. -->
+        <div class="dr-shot" id="c101city-b" data-layout-allow-overflow><img id="c101city-b-img" src="data:image/svg+xml,%3C!--horsemen.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/horsemen.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/horsemen.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* The timeline: the map push and glow first, then the cut to the horsemen and their drift. */
+        const tl = gsap.timeline({ paused: true });
+        // The map: a slow push toward the place, and the dot's glow breathing. Nothing else moves.
+        tl.fromTo("#c101city-a", { scale: 1.22 }, { scale: 1.34, duration: 4.93, ease: "none" }, 0.0);
+        tl.fromTo("#c101city-a-glow", { scale: 0.8, opacity: 0.55 }, { scale: 1.25, opacity: 0.95, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: Math.max(1, Math.floor(4.93 / 1.1) - 1) }, 0.0);
+        tl.fromTo("#c101city-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.072, x: -5, y: 3, duration: 3.49, ease: "none" }, 4.93);
+        gsap.set("#c101city-b", { opacity: 0 });
+        tl.to("#c101city-b", { opacity: 1, duration: 0.001 }, 4.93);
+        window.__timelines["c1-01-city"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

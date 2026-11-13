@@ -1,14 +1,4 @@
-framesmith convert refused for arcade-style-paragraph: 13 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/arcade-style-paragraph/fidelity.json.
-  compositions/boot.html:55 [tl.fromTo] ease "steps(4)" has no Framesmith curve; refusing the call site
-  compositions/boot.html:56 [tl.to] ease "steps(4)" has no Framesmith curve; refusing the call site
-  compositions/boot.html:58 [tl.fromTo] property "keyframes" (value "[{ scale: 1.25, duration: 0.12 }, { scale: 0.9, duration: 0.08 }, { scale: 1, duration: 0.08 }]") has no KDL motion property; refusing the call site
-  compositions/boot.html:60 [tl.fromTo] ease "steps(1)" has no Framesmith curve; refusing the call site
-  compositions/boot.html:61 [tl.to] ease "steps(1)" has no Framesmith curve; refusing the call site
+framesmith convert refused for arcade-style-paragraph: 3 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/arcade-style-paragraph/fidelity.json.
   compositions/score.html:65 [tl.fromTo] property "v" (value "12450") has no KDL motion property; refusing the call site
-  compositions/score.html:67 [tl.fromTo] property "keyframes" (value "[{ scale: 1.25, duration: 0.12 }, { scale: 0.9, duration: 0.08 }, { scale: 1, duration: 0.08 }]") has no KDL motion property; refusing the call site
-  compositions/score.html:68 [tl.to] ease "steps(2)" has no Framesmith curve; refusing the call site
-  compositions/score.html:78 [tl.fromTo] property "immediateRender" (value "false") has no KDL motion property; refusing the call site
-  compositions/score.html:81 [tl.fromTo] property "keyframes" (value "[{ scale: 1.25, duration: 0.1 }, { scale: 1, duration: 0.1 }]") has no KDL motion property; refusing the call site
-  compositions/start.html:51 [tl.to] ease "steps(1)" has no Framesmith curve; refusing the call site
-  compositions/coin-flash.html:42 [tl.fromTo] ease "steps(1)" has no Framesmith curve; refusing the call site
-  compositions/crt-glitch.html:47 [tl.fromTo] position "0.02 * i" is an expression; refusing the call site
+  compositions/score.html:78 [tl.fromTo] target "p" is not a DOM selector ("p" is runtime state); naming the call site instead of guessing a clip
+  compositions/crt-glitch.html:47 [tl.fromTo] position "0.02 * i" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site

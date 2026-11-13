@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/card.html (composition id "card")
+  WHAT: The card content, shown for the 5 seconds that index.html gives it. The official GitHub mark slides
+    in from 300px to the left, fading in and turning from -25 to 0 degrees, starting at 0.2 seconds. At
+    1.5 seconds the word Merged. pops in from 120 percent scale, and at 2.0 seconds the line sourced, not
+    redrawn rises in. Nothing animates after 2.4 seconds, so the card holds still until the host ends it.
+  STRUCTURE: #root is a centered flex row with a 56px gap, holding #card-mark (an img, 220 by 220px, with
+    filter invert(1)) and #card-text (a column with a 14px gap) that holds #card-title (Merged., 150px heavy)
+    and #card-sub (JetBrains Mono, 34px). Timeline: #card-mark opacity, x and rotation from 0.2s for 0.5s with
+    expo.out; #card-title opacity and scale from 1.5s for 0.2s with expo.out; #card-sub opacity and y from
+    2.0s for 0.4s with power3.out. The timeline is registered as window.__timelines["card"].
+  CUSTOMIZE: The title and subline are literal text in #card-title and #card-sub. The logo is the src of
+    #card-mark and its alt text (the file path is in the MEDIA section). Colors: title #f0f6fc, subline #9da7b3.
+    Layout: the 56px row gap, the 220px mark size, the 14px text gap. The invert(1) filter turns a dark
+    monochrome mark white for a dark ground; remove it if the mark is in a color you want to keep. Timings
+    are the numbers in the tl.fromTo calls. Start times 0.2, 1.5 and 2.0 were chosen against the sound
+    effects in index.html (whoosh at 0.33s, click at 1.45s), so keep them in step when you change either.
+  MEDIA: No media file is bundled. Bundled drawing (SVG, kept): the img #card-mark shows the official GitHub
+    mark, a monochrome near-black SVG at .media/images/logo_001.svg. It renders as it is and needs nothing plugged
+    in. To use your own logo, set the src of #card-mark to your own file (for example logo.svg placed next to
+    index.html), keep the alt text, and use a monochrome mark: the invert(1) filter turns a dark mark white for the
+    dark ground, so remove that filter if your mark is already light. The fonts
+    Inter (#root and #card-title) and JetBrains Mono (#card-sub) are named in the CSS with no @font-face,
+    so they are used when installed and otherwise fall back to sans-serif and monospace. To use font files,
+    add an @font-face for each family with src: url("FILE.woff2"). This file has no sound, video or CSS
+    image slot, so none is needed for those; its sound effects are slots in index.html.
+  WHEN TO USE: A logo and title card, for example a repository or product name reveal, where the logo must
+    come from a recorded source and its arrival must line up with a sound effect. Pick another inspiration for a
+    card that needs several logos or footage.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The template wrapper holds the style, markup and script that index.html mounts as one composition. -->
+    <template>
+      <style>
+        /* Root of the card: a centered flex row that fills the slot. */
+        #root { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 56px; font-family: "Inter", sans-serif; }
+        /* The resolved official mark is monochrome near-black; on a dark ground use its white variant (inverted). */
+        #card-mark { display: block; width: 220px; height: 220px; filter: invert(1); }
+        /* Text column: the title above the subline. */
+        #card-text { display: flex; flex-direction: column; gap: 14px; }
+        /* Title: the large heavy word in near-white. */
+        #card-title { font-size: 150px; font-weight: 900; letter-spacing: -0.04em; color: #f0f6fc; }
+        /* Subline: the small monospace line in a muted grey. */
+        #card-sub { font-family: "JetBrains Mono", monospace; font-size: 34px; color: #9da7b3; }
+      </style>
+      <!-- Composition root for the card: 1920 by 1080, with the logo and the text column side by side. -->
+      <div id="root" data-composition-id="card" data-width="1920" data-height="1080">
+        <!-- logo_001: the official mark, resolved with type logo and entity github (theSVG, then org avatar, then favicon cascade). -->
+        <img id="card-mark" src=".media/images/logo_001.svg" alt="GitHub logo" />
+        <!-- Text column: the title and the subline. -->
+        <div id="card-text">
+          <div id="card-title">Merged.</div>
+          <div id="card-sub">sourced, not redrawn</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: a paused GSAP timeline that the renderer controls; every tween below is added to it. */
+        const tl = gsap.timeline({ paused: true });
+        /* Logo slides 300px in from the left, fading in and turning to 0 degrees, from 0.2 seconds. */
+        // The whoosh peaks 0.17s into its file: placed at 0.33 so the peak lands on the mark's arrival (0.5).
+        tl.fromTo("#card-mark", { opacity: 0, x: -300, rotation: -25 }, { opacity: 1, x: 0, rotation: 0, duration: 0.5, ease: "expo.out" }, 0.2);
+        // The click onset is 0.05s in: placed at 1.45 so it lands with the title (1.5).
+        /* Title pops from 120 percent scale to full size at 1.5 seconds. */
+        tl.fromTo("#card-title", { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.2, ease: "expo.out" }, 1.5);
+        /* Subline rises 16px and fades in at 2.0 seconds. */
+        tl.fromTo("#card-sub", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 2.0);
+        /* Registers this timeline under the id card so the host can drive it. */
+        window.__timelines["card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

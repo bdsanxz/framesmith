@@ -1,0 +1,11 @@
+{"width": 1920, "height": 1080, "fps": 30, "out": "footage", "handle": 0.2,
+ "shots": [
+  {"id": "a2", "start": 7.82, "end": 9.72, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 55.0, "zoom": 1.04, "cy": 1.0, "subject": "the strait before the blast: calm sea, an island on the horizon"},
+  {"id": "a3", "start": 9.72, "end": 11.35, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 81.5, "zoom": 1.04, "cy": 1.0, "subject": "a black explosion bursts out of the sea in front of the mountain"},
+  {"id": "a4", "start": 11.35, "end": 14.0, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 153.45, "zoom": 1.04, "cy": 1.0, "subject": "the explosion spreads along the water, close"},
+  {"id": "b1", "start": 14.0, "end": 17.93, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 70.0, "zoom": 1.04, "cy": 1.0, "subject": "the blast cloud rolls out over the sea"},
+  {"id": "d1", "start": 52.98, "end": 58.06, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 133.4, "zoom": 1.04, "cy": 1.0, "subject": "the eruption column from the air, the strait around it"},
+  {"id": "e1", "start": 58.06, "end": 60.15, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 20.1, "zoom": 1.04, "cy": 1.0, "subject": "an island peak in the strait at dusk"},
+  {"id": "e2", "start": 60.15, "end": 62.12, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 116.64, "zoom": 1.04, "cy": 1.0, "subject": "from the air: something dark breaks the surface of the sea and bursts white"},
+  {"id": "e3", "start": 62.12, "end": 67.5, "source": ".footage/src/krakatoa-1930.mp4", "in_point": 159.1, "zoom": 1.04, "cy": 1.0, "subject": "Anak Krakatau erupting, close"}
+ ]}

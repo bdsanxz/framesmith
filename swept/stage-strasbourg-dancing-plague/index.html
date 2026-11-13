@@ -1,0 +1,350 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main")
+  WHAT: The whole film, "The dancing plague of Strasbourg": 534.2 s (8 min 54 s) at 1920 x 1080,
+    narrated in Indonesian. It opens with a disclaimer card (0 s) and a six-beat cold open of narrated
+    pictures (8 s to 62.8 s), then the channel sting (62.8 s). Four chapters follow, each with a
+    title card and twelve beats: chapter 1 at 70.8 s, chapter 2 at 180.8 s, chapter 3 at 290.6 s and
+    chapter 4 at 398.7 s. The sources roll from 517.2 s, and a film gate lies over everything. The
+    picture, the voice, the music and the sound hits all sit on one timeline.
+  STRUCTURE: the root div #root (data-composition-id "main", 534.2 s, 1920 x 1080) holds, in order:
+    track 1, the graphics hosts: each is an empty div whose data-composition-src loads a file in
+    compositions/ at its data-start, for its data-duration: disclaimer (0 s, 8.0 s); co-01 to co-06
+    (8.0 s to 62.8 s); sting (62.8 s); c1-card (70.8 s) and c1-01 to c1-12 (74.8 s to 180.8 s); c2-card
+    (180.8 s) and c2-01 to c2-12 (184.96 s to 290.6 s); c3-card (290.6 s) and c3-01 to c3-12 (294.8 s
+    to 398.7 s); c4-card (398.7 s) and c4-01 to c4-12 (402.9 s to 517.2 s); sources (517.2 s, 17.0 s).
+    Track 2, gate-slot, loads compositions/gate.html over the whole film and sits above the rest
+    through its z-index of 50. Track 10 holds voice-s01 to voice-s54, one narration clip per beat,
+    each starting at its beat. Track 11 is the music bed #bed, which runs under the whole film with
+    volume automation. Track 14 holds the bass hits: sfx-sting at 64.98 s and sfx-card-1 to sfx-card-4
+    at the chapter cards. The paused GSAP timeline, registered as window.__timelines["main"], is the
+    root timeline; each composition registers its own timeline the same way.
+  CUSTOMIZE: the total length 534.2 appears on #root, #gate-slot and #bed, and must change together.
+    Every host's data-start and data-duration must match the composition it loads, and the next host
+    must start where the last one ends. To change the title, edit the text of the title element and the cards'
+    text in their own composition files. The background colour #000000 is set on html and body. The
+    voice lines and the music automation between the narration markers are written by scripts (the
+    comments on those lines name them); do not edit them by hand. Changing a beat's length means
+    changing its voice clip, its host and its composition together.
+  MEDIA: No media file is bundled in this file. It has 60 sound slots and no photo, video, font or CSS
+    image slot. The pictures and fonts belong to the compositions, and each composition's own MEDIA note
+    covers them. Each sound slot is a SOUND SLOT comment inside #root, where an audio element used to
+    play, and every one is silent now. To plug in a sound, add an audio element inside #root with the
+    slot's id, its data attributes and src set to your file:
+    an audio element with id="ID", data-start="START", data-duration="LENGTH", data-track-index="TRACK" and data-volume="VOLUME"
+    Use the START, LENGTH, TRACK and VOLUME given for that slot below (data-volume 1 is 0 dB). The slots,
+    in the order they appear in the file:
+    1. bed (track 11, from 0 s for 534.2 s, volume 1): the music bed for the whole film. It played
+       assets/generated/bed.m4a, credited in the README as "Dystopian Synthwave Playlist - Planet Zero"
+       by Karl Casey @ White Bat Audio. Its volume lanes were in data-automation: lowered under the
+       narrator, up under the disclaimer, the sting, the chapter cards and the sources. The lanes went
+       with the element, so to restore the ducking, also add data-automation with a volume lane (JSON)
+       to your audio element.
+    2. sfx-sting (track 14, from 64.98 s for 1.0 s, volume 1): plays assets/sfx/impact-bass-1.mp3, a low
+       hit on the sting's red box. The hit peaks 0.12 s into its file.
+    3. sfx-card-1 (track 14, from 70.93 s for 1.0 s, volume 1): plays assets/sfx/impact-bass-1.mp3, the
+       low hit on the chapter 1 card, peaking 0.12 s into the file.
+    4. sfx-card-2 (track 14, from 180.89 s for 1.0 s, volume 1): plays assets/sfx/impact-bass-1.mp3, the
+       low hit on the chapter 2 card.
+    5. sfx-card-3 (track 14, from 290.73 s for 1.0 s, volume 1): plays assets/sfx/impact-bass-1.mp3, the
+       low hit on the chapter 3 card.
+    6. sfx-card-4 (track 14, from 398.81 s for 1.0 s, volume 1): plays assets/sfx/impact-bass-1.mp3, the
+       low hit on the chapter 4 card.
+    The narration (track 10, volume 1), one Indonesian clip per beat, each from its start time:
+    7. voice-s01 (from 8 s for 7.44 s): plays assets/narration/s01.mp3.
+    8. voice-s02 (from 15.94 s for 8.24 s): plays assets/narration/s02.mp3.
+    9. voice-s03 (from 24.68 s for 6.8 s): plays assets/narration/s03.mp3.
+    10. voice-s04 (from 32.38 s for 10.16 s): plays assets/narration/s04.mp3.
+    11. voice-s05 (from 43.04 s for 12.96 s): plays assets/narration/s05.mp3.
+    12. voice-s06 (from 56.5 s for 6 s): plays assets/narration/s06.mp3.
+    13. voice-s07 (from 74.8 s for 7.92 s): plays assets/narration/s07.mp3.
+    14. voice-s08 (from 83.22 s for 7.84 s): plays assets/narration/s08.mp3.
+    15. voice-s09 (from 91.56 s for 9.28 s): plays assets/narration/s09.mp3.
+    16. voice-s10 (from 101.34 s for 6.32 s): plays assets/narration/s10.mp3.
+    17. voice-s11 (from 108.16 s for 12.8 s): plays assets/narration/s11.mp3.
+    18. voice-s12 (from 121.46 s for 6.72 s): plays assets/narration/s12.mp3.
+    19. voice-s13 (from 128.68 s for 7.36 s): plays assets/narration/s13.mp3.
+    20. voice-s14 (from 136.54 s for 7.68 s): plays assets/narration/s14.mp3.
+    21. voice-s15 (from 144.72 s for 7.36 s): plays assets/narration/s15.mp3.
+    22. voice-s16 (from 152.58 s for 9.36 s): plays assets/narration/s16.mp3.
+    23. voice-s17 (from 162.44 s for 8.08 s): plays assets/narration/s17.mp3.
+    24. voice-s18 (from 171.02 s for 9.44 s): plays assets/narration/s18.mp3.
+    25. voice-s19 (from 184.96 s for 8.24 s): plays assets/narration/s19.mp3.
+    26. voice-s20 (from 193.7 s for 7.68 s): plays assets/narration/s20.mp3.
+    27. voice-s21 (from 201.88 s for 12.4 s): plays assets/narration/s21.mp3.
+    28. voice-s22 (from 214.78 s for 5.52 s): plays assets/narration/s22.mp3.
+    29. voice-s23 (from 220.8 s for 12 s): plays assets/narration/s23.mp3.
+    30. voice-s24 (from 233.3 s for 11.36 s): plays assets/narration/s24.mp3.
+    31. voice-s25 (from 245.16 s for 7.44 s): plays assets/narration/s25.mp3.
+    32. voice-s26 (from 253.1 s for 5.92 s): plays assets/narration/s26.mp3.
+    33. voice-s27 (from 259.52 s for 9.36 s): plays assets/narration/s27.mp3.
+    34. voice-s28 (from 269.38 s for 9.28 s): plays assets/narration/s28.mp3.
+    35. voice-s29 (from 279.16 s for 6.8 s): plays assets/narration/s29.mp3.
+    36. voice-s30 (from 286.46 s for 3.84 s): plays assets/narration/s30.mp3.
+    37. voice-s31 (from 294.8 s for 5.44 s): plays assets/narration/s31.mp3.
+    38. voice-s32 (from 300.74 s for 9.28 s): plays assets/narration/s32.mp3.
+    39. voice-s33 (from 310.52 s for 7.84 s): plays assets/narration/s33.mp3.
+    40. voice-s34 (from 318.86 s for 7.6 s): plays assets/narration/s34.mp3.
+    41. voice-s35 (from 326.96 s for 8.4 s): plays assets/narration/s35.mp3.
+    42. voice-s36 (from 335.86 s for 11.04 s): plays assets/narration/s36.mp3.
+    43. voice-s37 (from 347.4 s for 8.16 s): plays assets/narration/s37.mp3.
+    44. voice-s38 (from 356.06 s for 9.68 s): plays assets/narration/s38.mp3.
+    45. voice-s39 (from 366.24 s for 7.76 s): plays assets/narration/s39.mp3.
+    46. voice-s40 (from 374.5 s for 6.72 s): plays assets/narration/s40.mp3.
+    47. voice-s41 (from 381.72 s for 8.4 s): plays assets/narration/s41.mp3.
+    48. voice-s42 (from 390.62 s for 7.76 s): plays assets/narration/s42.mp3.
+    49. voice-s43 (from 402.88 s for 7.44 s): plays assets/narration/s43.mp3.
+    50. voice-s44 (from 410.82 s for 9.52 s): plays assets/narration/s44.mp3.
+    51. voice-s45 (from 420.84 s for 5.76 s): plays assets/narration/s45.mp3.
+    52. voice-s46 (from 427.1 s for 7.2 s): plays assets/narration/s46.mp3.
+    53. voice-s47 (from 434.8 s for 10.24 s): plays assets/narration/s47.mp3.
+    54. voice-s48 (from 445.54 s for 8.72 s): plays assets/narration/s48.mp3.
+    55. voice-s49 (from 454.76 s for 9.36 s): plays assets/narration/s49.mp3.
+    56. voice-s50 (from 464.62 s for 9.28 s): plays assets/narration/s50.mp3.
+    57. voice-s51 (from 474.4 s for 11.44 s): plays assets/narration/s51.mp3.
+    58. voice-s52 (from 486.34 s for 8.24 s): plays assets/narration/s52.mp3.
+    59. voice-s53 (from 495.08 s for 9.28 s): plays assets/narration/s53.mp3.
+    60. voice-s54 (from 504.86 s for 11.84 s): plays assets/narration/s54.mp3.
+    The film has no photo, video, font or CSS image slot of its own. If the audio is missing, it plays
+    silent on its pictures. If the pictures are missing, the frame is black (background #000000), and each
+    composition's MEDIA note says what to put there.
+  WHEN TO USE: a documentary built from many short compositions on one timeline, with a voice clip per
+    beat and one music bed under it. Pick a single composition file instead when the work is one short
+    clip with no host timeline.
+-->
+<!-- "Documentary room" (references/documentary-room.md): a disclaimer card, a narrated cold open, the
+     channel sting, four chapters (each a chapter card and twelve beats of graded
+     engravings, woodcuts, paintings, manuscript pages and a little stock film, with red names,
+     captions, lower thirds, framed portraits, print cards, maps and diagrams), and the sources.
+     One film gate lies over everything. Every beat is one paragraph of narration.txt and one
+     composition; its cuts are word times in assets/transcript.json. Media: none bundled; see the MEDIA section of the GUIDE above. -->
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>The dancing plague of Strasbourg</title>
+    <!-- GSAP 3.14.2, loaded from a CDN; every timeline in the film is built with it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset the default margins and padding, and make box sizes predictable. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* The page is the film's frame: 1920 x 1080, no scrolling, black behind it. */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000000; }
+      /* The root frame fills the page and clips anything that leaves it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000000; }
+      /* The film gate sits above every scene. */
+      #gate-slot { z-index: 50; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <!-- The root composition: 1920 x 1080 and 534.2 s; every host below sits inside it. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="534.2" data-width="1920" data-height="1080">
+      <!-- The disclaimer card. -->
+      <div id="disclaimer-slot" data-composition-id="disclaimer" data-composition-src="compositions/disclaimer.html"
+        data-start="0" data-duration="8.0" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The cold open. -->
+      <div id="co-01-july-slot" data-composition-id="co-01-july" data-composition-src="compositions/co-01-july.html"
+        data-start="8.0" data-duration="7.94" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="co-02-spread-slot" data-composition-id="co-02-spread" data-composition-src="compositions/co-02-spread.html"
+        data-start="15.94" data-duration="8.74" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="co-03-troffea-slot" data-composition-id="co-03-troffea" data-composition-src="compositions/co-03-troffea.html"
+        data-start="24.68" data-duration="7.7" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="co-04-council-slot" data-composition-id="co-04-council" data-composition-src="compositions/co-04-council.html"
+        data-start="32.38" data-duration="10.66" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="co-05-questions-slot" data-composition-id="co-05-questions" data-composition-src="compositions/co-05-questions.html"
+        data-start="43.04" data-duration="13.46" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="co-06-invite-slot" data-composition-id="co-06-invite" data-composition-src="compositions/co-06-invite.html"
+        data-start="56.5" data-duration="6.3" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The channel sting. -->
+      <div id="sting-slot" data-composition-id="sting" data-composition-src="compositions/sting.html"
+        data-start="62.8" data-duration="8.0" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Chapter 1: the city before the outbreak. -->
+      <div id="c1-card-slot" data-composition-id="c1-card" data-composition-src="compositions/c1-card.html"
+        data-start="70.8" data-duration="4.0" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-01-city-slot" data-composition-id="c1-01-city" data-composition-src="compositions/c1-01-city.html"
+        data-start="74.8" data-duration="8.42" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-02-empire-slot" data-composition-id="c1-02-empire" data-composition-src="compositions/c1-02-empire.html"
+        data-start="83.22" data-duration="8.34" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-03-cathedral-slot" data-composition-id="c1-03-cathedral" data-composition-src="compositions/c1-03-cathedral.html"
+        data-start="91.56" data-duration="9.78" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-04-brant-slot" data-composition-id="c1-04-brant" data-composition-src="compositions/c1-04-brant.html"
+        data-start="101.34" data-duration="6.82" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-05-hardship-slot" data-composition-id="c1-05-hardship" data-composition-src="compositions/c1-05-hardship.html"
+        data-start="108.16" data-duration="13.3" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-06-gates-slot" data-composition-id="c1-06-gates" data-composition-src="compositions/c1-06-gates.html"
+        data-start="121.46" data-duration="7.22" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-07-disease-slot" data-composition-id="c1-07-disease" data-composition-src="compositions/c1-07-disease.html"
+        data-start="128.68" data-duration="7.86" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-08-bundschuh-slot" data-composition-id="c1-08-bundschuh" data-composition-src="compositions/c1-08-bundschuh.html"
+        data-start="136.54" data-duration="8.18" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-09-omens-slot" data-composition-id="c1-09-omens" data-composition-src="compositions/c1-09-omens.html"
+        data-start="144.72" data-duration="7.86" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-10-vitus-slot" data-composition-id="c1-10-vitus" data-composition-src="compositions/c1-10-vitus.html"
+        data-start="152.58" data-duration="9.86" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-11-1374-slot" data-composition-id="c1-11-1374" data-composition-src="compositions/c1-11-1374.html"
+        data-start="162.44" data-duration="8.58" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c1-12-record-slot" data-composition-id="c1-12-record" data-composition-src="compositions/c1-12-record.html"
+        data-start="171.02" data-duration="9.74" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Chapter 2: the outbreak week by week. -->
+      <div id="c2-card-slot" data-composition-id="c2-card" data-composition-src="compositions/c2-card.html"
+        data-start="180.76" data-duration="4.2" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-01-begins-slot" data-composition-id="c2-01-begins" data-composition-src="compositions/c2-01-begins.html"
+        data-start="184.96" data-duration="8.74" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-02-third-day-slot" data-composition-id="c2-02-third-day" data-composition-src="compositions/c2-02-third-day.html"
+        data-start="193.7" data-duration="8.18" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-03-saverne-slot" data-composition-id="c2-03-saverne" data-composition-src="compositions/c2-03-saverne.html"
+        data-start="201.88" data-duration="12.9" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-04-too-late-slot" data-composition-id="c2-04-too-late" data-composition-src="compositions/c2-04-too-late.html"
+        data-start="214.78" data-duration="6.02" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-05-sources-slot" data-composition-id="c2-05-sources" data-composition-src="compositions/c2-05-sources.html"
+        data-start="220.8" data-duration="12.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-06-poem-slot" data-composition-id="c2-06-poem" data-composition-src="compositions/c2-06-poem.html"
+        data-start="233.3" data-duration="11.86" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-07-imlin-slot" data-composition-id="c2-07-imlin" data-composition-src="compositions/c2-07-imlin.html"
+        data-start="245.16" data-duration="7.94" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-08-deaths-slot" data-composition-id="c2-08-deaths" data-composition-src="compositions/c2-08-deaths.html"
+        data-start="253.1" data-duration="6.42" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-09-debate-slot" data-composition-id="c2-09-debate" data-composition-src="compositions/c2-09-debate.html"
+        data-start="259.52" data-duration="9.86" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-10-no-deaths-slot" data-composition-id="c2-10-no-deaths" data-composition-src="compositions/c2-10-no-deaths.html"
+        data-start="269.38" data-duration="9.78" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-11-illness-slot" data-composition-id="c2-11-illness" data-composition-src="compositions/c2-11-illness.html"
+        data-start="279.16" data-duration="7.3" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c2-12-must-cure-slot" data-composition-id="c2-12-must-cure" data-composition-src="compositions/c2-12-must-cure.html"
+        data-start="286.46" data-duration="4.14" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Chapter 3: what the council and the church did. -->
+      <div id="c3-card-slot" data-composition-id="c3-card" data-composition-src="compositions/c3-card.html"
+        data-start="290.6" data-duration="4.2" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-01-physicians-slot" data-composition-id="c3-01-physicians" data-composition-src="compositions/c3-01-physicians.html"
+        data-start="294.8" data-duration="5.94" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-02-hot-blood-slot" data-composition-id="c3-02-hot-blood" data-composition-src="compositions/c3-02-hot-blood.html"
+        data-start="300.74" data-duration="9.78" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-03-humours-slot" data-composition-id="c3-03-humours" data-composition-src="compositions/c3-03-humours.html"
+        data-start="310.52" data-duration="8.34" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-04-halls-slot" data-composition-id="c3-04-halls" data-composition-src="compositions/c3-04-halls.html"
+        data-start="318.86" data-duration="8.1" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-05-musicians-slot" data-composition-id="c3-05-musicians" data-composition-src="compositions/c3-05-musicians.html"
+        data-start="326.96" data-duration="8.9" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-06-backfire-slot" data-composition-id="c3-06-backfire" data-composition-src="compositions/c3-06-backfire.html"
+        data-start="335.86" data-duration="11.54" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-07-reversal-slot" data-composition-id="c3-07-reversal" data-composition-src="compositions/c3-07-reversal.html"
+        data-start="347.4" data-duration="8.66" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-08-ban-slot" data-composition-id="c3-08-ban" data-composition-src="compositions/c3-08-ban.html"
+        data-start="356.06" data-duration="10.18" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-09-wagons-slot" data-composition-id="c3-09-wagons" data-composition-src="compositions/c3-09-wagons.html"
+        data-start="366.24" data-duration="8.26" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-10-grotto-slot" data-composition-id="c3-10-grotto" data-composition-src="compositions/c3-10-grotto.html"
+        data-start="374.5" data-duration="7.22" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-11-red-shoes-slot" data-composition-id="c3-11-red-shoes" data-composition-src="compositions/c3-11-red-shoes.html"
+        data-start="381.72" data-duration="8.9" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c3-12-september-slot" data-composition-id="c3-12-september" data-composition-src="compositions/c3-12-september.html"
+        data-start="390.62" data-duration="8.06" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Chapter 4: how it has been explained since. -->
+      <div id="c4-card-slot" data-composition-id="c4-card" data-composition-src="compositions/c4-card.html"
+        data-start="398.68" data-duration="4.2" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-01-why-slot" data-composition-id="c4-01-why" data-composition-src="compositions/c4-01-why.html"
+        data-start="402.88" data-duration="7.94" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-02-curse-slot" data-composition-id="c4-02-curse" data-composition-src="compositions/c4-02-curse.html"
+        data-start="410.82" data-duration="10.02" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-03-paracelsus-slot" data-composition-id="c4-03-paracelsus" data-composition-src="compositions/c4-03-paracelsus.html"
+        data-start="420.84" data-duration="6.26" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-04-three-kinds-slot" data-composition-id="c4-04-three-kinds" data-composition-src="compositions/c4-04-three-kinds.html"
+        data-start="427.1" data-duration="7.7" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-05-hecker-slot" data-composition-id="c4-05-hecker" data-composition-src="compositions/c4-05-hecker.html"
+        data-start="434.8" data-duration="10.74" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-06-ergot-slot" data-composition-id="c4-06-ergot" data-composition-src="compositions/c4-06-ergot.html"
+        data-start="445.54" data-duration="9.22" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-07-not-ergot-slot" data-composition-id="c4-07-not-ergot" data-composition-src="compositions/c4-07-not-ergot.html"
+        data-start="454.76" data-duration="9.86" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-08-psychogenic-slot" data-composition-id="c4-08-psychogenic" data-composition-src="compositions/c4-08-psychogenic.html"
+        data-start="464.62" data-duration="9.78" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-09-belief-slot" data-composition-id="c4-09-belief" data-composition-src="compositions/c4-09-belief.html"
+        data-start="474.4" data-duration="11.94" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-10-trance-slot" data-composition-id="c4-10-trance" data-composition-src="compositions/c4-10-trance.html"
+        data-start="486.34" data-duration="8.74" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-11-tanganyika-slot" data-composition-id="c4-11-tanganyika" data-composition-src="compositions/c4-11-tanganyika.html"
+        data-start="495.08" data-duration="9.78" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="c4-12-agreed-slot" data-composition-id="c4-12-agreed" data-composition-src="compositions/c4-12-agreed.html"
+        data-start="504.86" data-duration="12.34" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The sources. -->
+      <div id="sources-slot" data-composition-id="sources" data-composition-src="compositions/sources.html"
+        data-start="517.2" data-duration="17.0" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The film gate: vignette, edge marks, light leaks, dust, for the whole film. -->
+      <div id="gate-slot" data-composition-id="gate" data-composition-src="compositions/gate.html"
+        data-start="0" data-duration="534.2" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- narration -->
+      <!-- /narration -->
+      <!-- Music: one bed for the whole film, never off: lowered under the narrator, up under the disclaimer, the sting,
+           the chapter cards, and the sources. Karl Casey @ White Bat Audio; scripts/duck-under-voice.py writes the levels. -->
+      <!-- SOUND SLOT (id "bed", from 0 s, for 534.2 s, volume 1, track 11): an audio element played assets/generated/bed.m4a here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- A low hit on the sting's red box and on each chapter card; the hit peaks 0.12 s into its file. -->
+      <!-- SOUND SLOT (id "sfx-sting", from 64.98 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-card-1", from 70.93 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-card-2", from 180.89 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-card-3", from 290.73 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-card-4", from 398.81 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- narration: one clip per segment, written by scripts/narration-segments.py wire; do not edit -->
+      <!-- SOUND SLOT (id "voice-s01", from 8 s, for 7.44 s, volume 1, track 10): an audio element played assets/narration/s01.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s02", from 15.94 s, for 8.24 s, volume 1, track 10): an audio element played assets/narration/s02.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s03", from 24.68 s, for 6.8 s, volume 1, track 10): an audio element played assets/narration/s03.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s04", from 32.38 s, for 10.16 s, volume 1, track 10): an audio element played assets/narration/s04.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s05", from 43.04 s, for 12.96 s, volume 1, track 10): an audio element played assets/narration/s05.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s06", from 56.5 s, for 6 s, volume 1, track 10): an audio element played assets/narration/s06.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s07", from 74.8 s, for 7.92 s, volume 1, track 10): an audio element played assets/narration/s07.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s08", from 83.22 s, for 7.84 s, volume 1, track 10): an audio element played assets/narration/s08.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s09", from 91.56 s, for 9.28 s, volume 1, track 10): an audio element played assets/narration/s09.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s10", from 101.34 s, for 6.32 s, volume 1, track 10): an audio element played assets/narration/s10.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s11", from 108.16 s, for 12.8 s, volume 1, track 10): an audio element played assets/narration/s11.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s12", from 121.46 s, for 6.72 s, volume 1, track 10): an audio element played assets/narration/s12.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s13", from 128.68 s, for 7.36 s, volume 1, track 10): an audio element played assets/narration/s13.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s14", from 136.54 s, for 7.68 s, volume 1, track 10): an audio element played assets/narration/s14.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s15", from 144.72 s, for 7.36 s, volume 1, track 10): an audio element played assets/narration/s15.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s16", from 152.58 s, for 9.36 s, volume 1, track 10): an audio element played assets/narration/s16.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s17", from 162.44 s, for 8.08 s, volume 1, track 10): an audio element played assets/narration/s17.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s18", from 171.02 s, for 9.44 s, volume 1, track 10): an audio element played assets/narration/s18.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s19", from 184.96 s, for 8.24 s, volume 1, track 10): an audio element played assets/narration/s19.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s20", from 193.7 s, for 7.68 s, volume 1, track 10): an audio element played assets/narration/s20.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s21", from 201.88 s, for 12.4 s, volume 1, track 10): an audio element played assets/narration/s21.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s22", from 214.78 s, for 5.52 s, volume 1, track 10): an audio element played assets/narration/s22.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s23", from 220.8 s, for 12 s, volume 1, track 10): an audio element played assets/narration/s23.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s24", from 233.3 s, for 11.36 s, volume 1, track 10): an audio element played assets/narration/s24.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s25", from 245.16 s, for 7.44 s, volume 1, track 10): an audio element played assets/narration/s25.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s26", from 253.1 s, for 5.92 s, volume 1, track 10): an audio element played assets/narration/s26.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s27", from 259.52 s, for 9.36 s, volume 1, track 10): an audio element played assets/narration/s27.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s28", from 269.38 s, for 9.28 s, volume 1, track 10): an audio element played assets/narration/s28.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s29", from 279.16 s, for 6.8 s, volume 1, track 10): an audio element played assets/narration/s29.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s30", from 286.46 s, for 3.84 s, volume 1, track 10): an audio element played assets/narration/s30.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s31", from 294.8 s, for 5.44 s, volume 1, track 10): an audio element played assets/narration/s31.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s32", from 300.74 s, for 9.28 s, volume 1, track 10): an audio element played assets/narration/s32.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s33", from 310.52 s, for 7.84 s, volume 1, track 10): an audio element played assets/narration/s33.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s34", from 318.86 s, for 7.6 s, volume 1, track 10): an audio element played assets/narration/s34.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s35", from 326.96 s, for 8.4 s, volume 1, track 10): an audio element played assets/narration/s35.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s36", from 335.86 s, for 11.04 s, volume 1, track 10): an audio element played assets/narration/s36.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s37", from 347.4 s, for 8.16 s, volume 1, track 10): an audio element played assets/narration/s37.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s38", from 356.06 s, for 9.68 s, volume 1, track 10): an audio element played assets/narration/s38.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s39", from 366.24 s, for 7.76 s, volume 1, track 10): an audio element played assets/narration/s39.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s40", from 374.5 s, for 6.72 s, volume 1, track 10): an audio element played assets/narration/s40.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s41", from 381.72 s, for 8.4 s, volume 1, track 10): an audio element played assets/narration/s41.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s42", from 390.62 s, for 7.76 s, volume 1, track 10): an audio element played assets/narration/s42.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s43", from 402.88 s, for 7.44 s, volume 1, track 10): an audio element played assets/narration/s43.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s44", from 410.82 s, for 9.52 s, volume 1, track 10): an audio element played assets/narration/s44.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s45", from 420.84 s, for 5.76 s, volume 1, track 10): an audio element played assets/narration/s45.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s46", from 427.1 s, for 7.2 s, volume 1, track 10): an audio element played assets/narration/s46.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s47", from 434.8 s, for 10.24 s, volume 1, track 10): an audio element played assets/narration/s47.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s48", from 445.54 s, for 8.72 s, volume 1, track 10): an audio element played assets/narration/s48.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s49", from 454.76 s, for 9.36 s, volume 1, track 10): an audio element played assets/narration/s49.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s50", from 464.62 s, for 9.28 s, volume 1, track 10): an audio element played assets/narration/s50.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s51", from 474.4 s, for 11.44 s, volume 1, track 10): an audio element played assets/narration/s51.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s52", from 486.34 s, for 8.24 s, volume 1, track 10): an audio element played assets/narration/s52.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s53", from 495.08 s, for 9.28 s, volume 1, track 10): an audio element played assets/narration/s53.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s54", from 504.86 s, for 11.84 s, volume 1, track 10): an audio element played assets/narration/s54.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- /narration -->
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      /* The root timeline: paused, and registered as "main"; each composition registers its own the same way. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/map.html (composition id "map")
+  WHAT: The opening 5.55 s of the film, on a dark map of Indonesia. The map comes out of a soft
+    focus, then the camera flies in from the whole archipelago to the Sunda Strait while the two
+    provinces Lampung and Banten fill in. A coral pin drops on the spoken "Krakatoa", the name types
+    out in serif type, a leader line runs to the pin, and the date line types under the name.
+    index.html mounts it at 0 s for 5.55 s; it is the first scene of the film.
+  STRUCTURE: Back to front: #mp-cam (the camera, holding the images #mp-map and #mp-hl, both
+    3840x2160 at -960,-540), #mp-pin (the marker at 1300,560 with the rings #mp-ring-1 and #mp-ring-2
+    and the shadow #mp-shadow), #mp-vig (the vignette), #mp-lead (the leader line: dot #mp-dot and
+    path #mp-line), #mp-label (#mp-name and #mp-sub). #mp-drift is a slow push over the whole scene.
+    Timeline, in seconds from the scene start: 0 to 0.45 the camera fades in and 0 to 1.0 its blur
+    clears; 0.2 to 2.5 the camera scales from 1 to 3 and moves to x -157.4, y -1551.4; 2.15 the
+    highlight #mp-hl fades in; 2.5 the pin drops; 2.62 the shadow, 2.7 and 2.8 the rings; 2.65
+    #mp-name types at 12 characters a second; 3.36 the dot and 3.4 the line draws; 3.48 #mp-sub types
+    at 34 characters a second.
+  CUSTOMIZE: The camera end point is the scale, x and y of the fromTo on #mp-cam, and the pin is
+    fixed at left 1300px and top 560px in the CSS. Change both together, and move the dot and the
+    line path (780,536 to 1270,542) to the new pin, or the leader misses it. The place name is
+    #mp-name (KRAKATOA, Cormorant Garamond 700, 112px, colour #f6f3ea); the date line is #mp-sub
+    (30px, colour #d5e3e8). Typing speed is the third argument of each typeOn call. The pin is the
+    coral fill #f2604f in its SVG path. The provinces' colour is in assets/generated/map-hl.svg.
+  MEDIA: No media file is bundled. Bundled drawings (SVG, kept): assets/generated/map.svg, the base map
+    of Indonesia (#mp-map, drawn by map-svg.py; the CSS notes it draws half a frame beyond each edge), and
+    assets/generated/map-hl.svg, the two highlighted provinces, Lampung and Banten (#mp-hl; the palette
+    fills them green). Both are SVG drawings made for this inspiration, render as they are, and sit inside
+    #mp-cam at 3840 by 2160 px, at -960,-540. They are not media slots and need nothing plugged in. To use
+    your own drawing, set each img's src to your own SVG of the same size and framing, keeping the pin's
+    place in step with the CUSTOMIZE section; any green-filled outline in the same place works for the
+    provinces. Slot 1, font: no font file is bundled. Cormorant Garamond (weight 700, the name) loads with
+    src: local("Cormorant Garamond"), so it is used if installed, else the serif fallback shows. To plug
+    in the file, add url("assets/fonts/cormorant-garamond-latin.woff2") as a source in the @font-face
+    rule. The date line asks for "Inter", which HyperFrames bundles, so it needs no @font-face. Sound
+    slots: none. CSS image slots: none; the vignette is a radial gradient.
+  WHEN TO USE: An opening that places its subject on a map with a fly-in and a labelled pin. Use a
+    static map or a title card when the location needs no zoom.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Font: Cormorant Garamond at weight 700, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 700; font-display: block; src: local("Cormorant Garamond"); }
+        /* The dark ground of the map. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #070b0f; }
+        /* A slow push on the whole scene; the fly-in is on the camera inside it. */
+        #mp-drift { position: absolute; inset: 0; transform-origin: 1300px 560px; }
+        /* The camera flies from the whole of Indonesia to the Sunda Strait: scale and move together
+           from a top-left origin, so the pin (485.8,703.8 in map.json) ends at 1300,560. */
+        #mp-cam { position: absolute; inset: 0; transform-origin: 0 0; }
+        /* map-svg.py draws half a frame beyond each edge, so the images sit at -960,-540 and are twice the frame. */
+        #mp-cam img { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; }
+        /* The pin and its rings are outside the camera, at the pin's final place, so they stay sharp and unscaled. */
+        #mp-pin { position: absolute; left: 1300px; top: 560px; width: 0; height: 0; }
+        #mp-pin svg { position: absolute; left: -30px; top: -84px; width: 60px; height: 84px; }
+        .mp-ring { position: absolute; left: -46px; top: -16px; width: 92px; height: 32px; border-radius: 50%; border: 2px solid rgba(190, 255, 220, 0.55); }
+        #mp-ring-2 { left: -74px; top: -26px; width: 148px; height: 52px; border-color: rgba(190, 255, 220, 0.28); }
+        #mp-shadow { position: absolute; left: -22px; top: -7px; width: 44px; height: 14px; border-radius: 50%; background: rgba(4, 14, 18, 0.7); }
+        /* The vignette: a dark radial edge that frames the map. */
+        #mp-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 72% 68% at 55% 50%, rgba(7, 11, 15, 0) 45%, rgba(7, 11, 15, 0.82) 100%); }
+        /* The label: the place name and the date line, each with its own text style below. */
+        #mp-label { position: absolute; left: 128px; top: 468px; }
+        #mp-name { font-family: "Cormorant Garamond", serif; font-weight: 700; font-size: 112px; line-height: 1.15; letter-spacing: 0.005em; color: #f6f3ea; white-space: nowrap; text-shadow: 0 2px 18px rgba(4, 16, 22, 0.55); }
+        #mp-sub { margin-top: 4px; font-family: "Inter", sans-serif; font-weight: 600; font-size: 30px; line-height: 1.3; color: #d5e3e8; white-space: nowrap; text-shadow: 0 2px 10px rgba(4, 16, 22, 0.6); }
+        /* The leader layer: an SVG the size of the frame, holding the dot and the line. */
+        #mp-lead { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+      </style>
+      <div id="root" data-composition-id="map" data-width="1920" data-height="1080">
+        <!-- The moving layers: the drift wrapper holds the camera with the map and the pin. -->
+        <div id="mp-drift" data-layout-allow-overflow>
+          <div id="mp-cam" data-layout-allow-overflow>
+            <img id="mp-map" src="assets/generated/map.svg" alt="" />
+            <img id="mp-hl" src="assets/generated/map-hl.svg" alt="" />
+          </div>
+          <div id="mp-pin">
+            <div class="mp-ring" id="mp-ring-2"></div>
+            <div class="mp-ring" id="mp-ring-1"></div>
+            <div id="mp-shadow"></div>
+            <svg viewBox="0 0 60 84"><path d="M30 82 C20 60 3 48 3 29 A27 27 0 0 1 57 29 C57 48 40 60 30 82 Z" fill="#f2604f" stroke="#ff9b8c" stroke-width="2" /><circle cx="30" cy="29" r="10" fill="#fff6f2" /></svg>
+          </div>
+        </div>
+        <div id="mp-vig"></div>
+        <!-- Leader line: a dot at the end of the name, a run, then a bend down to the pin. -->
+        <svg id="mp-lead" viewBox="0 0 1920 1080">
+          <circle id="mp-dot" cx="780" cy="536" r="6" fill="#f6f3ea" />
+          <path id="mp-line" d="M 780 536 L 1040 536 L 1270 542" fill="none" stroke="#f6f3ea" stroke-width="3" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+        </svg>
+        <div id="mp-label">
+          <div id="mp-name">KRAKATOA</div>
+          <div id="mp-sub">August 27, 1883 · Sunda Strait, Dutch East Indies</div>
+        </div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: types a text one character at a time, each character shown at its own time. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            el.appendChild(s);
+            tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.001, immediateRender: true }, t + i / cps);
+          });
+        }
+        // Indonesia settles out of a soft focus, then the camera flies to the Sunda Strait.
+        gsap.set("#mp-cam", { opacity: 0, filter: "blur(8px)" });
+        tl.to("#mp-cam", { opacity: 1, duration: 0.45, ease: "power1.out" }, 0);
+        tl.to("#mp-cam", { filter: "blur(0px)", duration: 1.0, ease: "power2.out" }, 0);
+        tl.fromTo("#mp-cam", { scale: 1, x: 0, y: 0 }, { scale: 3, x: -157.4, y: -1551.4, duration: 2.3, ease: "power2.inOut" }, 0.2);
+        // The two provinces on the strait, Lampung and Banten, fill as the camera arrives.
+        tl.fromTo("#mp-hl", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 2.15);
+        // The pin drops on "Krakatoa" (2.65 s); the name types as it is spoken; the line reaches the pin.
+        tl.fromTo("#mp-pin svg", { y: -70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "back.out(2.2)" }, 2.5);
+        tl.fromTo("#mp-shadow", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.25, ease: "power2.out" }, 2.62);
+        tl.fromTo("#mp-ring-1", { scale: 0.2, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "power2.out" }, 2.7);
+        tl.fromTo("#mp-ring-2", { scale: 0.2, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "power2.out" }, 2.8);
+        typeOn("#mp-name", 2.65, 12);
+        tl.fromTo("#mp-dot", { opacity: 0 }, { opacity: 1, duration: 0.1 }, 3.36);
+        tl.to("#mp-line", { strokeDashoffset: 0, duration: 0.35, ease: "power2.inOut" }, 3.4);
+        // The date line types from "in the Sunda Strait" (3.31 s).
+        typeOn("#mp-sub", 3.48, 34);
+        /* The slow push on the whole scene, running for its full 5.55 s. */
+        tl.fromTo("#mp-drift", { scale: 1 }, { scale: 1.045, duration: 5.55, ease: "sine.inOut" }, 0);
+        window.__timelines["map"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

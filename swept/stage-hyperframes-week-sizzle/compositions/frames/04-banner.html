@@ -1,0 +1,61 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/frames/04-banner.html (composition id "banner")
+  WHAT: The last 2 seconds of the sizzle. On a sage ground, a full-width lime band wipes in from
+    the left on the final hit (frame-local 0 s) and stays on screen. The dark line "THAT'S THIS WEEK
+    IN HYPERFRAMES." slides in 40 px from the left just after the wipe starts, and the band contents
+    creep from 100 to 102 percent until the frame ends. index.html mounts it as frame-04 at 14 s for
+    2 s, which is the final frame of the 16-second film. The file plays no sound of its own; the music bed is
+    mounted by index.html.
+  STRUCTURE: Back to front: #banner-ground (flat sage fill, clip, 2 s), then #banner-band (a lime
+    band 420 px tall, 330 px from the top, full width, with its contents centered). Inside the band,
+    #banner-push wraps #banner-text (heavy 128px dark text). Timeline: #banner-band goes from
+    clip-path inset(0 100% 0 0) to inset(0 0% 0 0) over 0.22 s at 0 s (expo.out); #banner-text fades
+    in and slides from x -40 to 0 over 0.25 s starting at 0.08 s; #banner-push scales 1 to 1.02 over
+    1.7 s starting at 0.3 s (linear).
+  CUSTOMIZE: Text: the string inside #banner-text. Colors: #C9D6C2 ground, #B6F23A band, #1E2A1C
+    text. Band position and height: top 330px and height 420px on #banner-band. Text size: 128px on
+    #banner-text. Timing: the wipe duration 0.22, the text delay 0.08, and the creep start 0.3 are
+    numbers in the script; the wipe is tied to the final music hit, so keep it at 0 s.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS
+    image slot. The text uses Inter, which HyperFrames bundles, so it needs no font file.
+  WHEN TO USE: A closing title or sign-off band that lands on a final hit and then holds to the end
+    of a beat-cut film. Pick something else for an end card that must be read for a long time or
+    that needs a call to action with a link.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root and layout: fills the frame; the band and ground are stacked on it. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Inter", sans-serif; }
+        /* Flat sage ground under the band. */
+        #banner-ground { position: absolute; inset: 0; background: #C9D6C2; }
+        /* Full-width lime band, 420 px tall, with its contents centered. */
+        #banner-band { position: absolute; left: 0; right: 0; top: 330px; height: 420px; background: #B6F23A; display: flex; align-items: center; justify-content: center; }
+        /* Heavy dark banner text, 128px and centered. */
+        #banner-text { font-weight: 900; font-size: 128px; line-height: 0.95; letter-spacing: -0.04em; color: #1E2A1C; text-align: center; max-width: 1700px; }
+      </style>
+      <div id="root" data-composition-id="banner" data-width="1920" data-height="1080">
+        <!-- Background layer: the sage fill for the 2 second frame. -->
+        <div id="banner-ground" class="clip" data-start="0" data-duration="2"></div>
+        <!-- The lime band and its text, which is what wipes in on the final hit. -->
+        <div id="banner-band"><div id="banner-push"><div id="banner-text">THAT'S THIS WEEK IN HYPERFRAMES.</div></div></div>
+      </div>
+      <script>
+        /* Paused timeline for the band and its text, registered under "banner" below. */
+        const tl = gsap.timeline({ paused: true });
+        // The final hit is frame-local 0: the band sweeps in on it, then holds through the hard stop and silence.
+        /* Wipe the band open from the left in 0.22 seconds. */
+        tl.fromTo("#banner-band", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.22, ease: "expo.out" }, 0);
+        /* Slide the text in from the left just after the wipe starts. */
+        tl.fromTo("#banner-text", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.25, ease: "expo.out" }, 0.08);
+        /* Slow creep on the band contents until the frame ends. */
+        tl.fromTo("#banner-push", { scale: 1 }, { scale: 1.02, duration: 1.7, ease: "none" }, 0.3);
+        /* Register the timeline under its composition id so the host can play it. */
+        window.__timelines["banner"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

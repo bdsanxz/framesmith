@@ -1,0 +1,152 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/verbeek.html (composition id "verbeek")
+  WHAT: A 6.55 s person card in the paper-collage block, mounted at 28.46 s; the paper overlay
+    (paper.html) sits over it. A printed cut-out of Rogier Verbeek whips in from the left over torn
+    newsprint and a yellow scrap. His name, ROGIER VERBEEK, sharpens on a paper strip with a yellow
+    marker under VERBEEK. "Dutch geologist, Java" types out beneath, then "his report: KRAKATAU,
+    1885" types out, and last TWO THIRDS GONE is stamped in black ink.
+  STRUCTURE: Inside #vb-cam (the camera, scaling 1 to 1.05 over 6.55 s), back to front: the paper
+    scraps #vb-news, #vb-sheet, #vb-bar and #vb-scrap; the portrait #vb-person (the image
+    assets/generated/verbeek.png, 760x1070 at 130,96); the tape #vb-tape; the name strip #vb-name
+    with the marker .vb-mark; the role strip #vb-role; the note strip #vb-note; and the stamp
+    #vb-stamp. Two hidden SVG filters are defined first: #vb-tear roughens the torn edges of the
+    .vb-torn pieces, and #vb-ink makes the stamp's ink uneven. Timeline, in seconds from the scene
+    start: 0 to 0.4 the portrait slides from x -1000 to 0 with its tilt going from -5 to -1 degrees
+    and its blur clearing; 0.3 the tape pops in; 0.38 the name fades in from blur 10px over 0.3 s;
+    0.8 the marker grows; 1.25 the role strip shows and its text types at 24 characters a second
+    from 1.29; 2.38 the note shows and its text types at 26 characters a second from 2.42; 3.56 the
+    stamp slams from scale 1.9 in 0.14 s.
+  CUSTOMIZE: The words are the text of #vb-name-text (ROGIER and VERBEEK, with VERBEEK inside the
+    span .vb-u that carries the marker), #vb-role-text ("Dutch geologist, Java"), #vb-note-text ("his
+    report: KRAKATAU, 1885") and #vb-stamp ("TWO THIRDS GONE"). Typing speed is the third argument
+    of each typeOn call. Fonts: Anton for the name and the stamp, Special Elite for the role and the
+    note. Colours: strips #f7f3e8, marker and scraps #f2c230, ink #1c1a16. To change the portrait,
+    replace assets/generated/verbeek.png and keep the box #vb-person; the strips and the stamp are
+    placed with the left and top values of their own rules. The camera end 1.05 and the 6.55 s
+    length must match the scene in index.html.
+  MEDIA: No media file is bundled. Slot 1, a photo: #vb-person img, the cut-out of Rogier Verbeek (it was
+    assets/generated/verbeek.png, 760 by 1070 px, made by make-footage.sh from his cabinet portrait, per
+    the README; it is cut to the man alone so the paper shows behind him). A faint hatch stand-in labeled
+    "PHOTO: assets/generated/verbeek.png" shows there. To plug in your own file, set the img's src to it,
+    for example src="assets/generated/verbeek.png". A grey silhouette cut-out of a man in a dark coat, or a
+    licensed 1880s portrait cut out the same way, works. Slots 2 and 3, fonts: no font file is bundled.
+    Anton (the name and the stamp) and Special Elite (the role and the note) load with src: local(); each
+    is used if installed, else the sans-serif and monospace fallbacks show. To plug in the files, add
+    url("assets/fonts/anton-latin.woff2") and url("assets/fonts/special-elite-latin.woff2") as sources in
+    the two @font-face rules. Sound slots: none. CSS image slots: none; the torn edges come from an SVG
+    filter. No video here.
+  WHEN TO USE: A paper-collage person card that names a figure and then adds a stamped finding.
+    Use a plain caption instead when the figure is only named and no finding follows.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton and Special Elite, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The cream ground of the collage block. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #e6dcc3; }
+        /* The camera wrapper: one slow push over everything inside it. */
+        #vb-cam { position: absolute; inset: 0; transform-origin: 1000px 520px; }
+        /* Torn edges: the displacement filter applied to every paper piece. */
+        .vb-torn { filter: url(#vb-tear); }
+        /* Scraps under the cut-out: ruled newsprint, a dark strip, and a torn corner of the yellow card. */
+        #vb-news { position: absolute; left: -40px; top: 640px; width: 560px; height: 360px; background: repeating-linear-gradient(180deg, #d8cfb6 0 9px, #b9af95 9px 12px); transform: rotate(-2deg); }
+        #vb-bar { position: absolute; left: 1180px; top: 92px; width: 330px; height: 26px; background: #2b2924; transform: rotate(1.5deg); }
+        #vb-sheet { position: absolute; left: 1100px; top: 140px; width: 420px; height: 250px; background: repeating-linear-gradient(180deg, #ded5bd 0 9px, #c2b89e 9px 12px); transform: rotate(1.5deg); }
+        #vb-scrap { position: absolute; left: 1560px; top: -40px; width: 400px; height: 210px; background: #f2c230; transform: rotate(4deg); }
+        /* The printed cut-out (paper-cutout.py): a paper shadow on the wrapper, motion blur on the image. */
+        #vb-person { position: absolute; left: 130px; top: 96px; width: 760px; height: 1070px; filter: drop-shadow(10px 14px 12px rgba(40, 32, 14, 0.4)); }
+        #vb-person img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 0; }
+        /* The name strip: a paper card with the name in Anton and a yellow marker under VERBEEK. */
+        #vb-name { position: absolute; left: 880px; top: 236px; transform: rotate(-2deg); }
+        #vb-name-bg { position: absolute; inset: 0; background: #f7f3e8; box-shadow: 0 8px 14px rgba(40, 32, 14, 0.28); }
+        #vb-name-text { position: relative; padding: 6px 30px 10px; font-family: "Anton", sans-serif; font-size: 104px; line-height: 1.15; color: #1c1a16; white-space: nowrap; }
+        .vb-u { position: relative; display: inline-block; }
+        .vb-mark { position: absolute; left: -6px; right: -6px; bottom: 14px; height: 12px; border-radius: 6px; background: #f2c230; transform: rotate(-1.2deg); transform-origin: 0 50%; }
+        /* A strip of tape across the top edge of the name card. */
+        #vb-tape { position: absolute; left: 930px; top: 202px; width: 130px; height: 34px; background: rgba(214, 200, 150, 0.9); transform: rotate(-7deg); }
+        /* The role strip, typed in Special Elite under the name. */
+        #vb-role { position: absolute; left: 940px; top: 418px; transform: rotate(-1deg); }
+        #vb-role-bg { position: absolute; inset: 0; background: #f7f3e8; }
+        #vb-role-text { position: relative; padding: 8px 18px; font-family: "Special Elite", monospace; font-size: 40px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        /* The note strip, typed in Special Elite under the role, about the report. */
+        #vb-note { position: absolute; left: 960px; top: 520px; transform: rotate(1deg); }
+        #vb-note-bg { position: absolute; inset: 0; background: #f7f3e8; box-shadow: 0 6px 10px rgba(40, 32, 14, 0.22); }
+        #vb-note-text { position: relative; padding: 10px 20px 6px; font-family: "Special Elite", monospace; font-size: 38px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        /* Rubber stamp: black ink (yellow would not read on cream), a double border, a rough mask so the ink is uneven. */
+        #vb-stamp { position: absolute; left: 930px; top: 668px; padding: 2px 30px 6px; border: 9px double #1c1a16; font-family: "Anton", sans-serif; font-size: 112px; line-height: 1.15; color: #1c1a16; white-space: nowrap; mix-blend-mode: multiply; filter: url(#vb-ink); transform: rotate(-5deg); }
+      </style>
+      <div id="root" data-composition-id="verbeek" data-width="1920" data-height="1080">
+        <!-- Hidden SVG filters: vb-tear roughens the paper edges, vb-ink makes the stamp ink uneven. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="vb-tear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="9" /><feDisplacementMap in="SourceGraphic" scale="14" /></filter>
+          <filter id="vb-ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5" result="n" /><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.0 2.0" result="m" /><feComposite in="SourceGraphic" in2="m" operator="in" /></filter>
+        </svg>
+        <!-- The camera group: scraps, the portrait, then the strips and the stamp, back to front. -->
+        <div id="vb-cam" data-layout-allow-overflow>
+          <div id="vb-news" class="vb-torn"></div>
+          <div id="vb-sheet" class="vb-torn"></div>
+          <div id="vb-bar"></div>
+          <div id="vb-scrap" class="vb-torn"></div>
+          <div id="vb-person" data-layout-allow-overflow><img src="data:image/svg+xml,%3C!--verbeek.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/verbeek.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/verbeek.png" alt="" /></div>
+          <div id="vb-tape"></div>
+          <div id="vb-name">
+            <div id="vb-name-bg" class="vb-torn"></div>
+            <div id="vb-name-text">ROGIER <span class="vb-u">VERBEEK<i class="vb-mark"></i></span></div>
+          </div>
+          <div id="vb-role">
+            <div id="vb-role-bg" class="vb-torn"></div>
+            <div id="vb-role-text">Dutch geologist, Java</div>
+          </div>
+          <div id="vb-note">
+            <div id="vb-note-bg" class="vb-torn"></div>
+            <div id="vb-note-text">his report: KRAKATAU, 1885</div>
+          </div>
+          <div id="vb-stamp">TWO THIRDS GONE</div>
+        </div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: shows a text one character at a time, each character at its own time. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        /* The note and the stamp start hidden until their tweens show them. */
+        gsap.set(["#vb-stamp", "#vb-note"], { opacity: 0 });
+        // The portrait whips in from the left, smeared with motion blur, and lands with a slight tilt.
+        tl.fromTo("#vb-person", { x: -1000, rotation: -5 }, { x: 0, rotation: -1, duration: 0.4, ease: "power3.out" }, 0);
+        tl.fromTo("#vb-person img", { filter: "blur(22px)" }, { filter: "blur(0px)", duration: 0.4, ease: "power2.out" }, 0);
+        // The name arrives out of focus on "Rogier Verbeek" (28.52 s) and sharpens; tape first, then the strip.
+        tl.fromTo("#vb-tape", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.15, ease: "back.out(2)" }, 0.3);
+        tl.fromTo("#vb-name", { opacity: 0, scale: 1.08, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 0.38);
+        tl.fromTo("#vb-name .vb-mark", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 0.8);
+        // The role types on "a Dutch geologist" (29.73 s).
+        tl.fromTo("#vb-role", { opacity: 0 }, { opacity: 1, duration: 0.05 }, 1.25);
+        typeOn("#vb-role-text", 1.29, 24);
+        // His report is named on "surveys what is left" (30.86 s).
+        tl.to("#vb-note", { opacity: 1, duration: 0.05 }, 2.38);
+        typeOn("#vb-note-text", 2.42, 26);
+        // The stamp slams on "two thirds" (32.12 s).
+        tl.fromTo("#vb-stamp", { scale: 1.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power4.in" }, 3.56);
+        /* The camera push runs for the whole scene, 6.55 s. */
+        tl.fromTo("#vb-cam", { scale: 1 }, { scale: 1.05, duration: 6.55, ease: "sine.inOut" }, 0);
+        window.__timelines["verbeek"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

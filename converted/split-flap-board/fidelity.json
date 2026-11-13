@@ -24,63 +24,63 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[ftop, fbot]\" is not a DOM selector (\"[ftop, fbot]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "array target entry \"ftop\" is not a string selector or DOM-id alias; refusing the call site",
       "file": "compositions/board.html",
       "line": 85,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 94,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 95,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 96,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"STEP / 2\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"STEP / 2\" is outside the numeric grammar (unbound identifier \"STEP\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 97,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t + STEP / 2\" is an expression; refusing the call site",
+      "detail": "position \"t + STEP / 2\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 98,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t + STEP / 2\" is an expression; refusing the call site",
+      "detail": "position \"t + STEP / 2\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 99,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"STEP / 2\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"STEP / 2\" is outside the numeric grammar (unbound identifier \"STEP\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 100,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t + STEP\" is an expression; refusing the call site",
+      "detail": "position \"t + STEP\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/board.html",
       "line": 101,
       "verdict": "refused"

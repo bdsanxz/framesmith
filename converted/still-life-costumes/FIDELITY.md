@@ -1,44 +1,36 @@
 # Fidelity report: still-life-costumes → main
 
-- translated: 10
+- translated: 18
 - approximated (with deltas): 74
-- refused: 40
+- refused: 32
 
 ## Refused (cause named; conversion refused)
 
-- `index.html`:89 [asset img] element #focus references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:92 [asset img] element #bloom references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:101 [asset img] element #pixel references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:105 [asset img] element #plate references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:106 [asset img] element #subject references remote asset "data:image/svg+xml,%3C!--subject.webm--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: assets/layers/subject.webm%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:115 [asset img] element #card-clip references remote asset "data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:116 [asset img] element #still-print references remote asset "data:image/svg+xml,%3C!--freeze-17s.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/stills/freeze-17s.jpg%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `index.html`:118 [asset img] element #still-real references remote asset "data:image/svg+xml,%3C!--freeze-17s.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/stills/freeze-17s.jpg%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `compositions/camcorder-hud.html`:192 [tl.to] duration "duration" is not a non-negative number; refusing the call site
-- `compositions/editorial-flash-overlay.html`:132 [tl.to] duration "duration" is not a non-negative number; refusing the call site
-- `compositions/editorial-flash-overlay.html`:134 [tl.to] position "hit" is an expression; refusing the call site
-- `compositions/editorial-flash-overlay.html`:135 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/editorial-flash-overlay.html`:141 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/editorial-flash-overlay.html`:148 [tl.to] position "hit + 0.04" is an expression; refusing the call site
-- `compositions/editorial-flash-overlay.html`:149 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-- `compositions/editorial-flash-overlay.html`:154 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:125 [tl.to] duration "duration" is not a non-negative number; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:127 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:133 [tl.to] duration "duration * 0.2" is not a non-negative number; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:134 [tl.to] duration "duration * 0.26" is not a non-negative number; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:136 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:142 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/organic-light-leak-overlay.html`:148 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/freeze-frame-dressing.html`:127 [tl.to] duration "duration" is not a non-negative number; refusing the call site
-- `compositions/freeze-frame-dressing.html`:129 [tl.to] position "hit" is an expression; refusing the call site
-- `compositions/freeze-frame-dressing.html`:130 [tl.to] position "hit + 0.06" is an expression; refusing the call site
-- `compositions/freeze-frame-dressing.html`:132 [tl.to] position "hit + 0.04" is an expression; refusing the call site
-- `compositions/freeze-frame-dressing.html`:134 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/freeze-frame-dressing.html`:141 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
-- `compositions/freeze-frame-dressing.html`:148 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-- `compositions/labels.html`:79 [tl.set] position "a" is an expression; refusing the call site
-- `compositions/labels.html`:80 [tl.set] position "b" is an expression; refusing the call site
-- `compositions/labels.html`:86 [tl.from] position "[4.6, 9.3, 12.5, 17.2][i]" is an expression; refusing the call site
+- `compositions/camcorder-hud.html`:192 [tl.to] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:132 [tl.to] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:134 [tl.to] position "hit" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:135 [tl.fromTo] position "hit - 0.01" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:141 [tl.fromTo] position "hit" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:148 [tl.to] position "hit + 0.04" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:149 [tl.to] position "hit + 0.04" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/editorial-flash-overlay.html`:154 [tl.to] position "hit + 0.04" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:125 [tl.to] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:127 [tl.fromTo] duration "duration * 0.24" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:133 [tl.to] duration "duration * 0.2" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:134 [tl.to] duration "duration * 0.26" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:136 [tl.fromTo] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:142 [tl.fromTo] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/organic-light-leak-overlay.html`:148 [tl.fromTo] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:127 [tl.to] duration "duration" is outside the numeric grammar (unbound identifier "duration" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:129 [tl.to] position "hit" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:130 [tl.to] position "hit + 0.06" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:132 [tl.to] position "hit + 0.04" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:134 [tl.fromTo] position "hit + 0.3" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:141 [tl.fromTo] position "hit + 0.42" is outside the numeric grammar (unbound identifier "hit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/freeze-frame-dressing.html`:148 [tl.to] position "exit" is outside the numeric grammar (unbound identifier "exit" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/labels.html`:79 [tl.set] position "a" is outside the numeric grammar (unbound identifier "a" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/labels.html`:80 [tl.set] position "b" is outside the numeric grammar (unbound identifier "b" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/labels.html`:86 [tl.from] position "[4.6, 9.3, 12.5, 17.2][i]" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `index.html`:131 [tl.to] property "--hf-color-grading-blur" (value "0") has no KDL motion property; refusing the call site
 - `index.html`:133 [tl.to] property "--hf-color-grading-bloom" (value "0.55") has no KDL motion property; refusing the call site
 - `index.html`:135 [tl.to] property "--hf-color-grading-pixelate" (value "0") has no KDL motion property; refusing the call site
@@ -126,6 +118,14 @@
 
 ## Translated
 
+- `index.html`:89 [asset img] element #focus data: URI decoded to assets/data-focus.svg (537 bytes, percent-encoded)
+- `index.html`:92 [asset img] element #bloom data: URI decoded to assets/data-bloom.svg (537 bytes, percent-encoded)
+- `index.html`:101 [asset img] element #pixel data: URI decoded to assets/data-pixel.svg (537 bytes, percent-encoded)
+- `index.html`:105 [asset img] element #plate data: URI decoded to assets/data-plate.svg (537 bytes, percent-encoded)
+- `index.html`:106 [asset img] element #subject data: URI decoded to assets/data-subject.svg (551 bytes, percent-encoded)
+- `index.html`:115 [asset img] element #card-clip data: URI decoded to assets/data-card-clip.svg (537 bytes, percent-encoded)
+- `index.html`:116 [asset img] element #still-print data: URI decoded to assets/data-still-print.svg (555 bytes, percent-encoded)
+- `index.html`:118 [asset img] element #still-real data: URI decoded to assets/data-still-real.svg (555 bytes, percent-encoded)
 - `compositions/camcorder-hud.html`:191 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/editorial-flash-overlay.html`:129 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/organic-light-leak-overlay.html`:122 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek

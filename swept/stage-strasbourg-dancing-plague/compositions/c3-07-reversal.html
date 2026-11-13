@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-07-reversal.html (composition id "c3-07-reversal")
+  WHAT: Beat 7 of chapter 3, on the council's change of course. The narration (Indonesian "Dewan pun
+    berbalik arah ...") says the council turned round. Three stills follow each other without captions:
+    the council of Lucerne in Schilling's chronicle (1513) from 0 s, Amman's carpenter (1568) cut in at
+    2.72 s, and Hondius's bagpipers plate (1642) cut in at 4.21 s. The first picture is Lucerne's council,
+    not Strasbourg's, because no picture of Strasbourg's council was found. The beat runs 8.66 s;
+    index.html mounts it at 347.4 s, under narration clip voice-s37.
+  STRUCTURE: Three stacked layers in #root, back to front: #c307reversal-a (schilling-close.jpg), -b
+    (carpenter2.jpg) and -c (piper-left.jpg). Each is a .dr-shot wrapper. The timeline
+    (window.__timelines["c3-07-reversal"]) pushes layer a from 1.014 to 1.060 over 2.72 s. It cuts in layer
+    b at 2.72 s and pushes it to 1.041 over 1.49 s, then cuts in layer c at 4.21 s and pushes it to 1.087
+    over 4.45 s.
+  CUSTOMIZE: Each picture's file is named by data-media on its img tag (schilling-close.jpg, carpenter2.jpg,
+    piper-left.jpg); set the src to swap in your own (see MEDIA). The push sizes are the scale values in
+    the three fromTo calls. The cut times 2.72 and 4.21 must match the ends of the layers before them (2.72
+    plus 1.49 is 4.21), and the total is the 8.66 s data-duration in index.html. The grade is the
+    data-color-grading JSON on each img. There are no caption divs here; to add one, copy the .dr-cap rule and
+    markup from c3-01-physicians.html.
+  MEDIA: no media file is bundled. This file has three photo slots. It has no sound, no video and no CSS
+    image. The Arimo font is declared, but no element uses it, so no font file is needed.
+    1. The council, img #c307reversal-a-img (inside #c307reversal-a, shown 0 to 2.72 s). It showed the council
+       of Lucerne in Schilling's chronicle (1513). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/schilling-close.jpg". To plug in your picture, set the img's src to your file
+       (for example assets/generated/schilling-close.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The carpenter, img #c307reversal-b-img (inside #c307reversal-b, cut in at 2.72 s). It showed Amman's
+       carpenter (1568). It now shows a stand-in labeled "PHOTO: assets/generated/carpenter2.jpg". To plug in
+       your picture, set the img's src to your file.
+    3. The bagpipers, img #c307reversal-c-img (inside #c307reversal-c, cut in at 4.21 s). It showed Hondius's
+       bagpipers plate (1642). It now shows a stand-in labeled "PHOTO: assets/generated/piper-left.jpg". To plug
+       in your picture, set the img's src to your file.
+  WHEN TO USE: a sequence of three stills that are not sourced on screen, for a beat that only needs pictures
+    of people and a council. Pick c3-01 when the source must be named.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font declared here (Arimo) is not used by any text in this file. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root is the 1920 by 1080 frame in dark slate (#0f1518), behind every layer. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Dewan pun berbalik arah ..." (347.40 s): schilling-close from the start; carpenter2 on "Panggung" (350.12 s); piper-left on "dan" (351.61 s). -->
+      <div id="root" data-composition-id="c3-07-reversal" data-width="1920" data-height="1080">
+        <!-- Layers 1 to 3 are stacked in order; each still is cut in over the one before it, and none has a caption. -->
+        <div class="dr-shot" id="c307reversal-a" data-layout-allow-overflow><img id="c307reversal-a-img" src="data:image/svg+xml,%3C!--schilling-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'877' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/schilling-close.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/schilling-close.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c307reversal-b" data-layout-allow-overflow><img id="c307reversal-b-img" src="data:image/svg+xml,%3C!--carpenter2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/carpenter2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/carpenter2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c307reversal-c" data-layout-allow-overflow><img id="c307reversal-c-img" src="data:image/svg+xml,%3C!--piper-left.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/piper-left.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/piper-left.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1, 0 to 2.72 s: the Lucerne council pushes in; phase 2 cuts in the carpenter at 2.72 s; phase 3 cuts in the bagpipers plate at 4.21 s. */
+        tl.fromTo("#c307reversal-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.060, x: 6, y: -2, duration: 2.72, ease: "none" }, 0.0);
+        tl.fromTo("#c307reversal-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.041, x: -5, y: 3, duration: 1.49, ease: "none" }, 2.72);
+        gsap.set("#c307reversal-b", { opacity: 0 });
+        tl.to("#c307reversal-b", { opacity: 1, duration: 0.001 }, 2.72);
+        tl.fromTo("#c307reversal-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.087, x: 4, y: 3, duration: 4.45, ease: "none" }, 4.21);
+        gsap.set("#c307reversal-c", { opacity: 0 });
+        tl.to("#c307reversal-c", { opacity: 1, duration: 0.001 }, 4.21);
+        window.__timelines["c3-07-reversal"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

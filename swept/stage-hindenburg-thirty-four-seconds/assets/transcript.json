@@ -1,0 +1,854 @@
+[
+  {
+    "text": "Thursday,",
+    "start": 0.04,
+    "end": 0.755,
+    "id": "w0"
+  },
+  {
+    "text": "May",
+    "start": 0.755,
+    "end": 1.073,
+    "id": "w1"
+  },
+  {
+    "text": "6,",
+    "start": 1.073,
+    "end": 1.709,
+    "id": "w2"
+  },
+  {
+    "text": "1937,",
+    "start": 1.709,
+    "end": 3.06,
+    "id": "w3"
+  },
+  {
+    "text": "Lakehurst,",
+    "start": 3.176,
+    "end": 4.066,
+    "id": "w4"
+  },
+  {
+    "text": "New",
+    "start": 4.066,
+    "end": 4.257,
+    "id": "w5"
+  },
+  {
+    "text": "Jersey.",
+    "start": 4.257,
+    "end": 4.926,
+    "id": "w6"
+  },
+  {
+    "text": "At",
+    "start": 5.955,
+    "end": 6.106,
+    "id": "w7"
+  },
+  {
+    "text": "721",
+    "start": 6.106,
+    "end": 7.086,
+    "id": "w8"
+  },
+  {
+    "text": "in",
+    "start": 7.086,
+    "end": 7.312,
+    "id": "w9"
+  },
+  {
+    "text": "the",
+    "start": 7.312,
+    "end": 7.387,
+    "id": "w10"
+  },
+  {
+    "text": "evening,",
+    "start": 7.387,
+    "end": 7.884,
+    "id": "w11"
+  },
+  {
+    "text": "the",
+    "start": 8.262,
+    "end": 8.262,
+    "id": "w12"
+  },
+  {
+    "text": "largest",
+    "start": 8.262,
+    "end": 8.669,
+    "id": "w13"
+  },
+  {
+    "text": "aircraft",
+    "start": 8.669,
+    "end": 9.347,
+    "id": "w14"
+  },
+  {
+    "text": "ever",
+    "start": 9.347,
+    "end": 9.573,
+    "id": "w15"
+  },
+  {
+    "text": "built",
+    "start": 9.573,
+    "end": 9.95,
+    "id": "w16"
+  },
+  {
+    "text": "drops",
+    "start": 9.95,
+    "end": 10.403,
+    "id": "w17"
+  },
+  {
+    "text": "its",
+    "start": 10.403,
+    "end": 10.629,
+    "id": "w18"
+  },
+  {
+    "text": "landing",
+    "start": 10.629,
+    "end": 11.157,
+    "id": "w19"
+  },
+  {
+    "text": "lines.",
+    "start": 11.157,
+    "end": 11.829,
+    "id": "w20"
+  },
+  {
+    "text": "Four",
+    "start": 12.828,
+    "end": 13.146,
+    "id": "w21"
+  },
+  {
+    "text": "minutes",
+    "start": 13.146,
+    "end": 13.464,
+    "id": "w22"
+  },
+  {
+    "text": "later,",
+    "start": 13.464,
+    "end": 13.814,
+    "id": "w23"
+  },
+  {
+    "text": "a",
+    "start": 14.116,
+    "end": 14.18,
+    "id": "w24"
+  },
+  {
+    "text": "flame",
+    "start": 14.18,
+    "end": 14.657,
+    "id": "w25"
+  },
+  {
+    "text": "appears",
+    "start": 14.657,
+    "end": 15.134,
+    "id": "w26"
+  },
+  {
+    "text": "near",
+    "start": 15.134,
+    "end": 15.452,
+    "id": "w27"
+  },
+  {
+    "text": "the",
+    "start": 15.452,
+    "end": 15.611,
+    "id": "w28"
+  },
+  {
+    "text": "tail.",
+    "start": 15.611,
+    "end": 16.055,
+    "id": "w29"
+  },
+  {
+    "text": "About",
+    "start": 17.099,
+    "end": 17.41,
+    "id": "w30"
+  },
+  {
+    "text": "34",
+    "start": 17.41,
+    "end": 17.956,
+    "id": "w31"
+  },
+  {
+    "text": "seconds",
+    "start": 18.111,
+    "end": 18.501,
+    "id": "w32"
+  },
+  {
+    "text": "after",
+    "start": 18.501,
+    "end": 18.734,
+    "id": "w33"
+  },
+  {
+    "text": "that,",
+    "start": 18.734,
+    "end": 19.12,
+    "id": "w34"
+  },
+  {
+    "text": "the",
+    "start": 19.427,
+    "end": 19.427,
+    "id": "w35"
+  },
+  {
+    "text": "Hindenburg",
+    "start": 19.427,
+    "end": 20.136,
+    "id": "w36"
+  },
+  {
+    "text": "is",
+    "start": 20.214,
+    "end": 20.37,
+    "id": "w37"
+  },
+  {
+    "text": "gone.",
+    "start": 20.37,
+    "end": 20.731,
+    "id": "w38"
+  },
+  {
+    "text": "Until",
+    "start": 21.754,
+    "end": 22.128,
+    "id": "w39"
+  },
+  {
+    "text": "that",
+    "start": 22.128,
+    "end": 22.352,
+    "id": "w40"
+  },
+  {
+    "text": "evening,",
+    "start": 22.352,
+    "end": 22.8,
+    "id": "w41"
+  },
+  {
+    "text": "no",
+    "start": 23.147,
+    "end": 23.147,
+    "id": "w42"
+  },
+  {
+    "text": "Zeppelin",
+    "start": 23.147,
+    "end": 23.996,
+    "id": "w43"
+  },
+  {
+    "text": "passenger",
+    "start": 23.996,
+    "end": 24.594,
+    "id": "w44"
+  },
+  {
+    "text": "had",
+    "start": 24.594,
+    "end": 24.818,
+    "id": "w45"
+  },
+  {
+    "text": "ever",
+    "start": 24.818,
+    "end": 25.042,
+    "id": "w46"
+  },
+  {
+    "text": "been",
+    "start": 25.042,
+    "end": 25.267,
+    "id": "w47"
+  },
+  {
+    "text": "killed.",
+    "start": 25.267,
+    "end": 26.003,
+    "id": "w48"
+  },
+  {
+    "text": "Hugo",
+    "start": 27.006,
+    "end": 27.309,
+    "id": "w49"
+  },
+  {
+    "text": "Ekener,",
+    "start": 27.309,
+    "end": 27.907,
+    "id": "w50"
+  },
+  {
+    "text": "the",
+    "start": 28.129,
+    "end": 28.142,
+    "id": "w51"
+  },
+  {
+    "text": "head",
+    "start": 28.142,
+    "end": 28.218,
+    "id": "w52"
+  },
+  {
+    "text": "of",
+    "start": 28.218,
+    "end": 28.294,
+    "id": "w53"
+  },
+  {
+    "text": "Zeppelin,",
+    "start": 28.294,
+    "end": 29.035,
+    "id": "w54"
+  },
+  {
+    "text": "wanted",
+    "start": 29.263,
+    "end": 29.506,
+    "id": "w55"
+  },
+  {
+    "text": "the",
+    "start": 29.506,
+    "end": 29.582,
+    "id": "w56"
+  },
+  {
+    "text": "shield",
+    "start": 29.582,
+    "end": 30.036,
+    "id": "w57"
+  },
+  {
+    "text": "with",
+    "start": 30.112,
+    "end": 30.263,
+    "id": "w58"
+  },
+  {
+    "text": "helium,",
+    "start": 30.263,
+    "end": 30.955,
+    "id": "w59"
+  },
+  {
+    "text": "a",
+    "start": 31.342,
+    "end": 31.342,
+    "id": "w60"
+  },
+  {
+    "text": "gas",
+    "start": 31.342,
+    "end": 31.627,
+    "id": "w61"
+  },
+  {
+    "text": "that",
+    "start": 31.627,
+    "end": 31.854,
+    "id": "w62"
+  },
+  {
+    "text": "cannot",
+    "start": 31.854,
+    "end": 32.384,
+    "id": "w63"
+  },
+  {
+    "text": "burn.",
+    "start": 32.384,
+    "end": 33.039,
+    "id": "w64"
+  },
+  {
+    "text": "But",
+    "start": 34.05,
+    "end": 34.275,
+    "id": "w65"
+  },
+  {
+    "text": "America",
+    "start": 34.275,
+    "end": 34.726,
+    "id": "w66"
+  },
+  {
+    "text": "holds",
+    "start": 34.726,
+    "end": 35.102,
+    "id": "w67"
+  },
+  {
+    "text": "almost",
+    "start": 35.102,
+    "end": 35.403,
+    "id": "w68"
+  },
+  {
+    "text": "all",
+    "start": 35.403,
+    "end": 35.628,
+    "id": "w69"
+  },
+  {
+    "text": "the",
+    "start": 35.628,
+    "end": 35.703,
+    "id": "w70"
+  },
+  {
+    "text": "world's",
+    "start": 35.703,
+    "end": 36.079,
+    "id": "w71"
+  },
+  {
+    "text": "helium,",
+    "start": 36.079,
+    "end": 36.727,
+    "id": "w72"
+  },
+  {
+    "text": "and",
+    "start": 37.107,
+    "end": 37.107,
+    "id": "w73"
+  },
+  {
+    "text": "the",
+    "start": 37.107,
+    "end": 37.131,
+    "id": "w74"
+  },
+  {
+    "text": "law",
+    "start": 37.131,
+    "end": 37.507,
+    "id": "w75"
+  },
+  {
+    "text": "forbids",
+    "start": 37.507,
+    "end": 37.883,
+    "id": "w76"
+  },
+  {
+    "text": "its",
+    "start": 37.958,
+    "end": 38.183,
+    "id": "w77"
+  },
+  {
+    "text": "export.",
+    "start": 38.183,
+    "end": 39.01,
+    "id": "w78"
+  },
+  {
+    "text": "So",
+    "start": 40.006,
+    "end": 40.153,
+    "id": "w79"
+  },
+  {
+    "text": "the",
+    "start": 40.153,
+    "end": 40.227,
+    "id": "w80"
+  },
+  {
+    "text": "Hindenburg",
+    "start": 40.227,
+    "end": 40.946,
+    "id": "w81"
+  },
+  {
+    "text": "flies",
+    "start": 41.198,
+    "end": 41.553,
+    "id": "w82"
+  },
+  {
+    "text": "on",
+    "start": 41.553,
+    "end": 41.774,
+    "id": "w83"
+  },
+  {
+    "text": "seven",
+    "start": 41.774,
+    "end": 42.069,
+    "id": "w84"
+  },
+  {
+    "text": "million",
+    "start": 42.069,
+    "end": 42.438,
+    "id": "w85"
+  },
+  {
+    "text": "cubic",
+    "start": 42.438,
+    "end": 42.88,
+    "id": "w86"
+  },
+  {
+    "text": "feet",
+    "start": 42.88,
+    "end": 43.174,
+    "id": "w87"
+  },
+  {
+    "text": "of",
+    "start": 43.174,
+    "end": 43.322,
+    "id": "w88"
+  },
+  {
+    "text": "hydrogen.",
+    "start": 43.322,
+    "end": 44.182,
+    "id": "w89"
+  },
+  {
+    "text": "It",
+    "start": 45.194,
+    "end": 45.353,
+    "id": "w90"
+  },
+  {
+    "text": "reaches",
+    "start": 45.353,
+    "end": 45.59,
+    "id": "w91"
+  },
+  {
+    "text": "Lakehurst",
+    "start": 45.59,
+    "end": 46.383,
+    "id": "w92"
+  },
+  {
+    "text": "twelve",
+    "start": 46.383,
+    "end": 46.779,
+    "id": "w93"
+  },
+  {
+    "text": "hours",
+    "start": 46.779,
+    "end": 47.096,
+    "id": "w94"
+  },
+  {
+    "text": "late",
+    "start": 47.096,
+    "end": 47.369,
+    "id": "w95"
+  },
+  {
+    "text": "and",
+    "start": 47.699,
+    "end": 47.73,
+    "id": "w96"
+  },
+  {
+    "text": "circles",
+    "start": 47.73,
+    "end": 48.285,
+    "id": "w97"
+  },
+  {
+    "text": "to",
+    "start": 48.285,
+    "end": 48.444,
+    "id": "w98"
+  },
+  {
+    "text": "wait",
+    "start": 48.444,
+    "end": 48.681,
+    "id": "w99"
+  },
+  {
+    "text": "out",
+    "start": 48.681,
+    "end": 48.919,
+    "id": "w100"
+  },
+  {
+    "text": "a",
+    "start": 48.919,
+    "end": 48.998,
+    "id": "w101"
+  },
+  {
+    "text": "storm.",
+    "start": 48.998,
+    "end": 49.474,
+    "id": "w102"
+  },
+  {
+    "text": "As",
+    "start": 49.567,
+    "end": 49.716,
+    "id": "w103"
+  },
+  {
+    "text": "it",
+    "start": 49.716,
+    "end": 49.865,
+    "id": "w104"
+  },
+  {
+    "text": "nears",
+    "start": 49.865,
+    "end": 50.237,
+    "id": "w105"
+  },
+  {
+    "text": "the",
+    "start": 50.237,
+    "end": 50.386,
+    "id": "w106"
+  },
+  {
+    "text": "mast,",
+    "start": 50.386,
+    "end": 50.896,
+    "id": "w107"
+  },
+  {
+    "text": "the",
+    "start": 51.2,
+    "end": 51.205,
+    "id": "w108"
+  },
+  {
+    "text": "tail",
+    "start": 51.205,
+    "end": 51.651,
+    "id": "w109"
+  },
+  {
+    "text": "catches",
+    "start": 51.651,
+    "end": 52.098,
+    "id": "w110"
+  },
+  {
+    "text": "fire",
+    "start": 52.098,
+    "end": 52.47,
+    "id": "w111"
+  },
+  {
+    "text": "and",
+    "start": 52.545,
+    "end": 52.57,
+    "id": "w112"
+  },
+  {
+    "text": "the",
+    "start": 52.928,
+    "end": 52.928,
+    "id": "w113"
+  },
+  {
+    "text": "flames",
+    "start": 52.928,
+    "end": 53.364,
+    "id": "w114"
+  },
+  {
+    "text": "run",
+    "start": 53.364,
+    "end": 53.661,
+    "id": "w115"
+  },
+  {
+    "text": "the",
+    "start": 53.661,
+    "end": 53.736,
+    "id": "w116"
+  },
+  {
+    "text": "length",
+    "start": 53.736,
+    "end": 54.108,
+    "id": "w117"
+  },
+  {
+    "text": "of",
+    "start": 54.108,
+    "end": 54.183,
+    "id": "w118"
+  },
+  {
+    "text": "the",
+    "start": 54.183,
+    "end": 54.331,
+    "id": "w119"
+  },
+  {
+    "text": "ship.",
+    "start": 54.331,
+    "end": 54.89,
+    "id": "w120"
+  },
+  {
+    "text": "97",
+    "start": 55.929,
+    "end": 56.474,
+    "id": "w121"
+  },
+  {
+    "text": "people",
+    "start": 56.655,
+    "end": 56.837,
+    "id": "w122"
+  },
+  {
+    "text": "are",
+    "start": 56.958,
+    "end": 57.139,
+    "id": "w123"
+  },
+  {
+    "text": "on",
+    "start": 57.139,
+    "end": 57.144,
+    "id": "w124"
+  },
+  {
+    "text": "board.",
+    "start": 57.403,
+    "end": 57.805,
+    "id": "w125"
+  },
+  {
+    "text": "62",
+    "start": 57.805,
+    "end": 58.289,
+    "id": "w126"
+  },
+  {
+    "text": "get",
+    "start": 58.404,
+    "end": 58.826,
+    "id": "w127"
+  },
+  {
+    "text": "out",
+    "start": 58.826,
+    "end": 59.248,
+    "id": "w128"
+  },
+  {
+    "text": "alive.",
+    "start": 59.248,
+    "end": 60.262,
+    "id": "w129"
+  },
+  {
+    "text": "The",
+    "start": 61.309,
+    "end": 61.458,
+    "id": "w130"
+  },
+  {
+    "text": "age",
+    "start": 61.458,
+    "end": 61.755,
+    "id": "w131"
+  },
+  {
+    "text": "of",
+    "start": 61.755,
+    "end": 61.829,
+    "id": "w132"
+  },
+  {
+    "text": "the",
+    "start": 61.829,
+    "end": 61.903,
+    "id": "w133"
+  },
+  {
+    "text": "passenger",
+    "start": 61.903,
+    "end": 62.423,
+    "id": "w134"
+  },
+  {
+    "text": "airship",
+    "start": 62.423,
+    "end": 62.987,
+    "id": "w135"
+  },
+  {
+    "text": "ends",
+    "start": 63.254,
+    "end": 63.612,
+    "id": "w136"
+  },
+  {
+    "text": "in",
+    "start": 63.612,
+    "end": 63.714,
+    "id": "w137"
+  },
+  {
+    "text": "a",
+    "start": 63.986,
+    "end": 63.986,
+    "id": "w138"
+  },
+  {
+    "text": "New",
+    "start": 63.986,
+    "end": 64.28,
+    "id": "w139"
+  },
+  {
+    "text": "Jersey",
+    "start": 64.28,
+    "end": 64.8,
+    "id": "w140"
+  },
+  {
+    "text": "field.",
+    "start": 64.8,
+    "end": 65.465,
+    "id": "w141"
+  }
+]

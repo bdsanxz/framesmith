@@ -1,0 +1,209 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/notes.html (composition id "notes")
+  WHAT: Two handwritten callouts drawn onto the still life, five seconds long. A wobbly ink ring draws
+    around the cyan mug, with a faint warm scribble hatch behind it and a connector running right to the
+    label "cyan mug", which pops in at the connector tip. About 1.1 s later a second ring draws around the
+    lemon, with no hatch, a connector below it, and the label "one lemon". Both fade out at 4.4 s. In
+    sketchbook-family index.html it mounts at 6 s, so the callouts run from 6 to 11 s over the footage.
+  STRUCTURE: two .hw-callout wrappers, in document order: #hw-co-mug (left 1190, top 420, 360 by 400) and
+    #hw-co-lemon (left 975, top 620, 240 by 210). Each wrapper holds .hw-co-boil (the jitter layer),
+    .hw-co-deform (the outline and scribble SVG, which squashes on contact), .hw-co-conn-layer (the
+    connector SVG) and .hw-co-pop (the label, which pops in). The script calls hwCalloutBuild for each,
+    then hwCalloutOn to draw outline, scribble, connector and the label pop. Timeline "notes": the mug is
+    drawn from 0.3 s, the lemon from 1.4 s, both fade out at 4.4 s, and #hw-co-root is hidden at 4.98 s.
+  CUSTOMIZE: the wrapper boxes set position and size in their style attributes, and each SVG viewBox must
+    match its wrapper. The per-callout content is the arguments of the two hwCalloutBuild calls: label
+    text, scribble (on for the mug, off for the lemon), seed (4 and 9) and labelAt ("right" for the mug,
+    "below" for the lemon). The CONFIG block holds what both share: strokeType ("plain") and boil
+    ("calm"). The timings are the hwCalloutOn starts (0.3 and 1.4), the
+    hwCalloutOff time (4.4) and the hide time (4.98). data-duration 5 must match the host slot.
+  MEDIA: No media file is bundled, and this file has no slot of its own. The rings are drawn over the
+    still-life video that index.html plays under them (its #clip slot, 0 to 11.5 s), which is not bundled.
+    Without that video the rings circle the labelled hatch stand-in there, so the labels point at no real
+    object. To show real footage, plug it into index.html's #clip slot (see that guide) and keep the two
+    wrappers' left, top, width and height over the mug and the lemon. For a plain stand-in subject instead,
+    copy the #hw-co-target box from components/hw-callout-circle.html to the same coordinates. Font: Caveat
+    bold for the labels, through @font-face with local("Caveat"). None is bundled, so an installed Caveat is
+    used and otherwise the cursive fallback. To plug in a font file, change that src to
+    url("assets/fonts/Caveat-700-latin.woff2") format("woff2"), local("Caveat"). The runtime helpers are the
+    script hw-callout-runtime.js, bundled beside this file (a script, not media). No photo, video, sound or
+    CSS image slot.
+  WHEN TO USE: two callouts that point at parts of one still subject, timed one after another. For a
+    single callout, copy the component; for a motion-heavy annotation, pick something else.
+-->
+<!-- hw-callout-circle (Registry component), merged: its CSS, wrapper stack, and family helpers are kept
+     verbatim; the self-preview scene and timeline were replaced with this film's two callouts. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Caveat bold for the callout labels, taken from the installed fonts through local(); no font file is bundled. */
+      @font-face {
+        font-family: "Caveat";
+        src: local("Caveat");
+        font-weight: 700;
+        font-display: block;
+      }
+      /* Reset: zero margins and padding, border-box sizing everywhere. */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      /* The page is transparent, so the callouts sit over the host footage. */
+      body {
+        background: transparent;
+        overflow: hidden;
+      }
+      /* The callout wrapper: an absolutely placed box that ignores pointer events. */
+      .hw-callout {
+        position: absolute;
+        pointer-events: none;
+      }
+      /* The four layers of each wrapper: jitter, squash, connector and pop. */
+      .hw-callout .hw-co-boil,
+      .hw-callout .hw-co-deform,
+      .hw-callout .hw-co-conn-layer,
+      .hw-callout .hw-co-pop {
+        position: absolute;
+        inset: 0;
+      }
+      /* The label layer starts hidden until the script pops it in. */
+      .hw-callout .hw-co-pop {
+        opacity: 0;
+      }
+      /* The SVG layers fill their wrapper, and strokes may overflow it. */
+      .hw-callout svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .hw-callout path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* The ring: ink colored, with its width from the hw-co-w property (6 px by default). */
+      .hw-callout .hw-co-outline {
+        stroke: var(--hw-co-ink, var(--hw-ink, #f4f2ec));
+        stroke-width: var(--hw-co-w, 6);
+      }
+      .hw-callout .hw-co-scribble {
+        /* Warm marker accent to match hw-frame / hw-title / hw-underline; the
+           previous blue read as a default UI colour. Lighter weight and alpha
+           so the hatch sits behind the labelled subject instead of over it. */
+        stroke: var(--hw-co-accent, var(--hw-accent, #ffb020));
+        stroke-width: 3;
+        opacity: 0.42;
+      }
+      /* The connector line: ink colored and 4 px wide. */
+      .hw-callout .hw-co-connector {
+        stroke: var(--hw-co-ink, var(--hw-ink, #f4f2ec));
+        stroke-width: 4;
+      }
+      /* The label: Caveat bold at 54 px, ink colored, on one line with a soft shadow. */
+      .hw-callout .hw-co-label {
+        position: absolute;
+        font-family: var(--hw-font-print, "Caveat", cursive);
+        font-weight: 700;
+        font-size: 54px;
+        color: var(--hw-co-ink, var(--hw-ink, #f4f2ec));
+        white-space: nowrap;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The root holds the two callouts and the clip driver; the script builds and times them. -->
+    <div
+      id="hw-co-root"
+      data-composition-id="notes"
+      data-start="0"
+      data-duration="5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Callout 1, the cyan mug: a 360 by 400 wrapper with a ring, a hatch, a connector to the right, and its label. -->
+      <div class="hw-callout" id="hw-co-mug" style="left: 1190px; top: 420px; width: 360px; height: 400px">
+        <div class="hw-co-boil">
+          <div class="hw-co-deform">
+            <svg viewBox="0 0 360 400">
+              <path class="hw-co-scribble" id="hw-co-mug-scribble"></path>
+              <path class="hw-co-outline" id="hw-co-mug-outline"></path>
+            </svg>
+          </div>
+          <svg class="hw-co-conn-layer" viewBox="0 0 360 400">
+            <path class="hw-co-connector" id="hw-co-mug-connector"></path>
+          </svg>
+          <div class="hw-co-pop">
+            <div class="hw-co-label" id="hw-co-mug-label" data-layout-allow-overflow></div>
+          </div>
+        </div>
+      </div>
+      <!-- Callout 2, the lemon: a 240 by 210 wrapper with a ring, a connector below, and its label. -->
+      <div class="hw-callout" id="hw-co-lemon" style="left: 975px; top: 620px; width: 240px; height: 210px">
+        <div class="hw-co-boil">
+          <div class="hw-co-deform">
+            <svg viewBox="0 0 240 210">
+              <path class="hw-co-scribble" id="hw-co-lemon-scribble"></path>
+              <path class="hw-co-outline" id="hw-co-lemon-outline"></path>
+            </svg>
+          </div>
+          <svg class="hw-co-conn-layer" viewBox="0 0 240 210">
+            <path class="hw-co-connector" id="hw-co-lemon-connector"></path>
+          </svg>
+          <div class="hw-co-pop">
+            <div class="hw-co-label" id="hw-co-lemon-label" data-layout-allow-overflow></div>
+          </div>
+        </div>
+      </div>
+      <!-- A hidden clip that carries this block's 5 second duration and track index. -->
+      <div
+        id="hw-co-drv"
+        class="clip"
+        data-start="0"
+        data-duration="5"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
+    </div>
+    <!-- The shared family helpers load from this file, which sits beside the composition. -->
+    <script src="hw-callout-runtime.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+
+        /* Settings shared by both callouts: the stroke texture and the boil (the hand-drawn jitter). */
+        var CONFIG = {
+          strokeType: "plain", // variant: "plain" | "soft" | "sharp" | "spray" — outline + connector stroke texture (authored constants per type); the scribble fill stays plain — texture-on-texture reads as mud
+          boil: "calm", //        variant: "off" | "calm" | "lively" — authored amp/rot pairs over the family-locked frameDrop 3
+
+          // ── Locked (edit the item source to change) ─────────────────────
+          // draw durations/eases, pop ease + contact-squash constants
+          // (softness 0.08 light-drawn-line tier, snappy recovery),
+          // stroke-type constants, boil pose tables
+        };
+
+        // ---- this film: two callouts on the still life (slot-relative times) ----
+        window.hwCalloutBuild("#hw-co-mug", { scribble: true, seed: 4, label: "cyan mug", connector: true,
+          labelAt: "right", strokeType: CONFIG.strokeType, boil: CONFIG.boil });
+        window.hwCalloutBuild("#hw-co-lemon", { scribble: false, seed: 9, label: "one lemon", connector: true,
+          labelAt: "below", strokeType: CONFIG.strokeType, boil: CONFIG.boil });
+        /* Timeline: paused; the two callouts draw on at 0.3 s and 1.4 s, and both fade out at 4.4 s. */
+        var tl = gsap.timeline({ paused: true });
+        window.hwCalloutOn(tl, "#hw-co-mug", 0.3);
+        window.hwCalloutOn(tl, "#hw-co-lemon", 1.4);
+        window.hwCalloutOff(tl, "#hw-co-mug", 4.4);
+        window.hwCalloutOff(tl, "#hw-co-lemon", 4.4);
+        /* Hide the root after the fades have finished. */
+        tl.set("#hw-co-root", { visibility: "hidden" }, 4.98);
+        /* Registration under the composition id. */
+        window.__timelines["notes"] = tl;
+      })();
+    </script>
+  </body>
+</html>

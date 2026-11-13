@@ -1,14 +1,14 @@
 # Fidelity report: sound-shopping-list → main
 
-- translated: 11
-- approximated (with deltas): 25
+- translated: 12
+- approximated (with deltas): 24
 - refused: 4
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/terminal.html`:66 [tl.set] position "0.3 + (i * 1.05) / cmd.length" is an expression; refusing the call site
+- `compositions/terminal.html`:66 [tl.set] position "0.3 + (i * 1.05) / cmd.length" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/demos.html`:76 [tl.fromTo] property "skewX" (value "0") has no KDL motion property; refusing the call site
-- `compositions/demos.html`:88 [tl.set] position "4.23 + (i * 1.0) / word.length" is an expression; refusing the call site
+- `compositions/demos.html`:88 [tl.set] position "4.23 + (i * 1.0) / word.length" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/demos.html`:92 [tl.fromTo] property "color" (value "\"#ffffff\"") has no KDL motion property; refusing the call site
 
 ## Approximated (measured deltas)
@@ -32,7 +32,6 @@
 - `compositions/demos.html`:59 [container element] element #demos-whoosh is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/demos.html`:61 [container element] element #demos-click is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/demos.html`:62 [container element] element #demos-click-btn is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/demos.html`:63 [container element] element #demos-cursor is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/demos.html`:66 [container element] element #demos-typing is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/demos.html`:66 [container element] element #demos-typing-w is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/demos.html`:70 [container element] element #demos-riser is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -43,6 +42,7 @@
 
 - `compositions/terminal.html`:57 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/terminal.html`:69 [tl.fromTo] tl.fromTo on "#terminal-note" at start=1.8500 duration=0.2000
+- `compositions/demos.html`:63 [asset svg] inline <svg> extracted to assets/data-demos-cursor.svg (199 bytes; xmlns added: true)
 - `compositions/demos.html`:74 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/demos.html`:78 [tl.fromTo] tl.fromTo on "#demos-cursor" at start=4.1200 duration=0.8000
 - `compositions/demos.html`:79 [tl.to] tl.to on "#demos-click-btn" at start=5.0390 duration=0.0600

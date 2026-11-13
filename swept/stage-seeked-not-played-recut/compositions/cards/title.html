@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/cards/title.html (composition id "card-title")
+  WHAT: The opening title card, mounted by index.html at 1.4 s for 1.45 s, while the presenter names
+    the idea. Three large white items sit across the top of the frame over the speaker: HTML, an
+    arrow and VIDEO. HTML rises into view at 1.56 s, the arrow slides in from the left at 1.9 s, and
+    VIDEO rises at 2.3 s, each on the spoken word.
+  STRUCTURE: #root (full frame, no pointer events) holds #title-box, a centred row with #title-a
+    ("HTML"), #title-arrow (an arrow character) and #title-b ("VIDEO"). Timeline in card-local time
+    (global minus 1.4 s): #title-a rises from 24 px below with opacity 0 over 0.3 s, starting at
+    0.16 s; #title-arrow slides from 20 px left over 0.3 s, starting at 0.5 s; #title-b rises over
+    0.3 s, starting at 0.9 s.
+  CUSTOMIZE: The words: the text of #title-a and #title-b. The arrow: the text of #title-arrow.
+    Colours: text #ffffff, arrow #0a84ff. Size: 150 px for the words, 120 px for the arrow, Inter at
+    weight 900, letter-spacing -0.04em. Position: 150 px from the top. Timing: the three cue times
+    in the script (0.16, 0.5, 0.9) are card-local; if the narration moves, re-time them and the
+    card's data-start and data-duration in index.html together.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its only font is Inter, named in the font stack of #root with no @font-face rule, and
+    HyperFrames bundles Inter, so no font file is added here. If Inter is not available where you render,
+    the sans-serif fallback is used and the timing is unchanged.
+  WHEN TO USE: A two-word title that names the idea as the speaker says it, placed over the speaker.
+    Pick a longer title or a lower third when the phrase is long, or when the speaker's face must
+    stay clear of text.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the card never blocks the video beneath. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #ffffff; pointer-events: none; }
+        /* The title row: three items centred across the top band. */
+        #title-box { position: absolute; left: 0; right: 0; top: 150px; display: flex; justify-content: center; align-items: center; gap: 36px; }
+        /* The two words: large white type with a soft shadow. */
+        #title-a, #title-b { font-size: 150px; font-weight: 900; letter-spacing: -0.04em; text-shadow: 0 6px 40px rgba(0, 0, 0, 0.6); }
+        /* The arrow between the words, in the accent blue. */
+        #title-arrow { font-size: 120px; font-weight: 900; color: #0a84ff; }
+      </style>
+      <div id="root" data-composition-id="card-title" data-width="1920" data-height="1080">
+        <!-- The title row: HTML, the arrow and VIDEO, which are animated one after another. -->
+        <div id="title-box"><span id="title-a">HTML</span><span id="title-arrow">→</span><span id="title-b">VIDEO</span></div>
+      </div>
+      <script>
+        /* Setup: this card's paused timeline, in card-local seconds. */
+        const tl = gsap.timeline({ paused: true });
+        // Card-local = global − 1.4: "HTML" 0.16, "video" 0.90.
+        tl.fromTo("#title-a", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 0.16);
+        tl.fromTo("#title-arrow", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 0.5);
+        tl.fromTo("#title-b", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 0.9);
+        /* Registration: the host finds this timeline by the composition id "card-title". */
+        window.__timelines["card-title"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,148 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/title.html (composition id "title")
+  WHAT: The title card, mounted at 4.25 s (on the word "wrong") for 2.91 s. The paper title "ONE
+    WRONG TURN" is slapped onto an olive sea chart at 4.27 s, tilted and then settled flat in 0.2 s,
+    and an orange marker underlines WRONG at 4.55 s. A dashed orange route runs along the bottom of the
+    frame from 5.15 s and turns up at the right, with an arrow at its tip (6.53 s). The subtitle
+    "How a world war began" types on a second strip from 5.25 s. The whole desk drifts in slowly for
+    the length of the shot.
+  STRUCTURE: Back to front: #tt-sea (the sea chart image), the torn paper pieces #tt-land-top,
+    #tt-land-bottom and #tt-card with a tape strip, the SVG route #tt-route (its path is masked by
+    #tt-route-reveal), #tt-title (a paper strip #tt-title-bg with #tt-title-text, and a marker
+    .tt-mark under WRONG), and #tt-sub (#tt-sub-bg with #tt-sub-text). Everything sits in #tt-cam.
+    Timeline (local seconds, scene start is 4.25 s in the film): the title slap at 0.02 s, the
+    marker at 0.3 s, the subtitle strip at 0.95 s with typing at 1.0 s (22 per second), the route at
+    0.9 s over 1.4 s, the arrow at 2.28 s, and the camera scales 1 to 1.035 over 2.91 s.
+  CUSTOMIZE: Title words: the text of #tt-title-text, where the span .tt-u with .tt-mark marks the
+    underlined word. Subtitle: the text of #tt-sub-text. Colours: sea #a3ab7e (#root background),
+    land and card paper #e0d9bf and #dbd7cb, title and subtitle strips #f6f4ec, title ink #1b1d14,
+    subtitle ink #21241a, accent #e8702a for the marker, route and arrow. Title size 150px (Anton),
+    subtitle 40px (Special Elite). Positions: #tt-title at 720,360 px; #tt-sub at 760,600 px; the
+    route path and its mask share the same coordinates (M -20 860 H 1520 Q 1580 860 1580 800 V 600),
+    so move them together with #tt-arrow. Torn edge: the feDisplacementMap scale of 14 in #tt-tear.
+    Times: change the local start values in the script. The route ends at 2.3 s and the arrow at
+    2.46 s, both inside the 2.91 s scene, so a longer route needs a longer data-duration.
+  MEDIA: No media file is bundled in this file, so it loads nothing from disk. Photo, #tt-sea (the sea
+    chart at the back, the img with data-media "assets/generated/sea.jpg"): it showed a generated paper
+    texture in the sea colour, from paper-texture.py with stains, with no photograph. Now it shows a
+    faint hatch with the label "PHOTO: assets/generated/sea.jpg" over the #a3ab7e root ground, which
+    keeps the paper strips and the route readable. To plug in, set its src to
+    "assets/generated/sea.jpg", or to your own sea texture at 2112 by 1188 px.
+    Font Anton, #tt-title-text (the title): it was assets/fonts/anton-latin.woff2. Now the @font-face
+    uses local("Anton") only, so the installed face shows, or else the sans-serif fallback. To plug in,
+    make the Anton src: local("Anton"), url("assets/fonts/anton-latin.woff2") format("woff2").
+    Font Special Elite, #tt-sub-text (the typed subtitle): the same, with
+    assets/fonts/special-elite-latin.woff2 as the second source, falling back to monospace.
+    Sound: none. CSS image: none; the land, card and strips are paper colour, and the route is an SVG
+    path.
+  WHEN TO USE: A title that arrives as a slapped paper label over a chart or map, with one word
+    marked and a line drawn to show the story's direction. Use a plainer title when the film has no
+    paper look, or when the title should not carry a second line of subtitle.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton for the title, Special Elite for the typed subtitle. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #a3ab7e; }
+        /* The camera wrapper: every piece below scales together from one point. */
+        #tt-cam { position: absolute; inset: 0; transform-origin: 1150px 470px; }
+        /* The sea chart: an oversized image so the slow drift never shows an edge. */
+        #tt-sea { position: absolute; left: -96px; top: -54px; width: 2112px; height: 1188px; }
+        /* Torn paper: an SVG turbulence displaces the edge of the paper, never the text on it. */
+        .tt-torn { filter: url(#tt-tear); }
+        /* Land: two pale paper strips along the top and bottom edges of the sea chart. */
+        .tt-land { position: absolute; background: #e0d9bf; }
+        #tt-land-top { left: 1240px; top: -60px; width: 820px; height: 230px; transform: rotate(-4deg); }
+        #tt-land-bottom { left: -80px; top: 930px; width: 2100px; height: 220px; transform: rotate(1.5deg); }
+        /* Tape: translucent pale strips that hold paper pieces down. */
+        .tt-tape { position: absolute; width: 150px; height: 46px; background: rgba(234, 229, 209, 0.82); }
+        /* A blank paper card at the top right, with a dark bar drawn on it as a label. */
+        #tt-card { position: absolute; left: 1480px; top: 80px; width: 260px; height: 330px; background: #dbd7cb; transform: rotate(3deg); }
+        #tt-card::before { content: ""; position: absolute; left: 30px; top: 34px; width: 200px; height: 16px; background: #303228; }
+        /* The title strip and its typed subtitle strip. */
+        #tt-title { position: absolute; left: 720px; top: 360px; transform: rotate(-2deg); transform-origin: 50% 50%; }
+        #tt-title-bg { position: absolute; inset: 0; background: #f6f4ec; box-shadow: 0 10px 18px rgba(34, 40, 11, 0.3); }
+        #tt-title-text { position: relative; padding: 8px 40px 14px; font-family: "Anton", sans-serif; font-size: 150px; line-height: 1.15; color: #1b1d14; white-space: nowrap; }
+        /* The underlined word: an inline box so the marker can sit under it. */
+        .tt-u { position: relative; display: inline-block; }
+        /* Marker underline: a rounded orange bar wiped on from the left (an SVG stroke with pathLength
+           breaks into dashes once the SVG is stretched, so a plain bar is the reliable mark). */
+        .tt-mark { position: absolute; left: -6px; right: -6px; bottom: 16px; height: 10px; border-radius: 5px; background: #e8702a; transform: rotate(-1.2deg); transform-origin: 0 50%; }
+        #tt-sub { position: absolute; left: 760px; top: 600px; transform: rotate(-1deg); }
+        #tt-sub-bg { position: absolute; inset: 0; background: #f6f4ec; }
+        #tt-sub-text { position: relative; padding: 8px 18px; font-family: "Special Elite", monospace; font-size: 40px; line-height: 1.2; color: #21241a; white-space: nowrap; }
+        /* The route layer: a full-frame SVG that holds the dashed path and its arrow. */
+        #tt-route { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+      </style>
+      <div id="root" data-composition-id="title" data-width="1920" data-height="1080">
+        <!-- Shared SVG definitions: the torn-edge filter and the mask that reveals the route. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="tt-tear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="4" /><feDisplacementMap in="SourceGraphic" scale="14" /></filter>
+          <mask id="tt-route-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080">
+            <path id="tt-route-reveal" d="M -20 860 H 1520 Q 1580 860 1580 800 V 600" fill="none" stroke="#ffffff" stroke-width="16" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+          </mask>
+        </svg>
+        <div id="tt-cam" data-layout-allow-overflow>
+          <!-- The sea chart at the back, then the paper land strips, the blank card and the tape. -->
+          <img id="tt-sea" src="data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/sea.jpg" alt="" />
+          <div id="tt-land-top" class="tt-land tt-torn"></div>
+          <div id="tt-land-bottom" class="tt-land tt-torn"></div>
+          <div id="tt-card" class="tt-torn"></div>
+          <div class="tt-tape" style="left: 1560px; top: 60px; transform: rotate(-8deg)"></div>
+          <!-- The dashed route and its arrow, drawn through the mask so the route is revealed in turn. -->
+          <svg id="tt-route" viewBox="0 0 1920 1080">
+            <path d="M -20 860 H 1520 Q 1580 860 1580 800 V 600" fill="none" stroke="#e8702a" stroke-width="7" stroke-dasharray="22 16" mask="url(#tt-route-mask)" />
+            <path id="tt-arrow" d="M 1556 622 L 1580 586 L 1604 622" fill="none" stroke="#e8702a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <!-- The title strip, with the marker underline inside the word WRONG. -->
+          <div id="tt-title">
+            <div id="tt-title-bg" class="tt-torn"></div>
+            <div id="tt-title-text">ONE <span class="tt-u">WRONG<i class="tt-mark"></i></span> TURN</div>
+          </div>
+          <!-- The subtitle on its own smaller paper strip, typed on after the title. -->
+          <div id="tt-sub">
+            <div id="tt-sub-bg" class="tt-torn"></div>
+            <div id="tt-sub-text">How a world war began</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this scene's paused timeline. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: types a text element one character at a time, growing its paper strip as it goes. */
+        // Typewriter that grows its paper strip with the text: each character is display:none until typed.
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        // The title is slapped down on "wrong": big and tilted, then flat on the paper in a fifth of a second.
+        tl.fromTo("#tt-title", { scale: 1.45, rotation: -8, opacity: 0 }, { scale: 1, rotation: -2, opacity: 1, duration: 0.2, ease: "power4.out" }, 0.02);
+        // A marker underline draws under the word that matters.
+        tl.fromTo("#tt-title .tt-mark", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 0.3);
+        // The route runs along the bottom, then turns: the story's wrong turn as a line.
+        tl.to("#tt-route-reveal", { strokeDashoffset: 0, duration: 1.4, ease: "sine.inOut" }, 0.9);
+        tl.fromTo("#tt-arrow", { opacity: 0, scale: 0.4, transformOrigin: "50% 100%" }, { opacity: 1, scale: 1, duration: 0.18, ease: "back.out(3)" }, 2.28);
+        // The subtitle strip appears, then its text types on.
+        tl.fromTo("#tt-sub", { opacity: 0 }, { opacity: 1, duration: 0.05 }, 0.95);
+        typeOn("#tt-sub-text", 1.0, 22);
+        // The whole desk drifts in a little for the length of the shot.
+        tl.fromTo("#tt-cam", { scale: 1 }, { scale: 1.035, duration: 2.91, ease: "sine.inOut" }, 0);
+        /* Registration: the host finds this timeline by the composition id "title". */
+        window.__timelines["title"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

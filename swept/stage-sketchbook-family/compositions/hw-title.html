@@ -1,0 +1,305 @@
+<!-- hyperframes-registry-item: hw-title -->
+<!--
+  GUIDE: compositions/hw-title.html (composition id "hw-title")
+  WHAT: A handwritten title, "a still life, annotated", in 120 px bold Caveat in near-black ink, centered
+    horizontally and placed at y 190. It fades in, a wobbly warm underline is drawn beneath it, the block
+    jitters on a 3-frame step, and it fades out before the end. It runs 6 seconds; index.html mounts it at
+    0 s over the footage, so it is the first graphic of the sketchbook-family film.
+  STRUCTURE: back to front: #hw-t-wrap (absolute box holding the title and the underline), #hw-t-line (the
+    text, one span per word), #hw-t-under (the squiggle SVG, path #hw-t-under-path). Timeline "hw-title":
+    the wrap fades in from 0.1 s over 0.48 s; the word colors stay fixed because the sweep is off; the
+    underline draws on from 0.8 s over 0.7 s; hwBoil jitters #hw-t-wrap on a 3-frame step for the whole
+    length; the wrap fades out from 5.59 s; #hw-t-root is hidden at 5.98 s.
+  CUSTOMIZE: CONFIG.text is the title; CONFIG.fontSize is 120 px. CONFIG.scheme is "ink" (dark #26241f,
+    for light ground) or "chalk" (light #f4f2ec, for dark footage). CONFIG.y is the vertical position
+    (190 px, set for this film so the title clears the objects); CONFIG.x null centers it, or give a pixel
+    value. CONFIG.underline {enabled, wobble} controls the squiggle. CONFIG.sweep {enabled, start, end} is
+    a word-by-word highlight, off here. CONFIG.boil and CONFIG.seed set the jitter. Changing CONFIG.text or CONFIG.fontSize changes the measured width, and the underline and the centering follow it. DUR = 6 must match
+    data-duration on #hw-t-root, on #hw-t-drv and on the host slot. The underline is the warm accent
+    #ffb020 at 7 px wide.
+  MEDIA: No media file is bundled. The only slot is the font: Caveat bold (the title face) through
+    @font-face with local("Caveat"), so an installed Caveat is used and otherwise the cursive fallback. To
+    plug in a font file, change that src to url("assets/fonts/Caveat-700-latin.woff2") format("woff2"),
+    local("Caveat") with your own path. No photo, video, sound or CSS image slot. gsap 3.14.2 comes from the
+    jsDelivr CDN. The title is meant to sit over footage or a board. The page background is transparent, so
+    whatever is behind shows through; with the ink scheme that has to be a light ground.
+  WHEN TO USE: an opening title or chapter card written by hand over a photo or a board. Use chalk on
+    dark footage and ink on light. Pick a typeset title when the film is not sketch styled.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Caveat bold for the title, taken from the installed fonts through local(); no font file is bundled. */
+      @font-face {
+        font-family: "Caveat";
+        src: local("Caveat");
+        font-weight: 700;
+        font-display: block;
+      }
+      /* Reset: zero margins and padding, border-box sizing everywhere. */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      /* The page stays transparent so the title sits over whatever is behind it. */
+      body {
+        background: transparent;
+        overflow: hidden;
+      }
+      /* The stage: a 1920 by 1080 transparent box with the ink tokens and the title font. */
+      #hw-t-root {
+        /* ---- hw tokens ---- */
+        --hw-font-print: "Caveat", cursive;
+        --hw-font-script: "Caveat", cursive;
+        --hw-ink: #f4f2ec;
+        --hw-ink-dark: #26241f;
+        --hw-accent-warm: #ffb020;
+
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: transparent; /* overlays footage or a board */
+        font-family: var(--hw-font-print, "Caveat", cursive);
+      }
+      /* The title block: an absolutely placed box that the script positions. */
+      #hw-t-wrap {
+        position: absolute;
+        pointer-events: none;
+      }
+      /* The title line: bold, on one line, with a soft shadow. */
+      #hw-t-line {
+        font-weight: 700;
+        line-height: 1.1;
+        white-space: nowrap;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.4);
+      }
+      #hw-t-line .w {
+        display: inline;
+      }
+      /* The underline SVG, sized to the title width by the script. */
+      #hw-t-under {
+        overflow: visible;
+        display: block;
+      }
+      /* The underline stroke: warm accent, 7 px, round caps. */
+      #hw-t-under path {
+        fill: none;
+        stroke: var(--hw-accent-warm);
+        stroke-width: 7;
+        stroke-linecap: round;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The root holds the title block and the clip driver; the script builds the word spans. -->
+    <div
+      id="hw-t-root"
+      data-composition-id="hw-title"
+      data-start="0"
+      data-duration="6"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- The block: the word line and the squiggle SVG beneath it. -->
+      <div id="hw-t-wrap">
+        <div id="hw-t-line"></div>
+        <svg id="hw-t-under" width="10" height="34"><path id="hw-t-under-path"></path></svg>
+      </div>
+      <!-- A hidden clip that carries this block's 6 second duration and track index. -->
+      <div
+        id="hw-t-drv"
+        class="clip"
+        data-start="0"
+        data-duration="6"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
+    </div>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+
+        /* ---- published parameters ----
+           Handwritten title with the highlight-sweep scalar (the shared
+           mk-callout-highlight mechanic) + squiggle underline + the boil.
+           Demonstrates the dispatcher composing sweep + boil on one
+           timeline (learning: one onUpdate — everything through hwOnUpdate). */
+        var CONFIG = {
+          text: "a still life, annotated",
+          fontSize: 120,
+          scheme: "ink", // "chalk" (white, over footage) | "ink" (dark, boards) — ink: this footage has a light wall behind the title
+          sweep: { enabled: false, start: 0.8, end: 3.2 }, // off: the faint pre-sweep words fail contrast on a light wall
+          underline: { enabled: true, wobble: 6 },
+          boil: { enabled: true, amp: 1.4, rot: 0.3, frameDrop: 3 },
+          seed: 8,
+          x: null, // null = centered
+          y: 190, // made ours: up on the plain wall, clear of the objects
+          animationIn: true,
+          animationOut: true,
+        };
+
+        /* Timing: DUR is the length in seconds; IN and OUT are fade lengths clamped to fixed limits. */
+        var DUR = 6;
+        function clamp(v, lo, hi) {
+          return Math.min(hi, Math.max(lo, v));
+        }
+        var IN = clamp(DUR * 0.08, 0.3, 0.8);
+        var OUT = clamp(DUR * 0.06, 0.25, 0.6);
+
+        /* hw family runtime */
+        /* Shared dispatcher: one onUpdate hook per timeline runs every registered update. */
+        window.hwOnUpdate = function (tl, fn) {
+          if (!tl.__hwRenders) {
+            tl.__hwRenders = [];
+            tl.eventCallback("onUpdate", function () {
+              for (var i = 0; i < tl.__hwRenders.length; i++) tl.__hwRenders[i]();
+            });
+          }
+          tl.__hwRenders.push(fn);
+          fn();
+        };
+        window.hwHash = function (n, seed) {
+          var x = Math.sin(n * 127.1 + (seed || 1) * 311.7) * 43758.5453;
+          return (x - Math.floor(x)) * 2 - 1;
+        };
+        /* Boil: jitters the targets in steps of three frames, using the seeded hash. */
+        window.hwBoil = function (tl, target, opts) {
+          opts = opts || {};
+          var amp = opts.amp !== undefined ? opts.amp : 1.6;
+          var rot = opts.rot !== undefined ? opts.rot : 0.5;
+          var fps = opts.fps || 30;
+          var drop = opts.frameDrop || 3;
+          var seed = opts.seed || 1;
+          var els = gsap.utils.toArray(target);
+          window.hwOnUpdate(tl, function () {
+            var step = Math.floor((tl.time() * fps) / drop);
+            for (var i = 0; i < els.length; i++) {
+              gsap.set(els[i], {
+                x: window.hwHash(step * 3 + i * 97, seed) * amp,
+                y: window.hwHash(step * 3 + 1 + i * 97, seed) * amp,
+                rotation: (opts.baseRot || 0) + window.hwHash(step * 3 + 2 + i * 97, seed) * rot,
+              });
+            }
+          });
+        };
+
+        /* Colors: the full ink or chalk color, and the faint pre-sweep color. */
+        var FULL = CONFIG.scheme === "ink" ? "#26241f" : "#f4f2ec";
+        var FAINT = CONFIG.scheme === "ink" ? "rgba(38,36,31,0.3)" : "rgba(244,242,236,0.32)";
+
+        var wrap = document.getElementById("hw-t-wrap");
+        var line = document.getElementById("hw-t-line");
+        line.style.fontSize = CONFIG.fontSize + "px";
+
+        /* word spans */
+        var wordEls = [];
+        CONFIG.text.split(/\s+/).forEach(function (w, i) {
+          if (i > 0) line.appendChild(document.createTextNode(" "));
+          var span = document.createElement("span");
+          span.className = "w";
+          span.textContent = w;
+          span.style.color = CONFIG.sweep.enabled ? FAINT : FULL;
+          line.appendChild(span);
+          wordEls.push(span);
+        });
+
+        /* measure + position; build squiggle underline to match width */
+        var rect = line.getBoundingClientRect();
+        wrap.style.left =
+          (CONFIG.x === null ? Math.round((1920 - rect.width) / 2) : CONFIG.x) + "px";
+        wrap.style.top =
+          (CONFIG.y === null ? Math.round((1080 - rect.height) / 2) - 20 : CONFIG.y) + "px";
+
+        var underPath = document.getElementById("hw-t-under-path");
+        if (CONFIG.underline.enabled) {
+          var uw = Math.round(rect.width);
+          var svg = document.getElementById("hw-t-under");
+          svg.setAttribute("width", uw);
+          svg.setAttribute("viewBox", "0 0 " + uw + " 34");
+          var segs = Math.max(6, Math.round(uw / 90));
+          var d = "M 2 " + (16 + window.hwHash(0, CONFIG.seed) * 4).toFixed(1);
+          for (var i = 1; i <= segs; i++) {
+            var x = (uw / segs) * i;
+            var y = 16 + window.hwHash(i * 5 + 1, CONFIG.seed) * CONFIG.underline.wobble;
+            var cxp = x - uw / segs / 2 + window.hwHash(i * 5 + 2, CONFIG.seed) * 10;
+            var cyp = 16 + (i % 2 ? -1 : 1) * (8 + window.hwHash(i * 5 + 3, CONFIG.seed) * 4);
+            d +=
+              " Q " +
+              cxp.toFixed(1) +
+              " " +
+              cyp.toFixed(1) +
+              " " +
+              x.toFixed(1) +
+              " " +
+              y.toFixed(1);
+          }
+          underPath.setAttribute("d", d);
+        } else {
+          document.getElementById("hw-t-under").style.display = "none";
+        }
+
+        /* Timeline: paused, so the host seeks it; each phase below registers its tweens here. */
+        var tl = gsap.timeline({ paused: true });
+
+        /* Fade-in of the title block at 0.1 s. */
+        if (CONFIG.animationIn) {
+          gsap.set(wrap, { opacity: 0 });
+          tl.to(wrap, { opacity: 1, duration: IN, ease: "power2.out" }, 0.1);
+        }
+
+        /* the sweep scalar — registered through the dispatcher so it
+           coexists with the boil on the same timeline */
+        if (CONFIG.sweep.enabled) {
+          var mix = gsap.utils.interpolate(FAINT, FULL);
+          var st = { p: 0 };
+          window.hwOnUpdate(tl, function () {
+            var k = st.p * wordEls.length;
+            for (var i = 0; i < wordEls.length; i++) {
+              var f = Math.max(0, Math.min(1, k - i));
+              wordEls[i].style.color = mix(f);
+            }
+          });
+          tl.to(
+            st,
+            { p: 1, duration: CONFIG.sweep.end - CONFIG.sweep.start, ease: "none" },
+            CONFIG.sweep.start,
+          );
+        }
+
+        /* underline draws as the sweep lands */
+        if (CONFIG.underline.enabled) {
+          var len = underPath.getTotalLength();
+          gsap.set(underPath, { strokeDasharray: len, strokeDashoffset: len });
+          var uAt = CONFIG.sweep.enabled ? CONFIG.sweep.end - 0.2 : 0.8;
+          tl.to(underPath, { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, uAt);
+        }
+
+        /* Boil on the whole title block, for the full length. */
+        if (CONFIG.boil.enabled) {
+          window.hwBoil(tl, "#hw-t-wrap", {
+            amp: CONFIG.boil.amp,
+            rot: CONFIG.boil.rot,
+            frameDrop: CONFIG.boil.frameDrop,
+            seed: CONFIG.seed,
+          });
+        }
+
+        /* Exit: the block fades out just before the title ends. */
+        if (CONFIG.animationOut) {
+          tl.to(wrap, { opacity: 0, duration: OUT, ease: "power2.in" }, DUR - OUT - 0.05);
+        }
+        tl.set("#hw-t-root", { visibility: "hidden" }, DUR - 0.02);
+
+        /* Registration under the composition id. */
+        window.__timelines["hw-title"] = tl;
+      })();
+    </script>
+  </body>
+</html>

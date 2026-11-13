@@ -1,0 +1,11 @@
+Every video here starts as one line of markup.
+
+Watch that line become a wire.
+
+The wire turns into a chart, and the bars rise off it.
+
+Then it bends into a waveform as the voice comes in.
+
+Now the renderer walks every frame.
+
+And the wire ends in a finished video file.

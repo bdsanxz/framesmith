@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/stat.html (composition id "stat")
+  WHAT: A 4.89 s scene, mounted at 17.93 s, that gives the death toll. Behind the figure is a
+    blurred, dimmed, greyed photograph of the ruins. A gold kicker, OFFICIAL DEATH TOLL, sits above
+    the number, which counts up from 0 to 36,417 across the spoken figure. After the count the
+    italic line "most of them taken by the sea" fades in, and last a source line, SOURCE: DUTCH EAST
+    INDIES COLONIAL RECORDS, 1883. index.html starts the impact sound just before it (17.81 s).
+  STRUCTURE: Back to front: #st-bg (the photograph wrapper, scaling from 1.04 to 1.1 over 4.89 s),
+    #st-shade (a radial shade), #st-block (the kicker #st-kicker, the counter #st-num, the unit line
+    #st-unit) and #st-source (a short rule and the source text). Timeline, in seconds from the scene
+    start: 0.05 the kicker rises in; 0.5 #st-num fades in; 0.59 the count runs for 2.0 s, with
+    easing power2.out, so it finishes near 2.6 s; 3.35 the unit line rises; 3.85 the source line
+    fades in.
+  CUSTOMIZE: The final number is 36417 in the fromTo of the count object n, and the count starts at
+    0.59 s and lasts 2.0 s; change them together with the spoken number. The texts are #st-kicker
+    (OFFICIAL DEATH TOLL), #st-unit and the span in #st-source. Colours: kicker #e9b04a, figure
+    #f3efe4, unit #d2ccbf, source #a7a39a. The figure is Cormorant Garamond 600 at 280px. The photo's
+    dimming and blur are the filter on #st-bg img (blur 13px, brightness 0.4), and its crop is
+    object-position 50% 40%.
+  MEDIA: No media file is bundled. Slot 1, a photo: #st-bg img, a photograph of the ruins of Anjer (it
+    was assets/generated/src/ruins.jpg, per the README). A faint hatch stand-in labeled
+    "PHOTO: assets/generated/src/ruins.jpg" shows there, under the same blur and dimming. It is greyed
+    and blurred by the CSS on #st-bg img, so any dark, low-detail image of ruins works. To plug in your
+    own photo, set the img's src to it, for example src="assets/generated/src/ruins.jpg". Slot 2, fonts:
+    none bundled. Roboto Condensed (weights 400 and 700, the kicker and the source line) and Cormorant
+    Garamond (weight 600, the figure) load with src: local(); each is used if installed, else the
+    sans-serif or serif fallback shows. To plug in the files, add url("assets/fonts/roboto-condensed-latin.woff2")
+    to the weight 400 rule, your own bold file to the weight 700 rule, and
+    url("assets/fonts/cormorant-garamond-latin.woff2") to the Cormorant rule. The unit line uses
+    EB Garamond from the font stack; HyperFrames bundles it, so no file is needed. Sound slots: none
+    (the impact sound sits in index.html). CSS image slots: none; the shade is a radial gradient. With
+    no photo, the #0a0a0a ground and a faint grey gradient are enough.
+  WHEN TO USE: A single large figure that counts up on a spoken number, with a source line. Pick a
+    plainer title when the number needs no build-up, or a chart when many figures must compare.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Roboto Condensed (400 and 700) and Cormorant Garamond (600), loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 400; font-display: block; src: local("Roboto Condensed"); }
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 700; font-display: block; src: local("Roboto Condensed"); }
+        @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 600; font-display: block; src: local("Cormorant Garamond"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0a0a0a; }
+        /* The photo is only a mood behind the number: blurred, dimmed, drifting. */
+        #st-bg { position: absolute; inset: -40px; transform-origin: 62% 45%; }
+        #st-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; filter: grayscale(1) blur(13px) brightness(0.4); }
+        /* The shade: a radial darkening that lets the figure read against the photograph. */
+        #st-shade { position: absolute; inset: 0; background: radial-gradient(ellipse 90% 90% at 78% 45%, rgba(8, 8, 8, 0.2) 0%, rgba(8, 8, 8, 0.72) 100%); }
+        /* The text block on the left: the kicker, the count and the unit line stacked together. */
+        #st-block { position: absolute; left: 132px; top: 300px; }
+        /* Text styles for the kicker, the counted figure and the unit line. */
+        #st-kicker { font-family: "Roboto Condensed", sans-serif; font-weight: 700; font-size: 36px; line-height: 1.3; letter-spacing: 0.22em; color: #e9b04a; white-space: nowrap; }
+        #st-num { margin-top: 0; font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: 280px; line-height: 1.22; color: #f3efe4; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+        #st-unit { margin-top: 0; font-family: "EB Garamond", serif; font-style: italic; font-size: 58px; line-height: 1.3; color: #d2ccbf; white-space: nowrap; }
+        /* The source line at the bottom left, with a short rule before it. */
+        #st-source { position: absolute; left: 132px; top: 958px; display: flex; align-items: center; gap: 18px; }
+        #st-source i { display: block; width: 46px; height: 2px; background: #8d8a83; }
+        #st-source span { font-family: "Roboto Condensed", sans-serif; font-weight: 400; font-size: 22px; line-height: 1.3; letter-spacing: 0.16em; color: #a7a39a; white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="stat" data-width="1920" data-height="1080">
+        <!-- The photo layer (a photo slot), the shade and the text block. -->
+        <div id="st-bg" data-layout-allow-overflow><img src="data:image/svg+xml,%3C!--ruins.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/ruins.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/src/ruins.jpg" alt="" /></div>
+        <div id="st-shade"></div>
+        <div id="st-block">
+          <div id="st-kicker">OFFICIAL DEATH TOLL</div>
+          <div id="st-num">0</div>
+          <div id="st-unit">most of them taken by the sea</div>
+        </div>
+        <div id="st-source"><i></i><span>SOURCE: DUTCH EAST INDIES COLONIAL RECORDS, 1883</span></div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#st-bg", { scale: 1.04 }, { scale: 1.1, duration: 4.89, ease: "sine.inOut" }, 0);
+        tl.fromTo("#st-kicker", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 0.05);
+        tl.fromTo("#st-num", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.5);
+        // The figure counts up across the spoken number ("thirty-six thousand ... seventeen", 18.52 s to 21.26 s).
+        const el = document.querySelector("#st-num");
+        const n = { v: 0 };
+        tl.fromTo(n, { v: 0 }, { v: 36417, duration: 2.0, ease: "power2.out", onUpdate: () => { el.textContent = Math.round(n.v).toLocaleString("en-US"); } }, 0.59);
+        tl.fromTo("#st-unit", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 3.35);
+        tl.fromTo("#st-source", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 3.85);
+        window.__timelines["stat"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/sting.html (composition id "sting")
+  WHAT: The channel sting, 8 s long, mounted by index.html at 62.8 s, right after the closing invitation. On a
+    near-black ground two words type on one letter at a time: RUANG in tracked white bold capitals, then
+    DOKUMENTER in white. At 2.3 s a red box (#d13c22) wipes in behind the second word and its letters turn
+    dark, and from 2.9 s a small line, DOCUMENTARY ROOM, types on under the first word. The whole row slowly
+    grows over the 8 s. index.html adds a low impact sound on the red box at 64.98 s. The file has no sound
+    itself.
+  STRUCTURE: Back to front: #root (the ground), #sg-row (a centred flex row, 150 px high, holding both words),
+    inside it #sg-a (the first word #sg-a-text, with #sg-sub under it) and #sg-b (the second word #sg-b-text,
+    with the red box #sg-box behind it). Timeline (gsap, paused): typeOn() types #sg-a-text from 0.4 s at 12
+    characters a second and #sg-b-text from 0.9 s at 12 characters a second, with each character fading in over
+    0.12 s. From 2.3 s for 0.5 s, #sg-box scales in from the left (scaleX 0 to 1, power3.inOut). From 2.4 s for
+    0.3 s, the letters of #sg-b-text turn to #161210. From 2.9 s, #sg-sub types at 22 characters a second. From 0
+    s for 8 s, #sg-row scales 1 to 1.04.
+  CUSTOMIZE: The words: #sg-a-text (RUANG), #sg-b-text (DOKUMENTER) and #sg-sub (DOCUMENTARY ROOM). Type: the
+    first two words are 80px bold, with letter spacing 0.26em and 0.2em; the sub line is 15px with 0.34em
+    tracking at top 108px. Colours: text #e9eae2, box #d13c22, dark letters #161210, ground #111517. Timing: the
+    start times 0.4 s and 0.9 s, the typing speeds 12 and 22 characters a second, the box at 2.3 s and the sub line
+    at 2.9 s. The length of 8 s must match data-duration of sting-slot in index.html. The impact sound at 64.98 s
+    is set in index.html, so move it there if the timing changes.
+  MEDIA: No media file is bundled in this composition. It has one font slot and no photo, video, sound or
+    CSS image slot. The sound is not in this file: the impact on the red box is a sound slot in index.html
+    (id sfx-sting, from 64.98 s), described there. The font slot is the Arimo face in the @font-face rule at
+    the top of the style block. It was the bundled file assets/fonts/arimo-latin.woff2; now the rule reads
+    src: local("Arimo"), so the words use Arimo only when it is installed on the machine, and otherwise fall
+    back to the sans-serif in the font stack. To plug in: add url("assets/fonts/arimo-latin.woff2")
+    format("woff2") to the src list of that rule, or point it at your own copy of Arimo.
+  WHEN TO USE: A channel name or logo sting that types out a name in two colours, with a box behind one word, at
+    the start of a film or after a segment. Pick another file when the sting needs a picture, a logo or motion
+    beyond a slow push.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Font: the Arimo face is local only, and it sets both words and the sub line. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The channel sting: the first word in tracked white caps, the second in a red box, a small line under the first. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #111517; }
+        /* The row that holds both words, centred on the frame and grown slowly by the timeline. */
+        #sg-row { position: absolute; left: 0; width: 1920px; top: 470px; height: 150px; display: flex; justify-content: center; align-items: center; gap: 26px; }
+        #sg-a { position: relative; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 80px; line-height: 150px; letter-spacing: 0.26em; margin-right: -0.26em; color: #e9eae2; white-space: nowrap; }
+        #sg-sub { position: absolute; right: 0.3em; top: 108px; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 15px; line-height: 1.2; letter-spacing: 0.34em; color: #e9eae2; white-space: nowrap; }
+        #sg-b { position: relative; height: 150px; padding: 0 30px 0 44px; }
+        /* The red box behind the second word, wiped in from the left by the timeline. */
+        #sg-box { position: absolute; inset: 0; background: #d13c22; transform-origin: 0 50%; }
+        #sg-b-text { position: relative; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 80px; line-height: 150px; letter-spacing: 0.2em; color: #e9eae2; white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="sting" data-width="1920" data-height="1080">
+        <!-- The one row that holds both words, with the sub line under the first. -->
+        <div id="sg-row">
+          <div id="sg-a"><span id="sg-a-text">RUANG</span><div id="sg-sub">DOCUMENTARY ROOM</div></div>
+          <div id="sg-b"><div id="sg-box"></div><div id="sg-b-text">DOKUMENTER</div></div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: types a text one character at a time, one span per character, at cps characters a second. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            el.appendChild(s);
+            tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.12, immediateRender: true }, t + i / cps);
+          });
+        }
+        // Both words type on in white (0.4 s), the red box wipes in behind the second (2.3 s) and its
+        // letters turn dark, then the small line types under the first word.
+        gsap.set("#sg-box", { scaleX: 0 });
+        typeOn("#sg-a-text", 0.4, 12);
+        typeOn("#sg-b-text", 0.9, 12);
+        tl.to("#sg-box", { scaleX: 1, duration: 0.5, ease: "power3.inOut" }, 2.3);
+        tl.to("#sg-b-text", { color: "#161210", duration: 0.3, ease: "power1.inOut" }, 2.4);
+        typeOn("#sg-sub", 2.9, 22);
+        /* The whole row slowly grows over the 8 s. */
+        tl.fromTo("#sg-row", { scale: 1 }, { scale: 1.04, duration: 8, ease: "none" }, 0);
+        /* Registration: the host finds this timeline by the id sting. */
+        window.__timelines["sting"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 23,
+    "approximated": 22,
     "refused": 8,
-    "translated": 10
+    "translated": 11
   },
   "duration": 17.5,
   "entries": [
@@ -80,12 +80,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #wire-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-wire-svg.svg (528 bytes; xmlns added: true)",
       "file": "compositions/journey.html",
       "line": 111,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -206,14 +205,14 @@
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#code .ch\" is compound; only `#id` and `.class` land",
+      "detail": "selector \"#code .ch\" names no converted clip",
       "file": "compositions/journey.html",
       "line": 211,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"0.2 + i * 0.055\" is an expression; refusing the call site",
+      "detail": "position \"0.2 + i * 0.055\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/journey.html",
       "line": 213,
       "verdict": "refused"

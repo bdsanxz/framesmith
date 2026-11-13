@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-06-ergot.html (composition id "c4-06-ergot")
+  WHAT: About 9.2 seconds on ergot, the fungus that was suspected in the twentieth century of
+    causing the dancing. It opens with 3 seconds of stock film (footage/v06.mp4) of sunlight
+    through tree branches, pushed slowly in. At 3.06 seconds it cuts to a botanical plate of
+    ergot (ergot.jpg), with a large red "Ergot" and a two-line caption that names the fungus on
+    rye, the book and the year, held until 6.34 seconds. At 6.34 seconds it cuts to a woodcut of
+    Saint Anthony with a victim of Saint Anthony's fire (anthony.jpg), captioned with the author,
+    the place and the year. It plays from 445.54 seconds in index.html, on the narration "Pada
+    abad kedua puluh", and lasts 9.22 seconds.
+  STRUCTURE: Three layers in #root, back to front: #c406ergot-a (a video slot, footage/v06.mp4, now a
+    still stand-in, in a .dr-shot), #c406ergot-b (the plate, with the red name #c406ergot-b-name and the caption
+    #c406ergot-b-cap), and #c406ergot-c (the woodcut, with its caption #c406ergot-c-cap). Layers
+    b and c are hidden at the start. Timeline: the video scales 1.0 to 1.051 over 3.06 seconds;
+    b scales 1.014 to 1.069 from 3.06 for 3.28 seconds, and its name and caption are shown at
+    3.06 and hidden at 6.34 seconds; c scales 1.014 to 1.063 from 6.34 for 2.88 seconds, and its
+    caption is shown at 6.34 seconds and stays to the end.
+  CUSTOMIZE: The red name is the text of #c406ergot-b-name, set inline at top 560 px, left 420 px,
+    at 230 px. The captions are the .dr-cap blocks at left 207 px, top 800 px, 30 px Arimo, and
+    their text is the source claim, so change it with the picture. The first cut at 3.06 seconds
+    must equal the video's data-duration (3.06); to change the clip, plug in your file as MEDIA
+    describes and keep its data-duration in step. The second cut is at 6.34 seconds, and the name and first caption
+    end there. The plate and the woodcut each have exposure -0.25 added to the standard grade, so
+    the white caption reads over the pale print; the video has the standard grade. The 9.22
+    second length must match data-duration of c4-06-ergot-slot in index.html.
+  MEDIA: no media file is bundled. This file has one video slot, two photo slots and one font slot. It has no
+    sound and no CSS image.
+    1. The stock clip, video slot img #c406ergot-a-video (inside #c406ergot-a, from 0 s for 3.06 s; data-start 0.0,
+       data-duration 3.06, data-track-index 1, data-media-kind="video"). It showed a stock clip of sunlight through
+       tree branches, played muted (footage/v06.mp4). It now shows a faint hatch stand-in labeled
+       "VIDEO: footage/v06.mp4", which does not move. To plug in your clip, turn this img back into a video element with src set to your file path, muted and playsinline. Keep the id
+       c406ergot-a-video, the data-start, data-duration and data-track-index attributes, the data-color-grading
+       attribute and data-media-kind="video", so the [data-media-kind="video"] CSS rule still matches. Keep
+       data-duration at 3.06 s. If you have only a still of trees in sunlight, keep this img and set its src to the
+       still; it holds for the same 3.06 s with the same slow push.
+    2. The plate, img #c406ergot-b-img (inside #c406ergot-b, from 3.06 s to 6.34 s, with the red name
+       #c406ergot-b-name and the caption #c406ergot-b-cap). It showed a botanical plate of ergot (Köhler's
+       Medizinal-Pflanzen, 1890) (ergot.jpg). It now shows a stand-in labeled "PHOTO: assets/generated/ergot.jpg".
+       To plug in your plate, set the img's src to your file (for example assets/generated/ergot.jpg). The
+       data-media attribute only names the expected path; it loads nothing. The img's data-color-grading still
+       grades your picture; it adds exposure -0.25 so the caption reads. If you use another plate, keep the caption
+       accurate to that picture.
+    3. The woodcut, img #c406ergot-c-img (inside #c406ergot-c, from 6.34 s to the end, with the caption
+       #c406ergot-c-cap). It showed Saint Anthony with a victim of Saint Anthony's fire, a woodcut by Hans von
+       Gersdorff, Strasbourg, 1517 (anthony.jpg). It now shows a stand-in labeled "PHOTO: assets/generated/anthony.jpg".
+       To plug in your woodcut, set the img's src to your file. Its grade adds exposure -0.25 as well.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-name (the red name) and .dr-cap (the
+       captions). It was a bundled woff2 file (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face
+       is used if it is installed, otherwise the sans-serif fallback of the font stack. To plug in your font, add
+       url("your-font.woff2") format("woff2") to the src list of that @font-face.
+  WHEN TO USE: naming a cause with a plate and a red name, when the name needs to stay on screen
+    for about three seconds. Pick another layout when the name must stay for the whole beat, or
+    when no source is known for the picture.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The Arimo font used by the red name and the captions is read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The big red name: on screen from the first frame of its shot, no animation. */
+        .dr-name { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: rgba(198, 58, 36, 0.92); text-shadow: 0 0 22px rgba(198, 58, 36, 0.4); white-space: nowrap; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+      </style>
+      <!-- "Pada abad kedua puluh ..." (445.54 s): film: sunlight through the branches of trees from the start; ergot + red name Ergot + caption on "ergot" (448.60 s); anthony + caption on "yang" (451.88 s). -->
+      <div id="root" data-composition-id="c4-06-ergot" data-width="1920" data-height="1080">
+        <!-- Layer 1: the stock clip, played muted for its 3.06 seconds. -->
+        <div class="dr-shot" id="c406ergot-a" data-layout-allow-overflow><img id="c406ergot-a-video" data-start="0.0" data-duration="3.06" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' src="data:image/svg+xml,%3C!--v06.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/v06.mp4%3C/text%3E%3C/svg%3E" data-media="footage/v06.mp4" data-media-kind="video" alt="" /></div>
+        <!-- Layer 2: the ergot plate, with the red name and caption from 3.06 to 6.34 seconds. -->
+        <div class="dr-shot" id="c406ergot-b" data-layout-allow-overflow><img id="c406ergot-b-img" src="data:image/svg+xml,%3C!--ergot.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ergot.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/ergot.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-name" id="c406ergot-b-name" style="top: 560px; font-size: 230px; left: 420px;">Ergot</div>
+        <div class="dr-cap" id="c406ergot-b-cap">Claviceps purpurea pada gandum hitam<br />Köhler's Medizinal-Pflanzen, 1890</div>
+        <!-- Layer 3, at the front: the Saint Anthony woodcut, shown from 6.34 seconds with its caption. -->
+        <div class="dr-shot" id="c406ergot-c" data-layout-allow-overflow><img id="c406ergot-c-img" src="data:image/svg+xml,%3C!--anthony.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/anthony.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/anthony.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c406ergot-c-cap">Santo Antonius dan seorang korban “api Santo Antonius”<br />Hans von Gersdorff, Strasbourg, 1517</div>
+      </div>
+      <script>
+        /* Timeline setup: the clip's push, then the plate and the woodcut as hard cuts at 3.06 and 6.34 seconds. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c406ergot-a", { scale: 1.0 }, { scale: 1.051, duration: 3.06, ease: "none" }, 0.0);
+        tl.fromTo("#c406ergot-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.069, x: -5, y: 3, duration: 3.28, ease: "none" }, 3.06);
+        gsap.set("#c406ergot-b", { opacity: 0 });
+        tl.to("#c406ergot-b", { opacity: 1, duration: 0.001 }, 3.06);
+        gsap.set("#c406ergot-b-name", { opacity: 0 });
+        tl.to("#c406ergot-b-name", { opacity: 1, duration: 0.001 }, 3.06);
+        tl.to("#c406ergot-b-name", { opacity: 0, duration: 0.001 }, 6.34);
+        gsap.set("#c406ergot-b-cap", { opacity: 0 });
+        tl.to("#c406ergot-b-cap", { opacity: 1, duration: 0.001 }, 3.06);
+        tl.to("#c406ergot-b-cap", { opacity: 0, duration: 0.001 }, 6.34);
+        tl.fromTo("#c406ergot-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.063, x: 4, y: 3, duration: 2.88, ease: "none" }, 6.34);
+        gsap.set("#c406ergot-c", { opacity: 0 });
+        tl.to("#c406ergot-c", { opacity: 1, duration: 0.001 }, 6.34);
+        gsap.set("#c406ergot-c-cap", { opacity: 0 });
+        tl.to("#c406ergot-c-cap", { opacity: 1, duration: 0.001 }, 6.34);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-06-ergot"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

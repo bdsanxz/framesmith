@@ -1,0 +1,13598 @@
+{
+ "clip": "aroll.mp4",
+ "gap": 0.07,
+ "threshold_db": -46.5,
+ "segments": [
+  {
+   "n": 1,
+   "w": [
+    0,
+    0
+   ],
+   "start": 0.0,
+   "end": 0.16,
+   "text": "Di",
+   "sentence_end": false
+  },
+  {
+   "n": 2,
+   "w": [
+    1,
+    4
+   ],
+   "start": 0.24,
+   "end": 1.45,
+   "text": "konten Sila kali ini,",
+   "sentence_end": false
+  },
+  {
+   "n": 3,
+   "w": [
+    5,
+    8
+   ],
+   "start": 1.53,
+   "end": 2.64,
+   "text": "kita akan ngomongin betapa",
+   "sentence_end": false
+  },
+  {
+   "n": 4,
+   "w": [
+    9,
+    9
+   ],
+   "start": 2.77,
+   "end": 2.97,
+   "text": "frustrasinya",
+   "sentence_end": false
+  },
+  {
+   "n": 5,
+   "w": [
+    10,
+    13
+   ],
+   "start": 3.08,
+   "end": 4.68,
+   "text": "kita sebagai bangsa Indonesia",
+   "sentence_end": false
+  },
+  {
+   "n": 6,
+   "w": [
+    14,
+    15
+   ],
+   "start": 4.82,
+   "end": 5.14,
+   "text": "melihat apa",
+   "sentence_end": false
+  },
+  {
+   "n": 7,
+   "w": [
+    16,
+    16
+   ],
+   "start": 5.25,
+   "end": 5.68,
+   "text": "yang",
+   "sentence_end": false
+  },
+  {
+   "n": 8,
+   "w": [
+    17,
+    21
+   ],
+   "start": 5.85,
+   "end": 8.04,
+   "text": "terjadi kepada Nadiem dan kasus",
+   "sentence_end": false
+  },
+  {
+   "n": 9,
+   "w": [
+    22,
+    23
+   ],
+   "start": 8.13,
+   "end": 8.48,
+   "text": "Chromebook yang",
+   "sentence_end": false
+  },
+  {
+   "n": 10,
+   "w": [
+    24,
+    24
+   ],
+   "start": 8.67,
+   "end": 9.11,
+   "text": "terkait",
+   "sentence_end": false
+  },
+  {
+   "n": 11,
+   "w": [
+    25,
+    29
+   ],
+   "start": 9.2,
+   "end": 10.79,
+   "text": "padanya. Selamat datang di konten",
+   "sentence_end": false
+  },
+  {
+   "n": 12,
+   "w": [
+    30,
+    30
+   ],
+   "start": 10.87,
+   "end": 11.14,
+   "text": "Sila.",
+   "sentence_end": true
+  },
+  {
+   "n": 13,
+   "w": [
+    31,
+    32
+   ],
+   "start": 11.35,
+   "end": 12.17,
+   "text": "Baru saja",
+   "sentence_end": false
+  },
+  {
+   "n": 14,
+   "w": [
+    33,
+    33
+   ],
+   "start": 12.35,
+   "end": 12.98,
+   "text": "Indonesia",
+   "sentence_end": false
+  },
+  {
+   "n": 15,
+   "w": [
+    34,
+    34
+   ],
+   "start": 13.08,
+   "end": 13.63,
+   "text": "terhebohkan",
+   "sentence_end": false
+  },
+  {
+   "n": 16,
+   "w": [
+    35,
+    36
+   ],
+   "start": 13.73,
+   "end": 15.23,
+   "text": "dengan diumumkannya",
+   "sentence_end": false
+  },
+  {
+   "n": 17,
+   "w": [
+    37,
+    37
+   ],
+   "start": 15.4,
+   "end": 17.27,
+   "text": "tuntutan",
+   "sentence_end": false
+  },
+  {
+   "n": 18,
+   "w": [
+    38,
+    38
+   ],
+   "start": 17.38,
+   "end": 18.12,
+   "text": "kejaksaan",
+   "sentence_end": false
+  },
+  {
+   "n": 19,
+   "w": [
+    39,
+    39
+   ],
+   "start": 18.21,
+   "end": 18.72,
+   "text": "terhadap",
+   "sentence_end": false
+  },
+  {
+   "n": 20,
+   "w": [
+    40,
+    41
+   ],
+   "start": 18.84,
+   "end": 19.55,
+   "text": "Nadiem Makarim",
+   "sentence_end": false
+  },
+  {
+   "n": 21,
+   "w": [
+    42,
+    42
+   ],
+   "start": 19.7,
+   "end": 20.29,
+   "text": "yaitu",
+   "sentence_end": false
+  },
+  {
+   "n": 22,
+   "w": [
+    43,
+    43
+   ],
+   "start": 20.38,
+   "end": 20.53,
+   "text": "praktis",
+   "sentence_end": false
+  },
+  {
+   "n": 23,
+   "w": [
+    44,
+    45
+   ],
+   "start": 20.66,
+   "end": 21.51,
+   "text": "18 plus",
+   "sentence_end": false
+  },
+  {
+   "n": 24,
+   "w": [
+    46,
+    46
+   ],
+   "start": 21.59,
+   "end": 22.24,
+   "text": "9,",
+   "sentence_end": false
+  },
+  {
+   "n": 25,
+   "w": [
+    47,
+    48
+   ],
+   "start": 22.35,
+   "end": 23.41,
+   "text": "18 tahun,",
+   "sentence_end": false
+  },
+  {
+   "n": 26,
+   "w": [
+    49,
+    49
+   ],
+   "start": 23.55,
+   "end": 23.7,
+   "text": "tapi",
+   "sentence_end": false
+  },
+  {
+   "n": 27,
+   "w": [
+    50,
+    50
+   ],
+   "start": 23.8,
+   "end": 24.17,
+   "text": "dia",
+   "sentence_end": false
+  },
+  {
+   "n": 28,
+   "w": [
+    51,
+    52
+   ],
+   "start": 24.47,
+   "end": 25.74,
+   "text": "harus mengganti",
+   "sentence_end": false
+  },
+  {
+   "n": 29,
+   "w": [
+    53,
+    54
+   ],
+   "start": 25.83,
+   "end": 27.3,
+   "text": "rugi 4,8",
+   "sentence_end": false
+  },
+  {
+   "n": 30,
+   "w": [
+    55,
+    58
+   ],
+   "start": 27.4,
+   "end": 29.08,
+   "text": "triliun kalau nggak salah,",
+   "sentence_end": false
+  },
+  {
+   "n": 31,
+   "w": [
+    59,
+    59
+   ],
+   "start": 29.16,
+   "end": 29.37,
+   "text": "tolong",
+   "sentence_end": false
+  },
+  {
+   "n": 32,
+   "w": [
+    60,
+    61
+   ],
+   "start": 29.44,
+   "end": 29.71,
+   "text": "dikoreksi kalau",
+   "sentence_end": false
+  },
+  {
+   "n": 33,
+   "w": [
+    62,
+    64
+   ],
+   "start": 29.79,
+   "end": 30.69,
+   "text": "memang angkanya salah.",
+   "sentence_end": true
+  },
+  {
+   "n": 34,
+   "w": [
+    65,
+    68
+   ],
+   "start": 30.91,
+   "end": 31.94,
+   "text": "Kalau nggak sanggup atau",
+   "sentence_end": false
+  },
+  {
+   "n": 35,
+   "w": [
+    69,
+    69
+   ],
+   "start": 32.07,
+   "end": 32.16,
+   "text": "nggak",
+   "sentence_end": false
+  },
+  {
+   "n": 36,
+   "w": [
+    70,
+    74
+   ],
+   "start": 32.23,
+   "end": 33.93,
+   "text": "mau untuk membayar angka itu,",
+   "sentence_end": false
+  },
+  {
+   "n": 37,
+   "w": [
+    75,
+    75
+   ],
+   "start": 34.09,
+   "end": 34.49,
+   "text": "substitusinya",
+   "sentence_end": false
+  },
+  {
+   "n": 38,
+   "w": [
+    76,
+    79
+   ],
+   "start": 34.57,
+   "end": 36.29,
+   "text": "adalah 9 tahun penjara.",
+   "sentence_end": true
+  },
+  {
+   "n": 39,
+   "w": [
+    80,
+    81
+   ],
+   "start": 36.5,
+   "end": 37.07,
+   "text": "Nah jelas,",
+   "sentence_end": false
+  },
+  {
+   "n": 40,
+   "w": [
+    82,
+    85
+   ],
+   "start": 37.26,
+   "end": 38.16,
+   "text": "Nadiem juga udah berkata",
+   "sentence_end": false
+  },
+  {
+   "n": 41,
+   "w": [
+    86,
+    86
+   ],
+   "start": 38.23,
+   "end": 38.54,
+   "text": "bahkan",
+   "sentence_end": false
+  },
+  {
+   "n": 42,
+   "w": [
+    87,
+    87
+   ],
+   "start": 38.61,
+   "end": 38.84,
+   "text": "dia",
+   "sentence_end": false
+  },
+  {
+   "n": 43,
+   "w": [
+    88,
+    92
+   ],
+   "start": 39.0,
+   "end": 40.24,
+   "text": "nggak punya uang sebanyak itu,",
+   "sentence_end": false
+  },
+  {
+   "n": 44,
+   "w": [
+    93,
+    93
+   ],
+   "start": 40.38,
+   "end": 40.48,
+   "text": "maka",
+   "sentence_end": false
+  },
+  {
+   "n": 45,
+   "w": [
+    94,
+    94
+   ],
+   "start": 40.56,
+   "end": 41.2,
+   "text": "18",
+   "sentence_end": false
+  },
+  {
+   "n": 46,
+   "w": [
+    95,
+    96
+   ],
+   "start": 41.34,
+   "end": 41.57,
+   "text": "plus 9.",
+   "sentence_end": true
+  },
+  {
+   "n": 47,
+   "w": [
+    97,
+    98
+   ],
+   "start": 41.69,
+   "end": 42.96,
+   "text": "Jadinya berapa?",
+   "sentence_end": true
+  },
+  {
+   "n": 48,
+   "w": [
+    99,
+    99
+   ],
+   "start": 43.16,
+   "end": 44.21,
+   "text": "27",
+   "sentence_end": false
+  },
+  {
+   "n": 49,
+   "w": [
+    100,
+    100
+   ],
+   "start": 44.32,
+   "end": 44.72,
+   "text": "tahun",
+   "sentence_end": false
+  },
+  {
+   "n": 50,
+   "w": [
+    101,
+    102
+   ],
+   "start": 44.83,
+   "end": 46.29,
+   "text": "Nadiem dituntut",
+   "sentence_end": false
+  },
+  {
+   "n": 51,
+   "w": [
+    103,
+    103
+   ],
+   "start": 46.46,
+   "end": 46.86,
+   "text": "penjara.",
+   "sentence_end": true
+  },
+  {
+   "n": 52,
+   "w": [
+    104,
+    105
+   ],
+   "start": 47.15,
+   "end": 47.67,
+   "text": "Dan kita",
+   "sentence_end": false
+  },
+  {
+   "n": 53,
+   "w": [
+    106,
+    107
+   ],
+   "start": 47.79,
+   "end": 48.98,
+   "text": "semua frustrasi.",
+   "sentence_end": true
+  },
+  {
+   "n": 54,
+   "w": [
+    108,
+    109
+   ],
+   "start": 49.15,
+   "end": 50.15,
+   "text": "Frustrasi karena",
+   "sentence_end": false
+  },
+  {
+   "n": 55,
+   "w": [
+    110,
+    110
+   ],
+   "start": 50.28,
+   "end": 50.4,
+   "text": "kita",
+   "sentence_end": false
+  },
+  {
+   "n": 56,
+   "w": [
+    111,
+    115
+   ],
+   "start": 50.5,
+   "end": 52.91,
+   "text": "nggak merasa itu adalah sebuah...",
+   "sentence_end": true
+  },
+  {
+   "n": 57,
+   "w": [
+    116,
+    118
+   ],
+   "start": 53.18,
+   "end": 54.69,
+   "text": "tuntutan yang adil",
+   "sentence_end": false
+  },
+  {
+   "n": 58,
+   "w": [
+    119,
+    120
+   ],
+   "start": 54.87,
+   "end": 55.52,
+   "text": "terhadap sesuatu",
+   "sentence_end": false
+  },
+  {
+   "n": 59,
+   "w": [
+    121,
+    124
+   ],
+   "start": 55.59,
+   "end": 56.84,
+   "text": "yang di mata kita,",
+   "sentence_end": false
+  },
+  {
+   "n": 60,
+   "w": [
+    125,
+    125
+   ],
+   "start": 57.0,
+   "end": 57.1,
+   "text": "kita,",
+   "sentence_end": false
+  },
+  {
+   "n": 61,
+   "w": [
+    126,
+    135
+   ],
+   "start": 57.19,
+   "end": 59.81,
+   "text": "ya mungkin lo nggak, tapi di mata banyak sekali orang,",
+   "sentence_end": false
+  },
+  {
+   "n": 62,
+   "w": [
+    136,
+    143
+   ],
+   "start": 59.96,
+   "end": 62.14,
+   "text": "sidangnya sendiri atau kasusnya sendiri itu nggak masuk",
+   "sentence_end": false
+  },
+  {
+   "n": 63,
+   "w": [
+    144,
+    144
+   ],
+   "start": 62.21,
+   "end": 62.45,
+   "text": "akal.",
+   "sentence_end": true
+  },
+  {
+   "n": 64,
+   "w": [
+    145,
+    147
+   ],
+   "start": 62.7,
+   "end": 63.72,
+   "text": "Kenapa kita frustrasi?",
+   "sentence_end": true
+  },
+  {
+   "n": 65,
+   "w": [
+    148,
+    152
+   ],
+   "start": 63.88,
+   "end": 64.93,
+   "text": "Karena kita nggak bisa ngapa-ngapain.",
+   "sentence_end": true
+  },
+  {
+   "n": 66,
+   "w": [
+    153,
+    156
+   ],
+   "start": 65.14,
+   "end": 66.34,
+   "text": "Ada banyak banget orang,",
+   "sentence_end": false
+  },
+  {
+   "n": 67,
+   "w": [
+    157,
+    160
+   ],
+   "start": 66.59,
+   "end": 67.78,
+   "text": "baik itu gue, ataupun",
+   "sentence_end": false
+  },
+  {
+   "n": 68,
+   "w": [
+    161,
+    170
+   ],
+   "start": 67.85,
+   "end": 70.46,
+   "text": "konten kreator lain, baik konten kreator yang ada di Youtube,",
+   "sentence_end": false
+  },
+  {
+   "n": 69,
+   "w": [
+    171,
+    171
+   ],
+   "start": 70.55,
+   "end": 70.72,
+   "text": "ataupun",
+   "sentence_end": false
+  },
+  {
+   "n": 70,
+   "w": [
+    172,
+    173
+   ],
+   "start": 70.8,
+   "end": 71.52,
+   "text": "di Instagram,",
+   "sentence_end": false
+  },
+  {
+   "n": 71,
+   "w": [
+    174,
+    180
+   ],
+   "start": 71.62,
+   "end": 73.39,
+   "text": "ini punya banyak komentar, punya banyak opini.",
+   "sentence_end": true
+  },
+  {
+   "n": 72,
+   "w": [
+    181,
+    183
+   ],
+   "start": 73.57,
+   "end": 74.53,
+   "text": "Tapi pada akhirnya,",
+   "sentence_end": false
+  },
+  {
+   "n": 73,
+   "w": [
+    184,
+    186
+   ],
+   "start": 74.67,
+   "end": 75.48,
+   "text": "yang gue punya,",
+   "sentence_end": false
+  },
+  {
+   "n": 74,
+   "w": [
+    187,
+    189
+   ],
+   "start": 75.61,
+   "end": 76.25,
+   "text": "ya hanya komentar.",
+   "sentence_end": true
+  },
+  {
+   "n": 75,
+   "w": [
+    190,
+    194
+   ],
+   "start": 76.49,
+   "end": 77.67,
+   "text": "Gue nggak bisa mengubah apa-apa.",
+   "sentence_end": true
+  },
+  {
+   "n": 76,
+   "w": [
+    195,
+    200
+   ],
+   "start": 77.87,
+   "end": 79.7,
+   "text": "Frustrasinya itu kayak lagi nonton tim",
+   "sentence_end": false
+  },
+  {
+   "n": 77,
+   "w": [
+    201,
+    202
+   ],
+   "start": 79.77,
+   "end": 80.13,
+   "text": "sepak bola",
+   "sentence_end": false
+  },
+  {
+   "n": 78,
+   "w": [
+    203,
+    204
+   ],
+   "start": 80.23,
+   "end": 80.94,
+   "text": "kesayangan lo.",
+   "sentence_end": true
+  },
+  {
+   "n": 79,
+   "w": [
+    205,
+    208
+   ],
+   "start": 81.11,
+   "end": 81.8,
+   "text": "Lalu lo merasa, lo",
+   "sentence_end": false
+  },
+  {
+   "n": 80,
+   "w": [
+    209,
+    209
+   ],
+   "start": 81.95,
+   "end": 82.54,
+   "text": "merasa,",
+   "sentence_end": false
+  },
+  {
+   "n": 81,
+   "w": [
+    210,
+    215
+   ],
+   "start": 82.67,
+   "end": 84.33,
+   "text": "wasit tuh nggak adil kepada pemain",
+   "sentence_end": false
+  },
+  {
+   "n": 82,
+   "w": [
+    216,
+    219
+   ],
+   "start": 85.18,
+   "end": 86.0,
+   "text": "di tim favorit lo.",
+   "sentence_end": true
+  },
+  {
+   "n": 83,
+   "w": [
+    220,
+    222
+   ],
+   "start": 86.21,
+   "end": 86.99,
+   "text": "Terus kita berkomentar,",
+   "sentence_end": false
+  },
+  {
+   "n": 84,
+   "w": [
+    223,
+    229
+   ],
+   "start": 87.1,
+   "end": 89.31,
+   "text": "kita berkomentar, kita berdebat di sosial media,",
+   "sentence_end": false
+  },
+  {
+   "n": 85,
+   "w": [
+    230,
+    230
+   ],
+   "start": 89.46,
+   "end": 89.54,
+   "text": "tapi",
+   "sentence_end": false
+  },
+  {
+   "n": 86,
+   "w": [
+    231,
+    231
+   ],
+   "start": 89.61,
+   "end": 90.12,
+   "text": "semua",
+   "sentence_end": false
+  },
+  {
+   "n": 87,
+   "w": [
+    232,
+    233
+   ],
+   "start": 90.2,
+   "end": 91.02,
+   "text": "frustrasi ini,",
+   "sentence_end": false
+  },
+  {
+   "n": 88,
+   "w": [
+    234,
+    236
+   ],
+   "start": 91.11,
+   "end": 92.28,
+   "text": "semua komentar ini,",
+   "sentence_end": false
+  },
+  {
+   "n": 89,
+   "w": [
+    237,
+    240
+   ],
+   "start": 92.39,
+   "end": 93.27,
+   "text": "ya cuma jadi komentar.",
+   "sentence_end": true
+  },
+  {
+   "n": 90,
+   "w": [
+    241,
+    244
+   ],
+   "start": 93.54,
+   "end": 94.42,
+   "text": "Nggak bisa jadi apa-apa.",
+   "sentence_end": true
+  },
+  {
+   "n": 91,
+   "w": [
+    245,
+    245
+   ],
+   "start": 94.6,
+   "end": 94.99,
+   "text": "Kenapa?",
+   "sentence_end": true
+  },
+  {
+   "n": 92,
+   "w": [
+    246,
+    249
+   ],
+   "start": 95.22,
+   "end": 95.98,
+   "text": "Karena kita di luar,",
+   "sentence_end": false
+  },
+  {
+   "n": 93,
+   "w": [
+    250,
+    253
+   ],
+   "start": 96.09,
+   "end": 96.97,
+   "text": "kita nggak ikut bermain.",
+   "sentence_end": true
+  },
+  {
+   "n": 94,
+   "w": [
+    254,
+    254
+   ],
+   "start": 97.17,
+   "end": 97.77,
+   "text": "Bahkan,",
+   "sentence_end": false
+  },
+  {
+   "n": 95,
+   "w": [
+    255,
+    257
+   ],
+   "start": 97.9,
+   "end": 99.12,
+   "text": "semua orang, atau",
+   "sentence_end": false
+  },
+  {
+   "n": 96,
+   "w": [
+    258,
+    268
+   ],
+   "start": 99.27,
+   "end": 103.36,
+   "text": "mungkin banyak orang yang ada di dalam lapangan, akan bilang bahwa,",
+   "sentence_end": false
+  },
+  {
+   "n": 97,
+   "w": [
+    269,
+    273
+   ],
+   "start": 103.49,
+   "end": 104.69,
+   "text": "lo tuh nggak ngerti permainan.",
+   "sentence_end": true
+  },
+  {
+   "n": 98,
+   "w": [
+    274,
+    275
+   ],
+   "start": 104.95,
+   "end": 105.29,
+   "text": "Lo tuh",
+   "sentence_end": false
+  },
+  {
+   "n": 99,
+   "w": [
+    276,
+    276
+   ],
+   "start": 105.52,
+   "end": 105.96,
+   "text": "bukan",
+   "sentence_end": false
+  },
+  {
+   "n": 100,
+   "w": [
+    277,
+    277
+   ],
+   "start": 106.13,
+   "end": 106.96,
+   "text": "wasit,",
+   "sentence_end": false
+  },
+  {
+   "n": 101,
+   "w": [
+    278,
+    282
+   ],
+   "start": 107.04,
+   "end": 108.24,
+   "text": "lo nggak bekerja sebagai wasit,",
+   "sentence_end": false
+  },
+  {
+   "n": 102,
+   "w": [
+    283,
+    287
+   ],
+   "start": 108.38,
+   "end": 110.12,
+   "text": "lo nggak punya lisensi wasit,",
+   "sentence_end": false
+  },
+  {
+   "n": 103,
+   "w": [
+    288,
+    290
+   ],
+   "start": 110.31,
+   "end": 110.56,
+   "text": "lo nggak pernah",
+   "sentence_end": false
+  },
+  {
+   "n": 104,
+   "w": [
+    291,
+    291
+   ],
+   "start": 110.64,
+   "end": 111.08,
+   "text": "melatih",
+   "sentence_end": false
+  },
+  {
+   "n": 105,
+   "w": [
+    292,
+    294
+   ],
+   "start": 111.16,
+   "end": 111.86,
+   "text": "diri lo supaya",
+   "sentence_end": false
+  },
+  {
+   "n": 106,
+   "w": [
+    295,
+    297
+   ],
+   "start": 111.94,
+   "end": 112.64,
+   "text": "lo bisa dapet",
+   "sentence_end": false
+  },
+  {
+   "n": 107,
+   "w": [
+    298,
+    299
+   ],
+   "start": 112.77,
+   "end": 113.54,
+   "text": "lisensi wasit.",
+   "sentence_end": true
+  },
+  {
+   "n": 108,
+   "w": [
+    300,
+    300
+   ],
+   "start": 113.77,
+   "end": 113.93,
+   "text": "Apa",
+   "sentence_end": false
+  },
+  {
+   "n": 109,
+   "w": [
+    301,
+    304
+   ],
+   "start": 114.02,
+   "end": 115.36,
+   "text": "yang membuat lo merasa,",
+   "sentence_end": false
+  },
+  {
+   "n": 110,
+   "w": [
+    305,
+    307
+   ],
+   "start": 115.46,
+   "end": 116.41,
+   "text": "opini lo itu,",
+   "sentence_end": false
+  },
+  {
+   "n": 111,
+   "w": [
+    308,
+    315
+   ],
+   "start": 116.57,
+   "end": 119.05,
+   "text": "lebih benar daripada gue yang ada di lapangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 112,
+   "w": [
+    316,
+    318
+   ],
+   "start": 119.3,
+   "end": 120.25,
+   "text": "Itulah yang sebenarnya",
+   "sentence_end": false
+  },
+  {
+   "n": 113,
+   "w": [
+    319,
+    321
+   ],
+   "start": 120.37,
+   "end": 121.34,
+   "text": "membuat kita frustrasi.",
+   "sentence_end": true
+  },
+  {
+   "n": 114,
+   "w": [
+    322,
+    328
+   ],
+   "start": 121.47,
+   "end": 123.22,
+   "text": "Karena itu juga terjadi di sidangnya Nadiem.",
+   "sentence_end": true
+  },
+  {
+   "n": 115,
+   "w": [
+    329,
+    333
+   ],
+   "start": 123.39,
+   "end": 124.11,
+   "text": "Kita kan semua kan punya",
+   "sentence_end": false
+  },
+  {
+   "n": 116,
+   "w": [
+    334,
+    334
+   ],
+   "start": 124.26,
+   "end": 124.91,
+   "text": "komentar.",
+   "sentence_end": true
+  },
+  {
+   "n": 117,
+   "w": [
+    335,
+    337
+   ],
+   "start": 125.1,
+   "end": 125.8,
+   "text": "Ada yang pro",
+   "sentence_end": false
+  },
+  {
+   "n": 118,
+   "w": [
+    338,
+    344
+   ],
+   "start": 126.03,
+   "end": 127.7,
+   "text": "Nadiem di penjara, ada yang nggak pro",
+   "sentence_end": false
+  },
+  {
+   "n": 119,
+   "w": [
+    345,
+    347
+   ],
+   "start": 127.78,
+   "end": 128.8,
+   "text": "Nadiem di penjara,",
+   "sentence_end": false
+  },
+  {
+   "n": 120,
+   "w": [
+    348,
+    349
+   ],
+   "start": 128.91,
+   "end": 129.47,
+   "text": "ada yang",
+   "sentence_end": false
+  },
+  {
+   "n": 121,
+   "w": [
+    350,
+    351
+   ],
+   "start": 129.57,
+   "end": 130.28,
+   "text": "sebenarnya nggak",
+   "sentence_end": false
+  },
+  {
+   "n": 122,
+   "w": [
+    352,
+    352
+   ],
+   "start": 130.39,
+   "end": 131.06,
+   "text": "merasa",
+   "sentence_end": false
+  },
+  {
+   "n": 123,
+   "w": [
+    353,
+    354
+   ],
+   "start": 131.16,
+   "end": 132.13,
+   "text": "kasusnya itu",
+   "sentence_end": false
+  },
+  {
+   "n": 124,
+   "w": [
+    355,
+    356
+   ],
+   "start": 132.24,
+   "end": 132.88,
+   "text": "punya basis",
+   "sentence_end": false
+  },
+  {
+   "n": 125,
+   "w": [
+    357,
+    358
+   ],
+   "start": 133.01,
+   "end": 133.79,
+   "text": "yang kuat,",
+   "sentence_end": false
+  },
+  {
+   "n": 126,
+   "w": [
+    359,
+    371
+   ],
+   "start": 133.95,
+   "end": 137.36,
+   "text": "tapi emang nggak suka juga aja sama Nadiem dan kebijakan-kebijakannya menjadi menteri. Jadi",
+   "sentence_end": false
+  },
+  {
+   "n": 127,
+   "w": [
+    372,
+    372
+   ],
+   "start": 137.47,
+   "end": 137.82,
+   "text": "ya",
+   "sentence_end": false
+  },
+  {
+   "n": 128,
+   "w": [
+    373,
+    380
+   ],
+   "start": 137.91,
+   "end": 139.45,
+   "text": "biarin aja kalau Nadiem mau di penjara gitu.",
+   "sentence_end": true
+  },
+  {
+   "n": 129,
+   "w": [
+    381,
+    383
+   ],
+   "start": 139.54,
+   "end": 140.19,
+   "text": "Ada banyak banget.",
+   "sentence_end": true
+  },
+  {
+   "n": 130,
+   "w": [
+    384,
+    388
+   ],
+   "start": 140.41,
+   "end": 141.57,
+   "text": "Tapi semua ini adalah komentar.",
+   "sentence_end": true
+  },
+  {
+   "n": 131,
+   "w": [
+    389,
+    391
+   ],
+   "start": 141.77,
+   "end": 142.46,
+   "text": "Kita mau ngomong",
+   "sentence_end": false
+  },
+  {
+   "n": 132,
+   "w": [
+    392,
+    392
+   ],
+   "start": 142.53,
+   "end": 142.66,
+   "text": "apapun",
+   "sentence_end": false
+  },
+  {
+   "n": 133,
+   "w": [
+    393,
+    402
+   ],
+   "start": 142.77,
+   "end": 145.78,
+   "text": "gitu. Kita mau berselorong, mau berteriak, mau ngomong segala macam.",
+   "sentence_end": true
+  },
+  {
+   "n": 134,
+   "w": [
+    403,
+    408
+   ],
+   "start": 145.85,
+   "end": 146.98,
+   "text": "Kita itu semua di luar lapangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 135,
+   "w": [
+    409,
+    411
+   ],
+   "start": 147.21,
+   "end": 148.15,
+   "text": "Di luar persidangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 136,
+   "w": [
+    412,
+    414
+   ],
+   "start": 148.38,
+   "end": 149.16,
+   "text": "Orang-orang yang yang",
+   "sentence_end": false
+  },
+  {
+   "n": 137,
+   "w": [
+    415,
+    415
+   ],
+   "start": 149.31,
+   "end": 149.64,
+   "text": "pro",
+   "sentence_end": false
+  },
+  {
+   "n": 138,
+   "w": [
+    416,
+    416
+   ],
+   "start": 149.71,
+   "end": 150.37,
+   "text": "terhadap",
+   "sentence_end": false
+  },
+  {
+   "n": 139,
+   "w": [
+    417,
+    420
+   ],
+   "start": 150.5,
+   "end": 151.71,
+   "text": "keputusan, bukan keputusan ya,",
+   "sentence_end": false
+  },
+  {
+   "n": 140,
+   "w": [
+    421,
+    425
+   ],
+   "start": 151.83,
+   "end": 154.07,
+   "text": "tuntutan yang diberikan sama Kejaksaan,",
+   "sentence_end": false
+  },
+  {
+   "n": 141,
+   "w": [
+    426,
+    428
+   ],
+   "start": 154.2,
+   "end": 154.65,
+   "text": "akan bilang, ya",
+   "sentence_end": false
+  },
+  {
+   "n": 142,
+   "w": [
+    429,
+    436
+   ],
+   "start": 154.81,
+   "end": 156.5,
+   "text": "lo mau ngomong apa juga nggak ngaruh. Karena",
+   "sentence_end": false
+  },
+  {
+   "n": 143,
+   "w": [
+    437,
+    439
+   ],
+   "start": 156.62,
+   "end": 157.44,
+   "text": "lo nggak ngerti,",
+   "sentence_end": false
+  },
+  {
+   "n": 144,
+   "w": [
+    440,
+    442
+   ],
+   "start": 157.59,
+   "end": 158.35,
+   "text": "apa iya lo",
+   "sentence_end": false
+  },
+  {
+   "n": 145,
+   "w": [
+    443,
+    445
+   ],
+   "start": 158.47,
+   "end": 159.58,
+   "text": "yang seorang pelawak,",
+   "sentence_end": false
+  },
+  {
+   "n": 146,
+   "w": [
+    446,
+    449
+   ],
+   "start": 159.73,
+   "end": 160.97,
+   "text": "lo yang seorang pemusik,",
+   "sentence_end": false
+  },
+  {
+   "n": 147,
+   "w": [
+    450,
+    453
+   ],
+   "start": 161.11,
+   "end": 162.18,
+   "text": "lo yang seorang youtuber,",
+   "sentence_end": false
+  },
+  {
+   "n": 148,
+   "w": [
+    454,
+    456
+   ],
+   "start": 162.25,
+   "end": 163.21,
+   "text": "merasa lebih ngerti",
+   "sentence_end": false
+  },
+  {
+   "n": 149,
+   "w": [
+    457,
+    457
+   ],
+   "start": 163.36,
+   "end": 163.51,
+   "text": "para",
+   "sentence_end": false
+  },
+  {
+   "n": 150,
+   "w": [
+    458,
+    458
+   ],
+   "start": 163.67,
+   "end": 164.07,
+   "text": "hakim,",
+   "sentence_end": false
+  },
+  {
+   "n": 151,
+   "w": [
+    459,
+    459
+   ],
+   "start": 164.15,
+   "end": 164.45,
+   "text": "para",
+   "sentence_end": false
+  },
+  {
+   "n": 152,
+   "w": [
+    460,
+    464
+   ],
+   "start": 164.56,
+   "end": 166.41,
+   "text": "jaksa yang ada di persidangan,",
+   "sentence_end": false
+  },
+  {
+   "n": 153,
+   "w": [
+    465,
+    466
+   ],
+   "start": 166.49,
+   "end": 167.14,
+   "text": "para pengacara.",
+   "sentence_end": true
+  },
+  {
+   "n": 154,
+   "w": [
+    467,
+    468
+   ],
+   "start": 167.35,
+   "end": 167.74,
+   "text": "Apa iya?",
+   "sentence_end": true
+  },
+  {
+   "n": 155,
+   "w": [
+    469,
+    470
+   ],
+   "start": 167.93,
+   "end": 168.63,
+   "text": "Apa iya",
+   "sentence_end": false
+  },
+  {
+   "n": 156,
+   "w": [
+    471,
+    472
+   ],
+   "start": 168.77,
+   "end": 169.6,
+   "text": "lo bisa",
+   "sentence_end": false
+  },
+  {
+   "n": 157,
+   "w": [
+    473,
+    474
+   ],
+   "start": 169.85,
+   "end": 170.38,
+   "text": "merasa lo",
+   "sentence_end": false
+  },
+  {
+   "n": 158,
+   "w": [
+    475,
+    476
+   ],
+   "start": 170.51,
+   "end": 171.19,
+   "text": "punya hak",
+   "sentence_end": false
+  },
+  {
+   "n": 159,
+   "w": [
+    477,
+    478
+   ],
+   "start": 171.29,
+   "end": 171.62,
+   "text": "untuk lebih",
+   "sentence_end": false
+  },
+  {
+   "n": 160,
+   "w": [
+    479,
+    479
+   ],
+   "start": 171.71,
+   "end": 172.52,
+   "text": "didengar?",
+   "sentence_end": true
+  },
+  {
+   "n": 161,
+   "w": [
+    480,
+    486
+   ],
+   "start": 172.72,
+   "end": 174.0,
+   "text": "Padahal pendidikan lo nggak ke arah sana.",
+   "sentence_end": true
+  },
+  {
+   "n": 162,
+   "w": [
+    487,
+    492
+   ],
+   "start": 174.3,
+   "end": 175.46,
+   "text": "Ya kan? Dan memang harus diakuin.",
+   "sentence_end": true
+  },
+  {
+   "n": 163,
+   "w": [
+    493,
+    497
+   ],
+   "start": 175.58,
+   "end": 176.84,
+   "text": "Banyak sekali rakyat di Indonesia,",
+   "sentence_end": false
+  },
+  {
+   "n": 164,
+   "w": [
+    498,
+    502
+   ],
+   "start": 176.98,
+   "end": 178.52,
+   "text": "ikut berkomentar terhadap sidang ini,",
+   "sentence_end": false
+  },
+  {
+   "n": 165,
+   "w": [
+    503,
+    507
+   ],
+   "start": 178.69,
+   "end": 180.15,
+   "text": "tanpa ngerti hukum sama sekali.",
+   "sentence_end": true
+  },
+  {
+   "n": 166,
+   "w": [
+    508,
+    511
+   ],
+   "start": 180.41,
+   "end": 181.01,
+   "text": "Kita kan bisa bilang,",
+   "sentence_end": false
+  },
+  {
+   "n": 167,
+   "w": [
+    512,
+    518
+   ],
+   "start": 181.26,
+   "end": 183.15,
+   "text": "nggak masuk akal. Masa 27 tahun, ada",
+   "sentence_end": false
+  },
+  {
+   "n": 168,
+   "w": [
+    519,
+    522
+   ],
+   "start": 183.3,
+   "end": 184.79,
+   "text": "banyak orang yang hukumannya",
+   "sentence_end": false
+  },
+  {
+   "n": 169,
+   "w": [
+    523,
+    525
+   ],
+   "start": 184.9,
+   "end": 186.0,
+   "text": "lebih sedikit, padahal",
+   "sentence_end": false
+  },
+  {
+   "n": 170,
+   "w": [
+    526,
+    526
+   ],
+   "start": 186.14,
+   "end": 186.76,
+   "text": "kejahatannya",
+   "sentence_end": false
+  },
+  {
+   "n": 171,
+   "w": [
+    527,
+    530
+   ],
+   "start": 186.85,
+   "end": 188.5,
+   "text": "lebih tinggi daripada kita.",
+   "sentence_end": true
+  },
+  {
+   "n": 172,
+   "w": [
+    531,
+    534
+   ],
+   "start": 188.69,
+   "end": 189.48,
+   "text": "Terus orang bisa bilang,",
+   "sentence_end": false
+  },
+  {
+   "n": 173,
+   "w": [
+    535,
+    540
+   ],
+   "start": 189.65,
+   "end": 191.32,
+   "text": "daripada Nadiem. Terus orang bisa bilang,",
+   "sentence_end": false
+  },
+  {
+   "n": 174,
+   "w": [
+    541,
+    544
+   ],
+   "start": 191.44,
+   "end": 192.2,
+   "text": "tapi emang lo ngerti?",
+   "sentence_end": true
+  },
+  {
+   "n": 175,
+   "w": [
+    545,
+    558
+   ],
+   "start": 192.37,
+   "end": 195.71,
+   "text": "Emang lo ngerti undang-undang ini mengatakan bahwa hukumannya berapa segala macam? Lo nggak ngerti",
+   "sentence_end": false
+  },
+  {
+   "n": 176,
+   "w": [
+    559,
+    559
+   ],
+   "start": 195.79,
+   "end": 196.06,
+   "text": "kan?",
+   "sentence_end": true
+  },
+  {
+   "n": 177,
+   "w": [
+    560,
+    563
+   ],
+   "start": 196.29,
+   "end": 196.94,
+   "text": "Kita emang nggak ngerti",
+   "sentence_end": false
+  },
+  {
+   "n": 178,
+   "w": [
+    564,
+    570
+   ],
+   "start": 197.02,
+   "end": 198.45,
+   "text": "itu semua. Emang bener kita nggak ngerti?",
+   "sentence_end": true
+  },
+  {
+   "n": 179,
+   "w": [
+    571,
+    572
+   ],
+   "start": 198.53,
+   "end": 199.79,
+   "text": "Jangankan itu.",
+   "sentence_end": true
+  },
+  {
+   "n": 180,
+   "w": [
+    573,
+    573
+   ],
+   "start": 200.08,
+   "end": 200.85,
+   "text": "Kemarin",
+   "sentence_end": false
+  },
+  {
+   "n": 181,
+   "w": [
+    574,
+    575
+   ],
+   "start": 200.93,
+   "end": 201.65,
+   "text": "aja, orang",
+   "sentence_end": false
+  },
+  {
+   "n": 182,
+   "w": [
+    576,
+    583
+   ],
+   "start": 201.8,
+   "end": 203.94,
+   "text": "banyak yang ngomong sama gue, gimana Bang Panji,",
+   "sentence_end": false
+  },
+  {
+   "n": 183,
+   "w": [
+    584,
+    584
+   ],
+   "start": 204.09,
+   "end": 204.74,
+   "text": "Nadiem",
+   "sentence_end": false
+  },
+  {
+   "n": 184,
+   "w": [
+    585,
+    585
+   ],
+   "start": 204.95,
+   "end": 205.78,
+   "text": "dipenjara",
+   "sentence_end": false
+  },
+  {
+   "n": 185,
+   "w": [
+    586,
+    588
+   ],
+   "start": 205.93,
+   "end": 206.98,
+   "text": "18 tahun plus",
+   "sentence_end": false
+  },
+  {
+   "n": 186,
+   "w": [
+    589,
+    589
+   ],
+   "start": 207.05,
+   "end": 207.71,
+   "text": "9.",
+   "sentence_end": true
+  },
+  {
+   "n": 187,
+   "w": [
+    590,
+    590
+   ],
+   "start": 207.82,
+   "end": 208.21,
+   "text": "Padahal",
+   "sentence_end": false
+  },
+  {
+   "n": 188,
+   "w": [
+    591,
+    593
+   ],
+   "start": 208.31,
+   "end": 209.0,
+   "text": "kemarin itu baru",
+   "sentence_end": false
+  },
+  {
+   "n": 189,
+   "w": [
+    594,
+    594
+   ],
+   "start": 209.09,
+   "end": 209.55,
+   "text": "sidang",
+   "sentence_end": false
+  },
+  {
+   "n": 190,
+   "w": [
+    595,
+    599
+   ],
+   "start": 209.62,
+   "end": 210.89,
+   "text": "tuntutan, bukan sidang faunis gitu.",
+   "sentence_end": true
+  },
+  {
+   "n": 191,
+   "w": [
+    600,
+    604
+   ],
+   "start": 211.14,
+   "end": 212.45,
+   "text": "Faunisnya kayaknya masih awal Juni.",
+   "sentence_end": true
+  },
+  {
+   "n": 192,
+   "w": [
+    605,
+    617
+   ],
+   "start": 212.76,
+   "end": 215.12,
+   "text": "Jadi rakyat Indonesia tuh banyak yang nggak bisa bedain. Ya gimana Bang Panji,",
+   "sentence_end": false
+  },
+  {
+   "n": 193,
+   "w": [
+    618,
+    621
+   ],
+   "start": 215.27,
+   "end": 216.74,
+   "text": "Nadiem dipenjara 18 tahun.",
+   "sentence_end": true
+  },
+  {
+   "n": 194,
+   "w": [
+    622,
+    628
+   ],
+   "start": 216.92,
+   "end": 218.53,
+   "text": "Bang Panji, Nadiem diputuskan penjara 18 tahun.",
+   "sentence_end": true
+  },
+  {
+   "n": 195,
+   "w": [
+    629,
+    629
+   ],
+   "start": 218.6,
+   "end": 219.0,
+   "text": "Bukan.",
+   "sentence_end": true
+  },
+  {
+   "n": 196,
+   "w": [
+    630,
+    630
+   ],
+   "start": 219.12,
+   "end": 219.43,
+   "text": "Itu",
+   "sentence_end": false
+  },
+  {
+   "n": 197,
+   "w": [
+    631,
+    635
+   ],
+   "start": 219.58,
+   "end": 220.93,
+   "text": "tuh baru sidang tuntutannya. Jadi",
+   "sentence_end": false
+  },
+  {
+   "n": 198,
+   "w": [
+    636,
+    637
+   ],
+   "start": 221.01,
+   "end": 221.45,
+   "text": "setelah lewat",
+   "sentence_end": false
+  },
+  {
+   "n": 199,
+   "w": [
+    638,
+    641
+   ],
+   "start": 221.55,
+   "end": 222.56,
+   "text": "proses, terus udah gitu,",
+   "sentence_end": false
+  },
+  {
+   "n": 200,
+   "w": [
+    642,
+    643
+   ],
+   "start": 222.69,
+   "end": 223.39,
+   "text": "jaksai bilang,",
+   "sentence_end": false
+  },
+  {
+   "n": 201,
+   "w": [
+    644,
+    647
+   ],
+   "start": 223.47,
+   "end": 224.79,
+   "text": "tuntutannya adalah 18 tahun.",
+   "sentence_end": true
+  },
+  {
+   "n": 202,
+   "w": [
+    648,
+    648
+   ],
+   "start": 225.07,
+   "end": 225.42,
+   "text": "Plus",
+   "sentence_end": false
+  },
+  {
+   "n": 203,
+   "w": [
+    649,
+    651
+   ],
+   "start": 225.57,
+   "end": 227.4,
+   "text": "mengembalikan kerugian negara.",
+   "sentence_end": true
+  },
+  {
+   "n": 204,
+   "w": [
+    652,
+    659
+   ],
+   "start": 227.52,
+   "end": 229.01,
+   "text": "Nggak tau mengembalikan kerugian negara atau apa ya.",
+   "sentence_end": true
+  },
+  {
+   "n": 205,
+   "w": [
+    660,
+    665
+   ],
+   "start": 229.26,
+   "end": 231.96,
+   "text": "Pokoknya harus bayar 4,8 triliun kalau",
+   "sentence_end": false
+  },
+  {
+   "n": 206,
+   "w": [
+    666,
+    666
+   ],
+   "start": 232.03,
+   "end": 232.34,
+   "text": "nggak",
+   "sentence_end": false
+  },
+  {
+   "n": 207,
+   "w": [
+    667,
+    667
+   ],
+   "start": 232.42,
+   "end": 233.13,
+   "text": "bisa",
+   "sentence_end": false
+  },
+  {
+   "n": 208,
+   "w": [
+    668,
+    672
+   ],
+   "start": 233.27,
+   "end": 234.66,
+   "text": "ganti ke 9 tahun gitu.",
+   "sentence_end": true
+  },
+  {
+   "n": 209,
+   "w": [
+    673,
+    674
+   ],
+   "start": 234.9,
+   "end": 235.75,
+   "text": "Penjara. Subsider.",
+   "sentence_end": true
+  },
+  {
+   "n": 210,
+   "w": [
+    675,
+    677
+   ],
+   "start": 235.96,
+   "end": 236.91,
+   "text": "Faunisnya masih nanti.",
+   "sentence_end": true
+  },
+  {
+   "n": 211,
+   "w": [
+    678,
+    682
+   ],
+   "start": 237.05,
+   "end": 238.16,
+   "text": "Faunisnya masih di awal Juni.",
+   "sentence_end": true
+  },
+  {
+   "n": 212,
+   "w": [
+    683,
+    689
+   ],
+   "start": 238.28,
+   "end": 239.92,
+   "text": "Jadi rakyat Indonesia bedain itu aja nggak",
+   "sentence_end": false
+  },
+  {
+   "n": 213,
+   "w": [
+    690,
+    690
+   ],
+   "start": 240.12,
+   "end": 240.59,
+   "text": "bisa.",
+   "sentence_end": true
+  },
+  {
+   "n": 214,
+   "w": [
+    691,
+    693
+   ],
+   "start": 240.82,
+   "end": 241.55,
+   "text": "Jadi apa iya?",
+   "sentence_end": true
+  },
+  {
+   "n": 215,
+   "w": [
+    694,
+    695
+   ],
+   "start": 241.65,
+   "end": 242.07,
+   "text": "Kita kita",
+   "sentence_end": false
+  },
+  {
+   "n": 216,
+   "w": [
+    696,
+    696
+   ],
+   "start": 242.21,
+   "end": 242.83,
+   "text": "bisa",
+   "sentence_end": false
+  },
+  {
+   "n": 217,
+   "w": [
+    697,
+    700
+   ],
+   "start": 242.94,
+   "end": 244.37,
+   "text": "merasa kita punya hak",
+   "sentence_end": false
+  },
+  {
+   "n": 218,
+   "w": [
+    701,
+    705
+   ],
+   "start": 244.45,
+   "end": 245.59,
+   "text": "untuk didengar pendapatnya. Di saat",
+   "sentence_end": false
+  },
+  {
+   "n": 219,
+   "w": [
+    706,
+    706
+   ],
+   "start": 245.69,
+   "end": 245.81,
+   "text": "ngerti",
+   "sentence_end": false
+  },
+  {
+   "n": 220,
+   "w": [
+    707,
+    709
+   ],
+   "start": 245.88,
+   "end": 246.46,
+   "text": "hukum aja nggak.",
+   "sentence_end": true
+  },
+  {
+   "n": 221,
+   "w": [
+    710,
+    716
+   ],
+   "start": 246.79,
+   "end": 247.88,
+   "text": "Atau gini deh, nggak usah jauh-jauh deh.",
+   "sentence_end": true
+  },
+  {
+   "n": 222,
+   "w": [
+    717,
+    725
+   ],
+   "start": 248.27,
+   "end": 250.41,
+   "text": "Orang Indonesia aja banyak banget yang nggak ngerti bedanya",
+   "sentence_end": false
+  },
+  {
+   "n": 223,
+   "w": [
+    726,
+    729
+   ],
+   "start": 250.59,
+   "end": 252.32,
+   "text": "nilai korupsi sama nilai",
+   "sentence_end": false
+  },
+  {
+   "n": 224,
+   "w": [
+    730,
+    731
+   ],
+   "start": 252.41,
+   "end": 253.07,
+   "text": "kerugian negara",
+   "sentence_end": false
+  },
+  {
+   "n": 225,
+   "w": [
+    732,
+    732
+   ],
+   "start": 253.23,
+   "end": 253.39,
+   "text": "yang",
+   "sentence_end": false
+  },
+  {
+   "n": 226,
+   "w": [
+    733,
+    733
+   ],
+   "start": 254.22,
+   "end": 255.14,
+   "text": "dihasilkan.",
+   "sentence_end": true
+  },
+  {
+   "n": 227,
+   "w": [
+    734,
+    734
+   ],
+   "start": 255.83,
+   "end": 255.93,
+   "text": "Karena",
+   "sentence_end": false
+  },
+  {
+   "n": 228,
+   "w": [
+    735,
+    739
+   ],
+   "start": 256.0,
+   "end": 257.05,
+   "text": "itu dua hal yang berbeda.",
+   "sentence_end": true
+  },
+  {
+   "n": 229,
+   "w": [
+    740,
+    749
+   ],
+   "start": 257.3,
+   "end": 260.97,
+   "text": "Banyak yang nggak ngerti. Banyak yang nggak bisa bedain. Korupsinya",
+   "sentence_end": false
+  },
+  {
+   "n": 230,
+   "w": [
+    750,
+    766
+   ],
+   "start": 261.07,
+   "end": 267.4,
+   "text": "sekian, kerugian negaranya sekian. Ini bukan angka yang sama. Banyak yang nggak bisa bedain. Jadi orang-orang yang",
+   "sentence_end": false
+  },
+  {
+   "n": 231,
+   "w": [
+    767,
+    771
+   ],
+   "start": 267.49,
+   "end": 271.7,
+   "text": "merasa tuntutan yang dijatuhkan kepada",
+   "sentence_end": false
+  },
+  {
+   "n": 232,
+   "w": [
+    772,
+    772
+   ],
+   "start": 272.02,
+   "end": 272.07,
+   "text": "Nadiem",
+   "sentence_end": false
+  },
+  {
+   "n": 233,
+   "w": [
+    773,
+    774
+   ],
+   "start": 272.13,
+   "end": 273.02,
+   "text": "itu benar,",
+   "sentence_end": false
+  },
+  {
+   "n": 234,
+   "w": [
+    775,
+    776
+   ],
+   "start": 273.12,
+   "end": 273.82,
+   "text": "itu bisa",
+   "sentence_end": false
+  },
+  {
+   "n": 235,
+   "w": [
+    777,
+    777
+   ],
+   "start": 273.91,
+   "end": 273.96,
+   "text": "bilang,\"Tapi",
+   "sentence_end": false
+  },
+  {
+   "n": 236,
+   "w": [
+    778,
+    780
+   ],
+   "start": 274.15,
+   "end": 275.03,
+   "text": "lu nggak ngerti",
+   "sentence_end": false
+  },
+  {
+   "n": 237,
+   "w": [
+    781,
+    781
+   ],
+   "start": 275.12,
+   "end": 275.24,
+   "text": "apa-apa.\"\"Lu",
+   "sentence_end": false
+  },
+  {
+   "n": 238,
+   "w": [
+    782,
+    785
+   ],
+   "start": 275.46,
+   "end": 276.68,
+   "text": "ngerti hukum aja nggak.\"\"Lu",
+   "sentence_end": false
+  },
+  {
+   "n": 239,
+   "w": [
+    786,
+    791
+   ],
+   "start": 276.8,
+   "end": 277.2,
+   "text": "ngerti hukum aja nggak.\" Gitu kan.",
+   "sentence_end": true
+  },
+  {
+   "n": 240,
+   "w": [
+    792,
+    793
+   ],
+   "start": 277.3,
+   "end": 277.82,
+   "text": "Dan kita",
+   "sentence_end": false
+  },
+  {
+   "n": 241,
+   "w": [
+    794,
+    798
+   ],
+   "start": 277.96,
+   "end": 279.36,
+   "text": "frustrasi karena dari kacamata kita,\"Aduh,",
+   "sentence_end": false
+  },
+  {
+   "n": 242,
+   "w": [
+    799,
+    810
+   ],
+   "start": 279.5,
+   "end": 282.22,
+   "text": "itu nggak masuk akal banget itu.\" Sama kayak kalau misalnya kita ngeliat,\"Gila,",
+   "sentence_end": false
+  },
+  {
+   "n": 243,
+   "w": [
+    811,
+    815
+   ],
+   "start": 282.34,
+   "end": 284.07,
+   "text": "masa nggak handsball? Itu handsball",
+   "sentence_end": false
+  },
+  {
+   "n": 244,
+   "w": [
+    816,
+    817
+   ],
+   "start": 284.15,
+   "end": 284.64,
+   "text": "itu. Itu",
+   "sentence_end": false
+  },
+  {
+   "n": 245,
+   "w": [
+    818,
+    820
+   ],
+   "start": 284.84,
+   "end": 285.89,
+   "text": "kelihatan banget handsball.",
+   "sentence_end": true
+  },
+  {
+   "n": 246,
+   "w": [
+    821,
+    825
+   ],
+   "start": 285.96,
+   "end": 287.26,
+   "text": "Di VAR juga kelihatan handsball",
+   "sentence_end": false
+  },
+  {
+   "n": 247,
+   "w": [
+    826,
+    827
+   ],
+   "start": 287.34,
+   "end": 287.86,
+   "text": "gitu kan.\"",
+   "sentence_end": true
+  },
+  {
+   "n": 248,
+   "w": [
+    828,
+    831
+   ],
+   "start": 288.08,
+   "end": 288.96,
+   "text": "Tapi kan abis itu,",
+   "sentence_end": false
+  },
+  {
+   "n": 249,
+   "w": [
+    832,
+    838
+   ],
+   "start": 289.05,
+   "end": 290.64,
+   "text": "orang yang di lapangan atau wasit atau",
+   "sentence_end": false
+  },
+  {
+   "n": 250,
+   "w": [
+    839,
+    842
+   ],
+   "start": 290.76,
+   "end": 292.01,
+   "text": "penyelenggara pertandingan akan bilang,\"Kerja",
+   "sentence_end": false
+  },
+  {
+   "n": 251,
+   "w": [
+    843,
+    844
+   ],
+   "start": 292.12,
+   "end": 292.63,
+   "text": "lu apa",
+   "sentence_end": false
+  },
+  {
+   "n": 252,
+   "w": [
+    845,
+    848
+   ],
+   "start": 292.71,
+   "end": 293.37,
+   "text": "sebenarnya?\"\"Kerja lu apa sebenarnya?\"",
+   "sentence_end": true
+  },
+  {
+   "n": 253,
+   "w": [
+    849,
+    851
+   ],
+   "start": 293.54,
+   "end": 294.39,
+   "text": "Kalau ini emang",
+   "sentence_end": false
+  },
+  {
+   "n": 254,
+   "w": [
+    852,
+    855
+   ],
+   "start": 294.61,
+   "end": 296.77,
+   "text": "kerjanya di bidang ini.",
+   "sentence_end": true
+  },
+  {
+   "n": 255,
+   "w": [
+    856,
+    856
+   ],
+   "start": 296.88,
+   "end": 297.47,
+   "text": "Emang",
+   "sentence_end": false
+  },
+  {
+   "n": 256,
+   "w": [
+    857,
+    859
+   ],
+   "start": 297.63,
+   "end": 298.61,
+   "text": "emang sekolahnya di",
+   "sentence_end": false
+  },
+  {
+   "n": 257,
+   "w": [
+    860,
+    861
+   ],
+   "start": 298.7,
+   "end": 299.31,
+   "text": "bidang ini.",
+   "sentence_end": true
+  },
+  {
+   "n": 258,
+   "w": [
+    862,
+    863
+   ],
+   "start": 299.52,
+   "end": 300.33,
+   "text": "Dia kompeten.",
+   "sentence_end": true
+  },
+  {
+   "n": 259,
+   "w": [
+    864,
+    866
+   ],
+   "start": 300.43,
+   "end": 301.28,
+   "text": "Lu kompetensinya apa?",
+   "sentence_end": true
+  },
+  {
+   "n": 260,
+   "w": [
+    867,
+    868
+   ],
+   "start": 301.35,
+   "end": 301.79,
+   "text": "Kan gitu.",
+   "sentence_end": true
+  },
+  {
+   "n": 261,
+   "w": [
+    869,
+    879
+   ],
+   "start": 302.03,
+   "end": 304.15,
+   "text": "Karena kan kita tahu kan di internet memang ada masalah the",
+   "sentence_end": false
+  },
+  {
+   "n": 262,
+   "w": [
+    880,
+    882
+   ],
+   "start": 304.3,
+   "end": 305.32,
+   "text": "death of expertise.",
+   "sentence_end": true
+  },
+  {
+   "n": 263,
+   "w": [
+    883,
+    884
+   ],
+   "start": 305.51,
+   "end": 306.17,
+   "text": "Orang-orang yang",
+   "sentence_end": false
+  },
+  {
+   "n": 264,
+   "w": [
+    885,
+    885
+   ],
+   "start": 306.3,
+   "end": 306.5,
+   "text": "punya",
+   "sentence_end": false
+  },
+  {
+   "n": 265,
+   "w": [
+    886,
+    886
+   ],
+   "start": 306.58,
+   "end": 307.48,
+   "text": "kemampuan",
+   "sentence_end": false
+  },
+  {
+   "n": 266,
+   "w": [
+    887,
+    889
+   ],
+   "start": 307.59,
+   "end": 308.42,
+   "text": "tapi nggak terkenal,",
+   "sentence_end": false
+  },
+  {
+   "n": 267,
+   "w": [
+    890,
+    897
+   ],
+   "start": 308.6,
+   "end": 310.4,
+   "text": "kalah sama yang terkenal tapi nggak punya kemampuan.",
+   "sentence_end": true
+  },
+  {
+   "n": 268,
+   "w": [
+    898,
+    901
+   ],
+   "start": 310.57,
+   "end": 311.41,
+   "text": "Itu masalah juga loh.",
+   "sentence_end": true
+  },
+  {
+   "n": 269,
+   "w": [
+    902,
+    902
+   ],
+   "start": 311.69,
+   "end": 311.97,
+   "text": "Kan",
+   "sentence_end": false
+  },
+  {
+   "n": 270,
+   "w": [
+    903,
+    904
+   ],
+   "start": 312.07,
+   "end": 312.62,
+   "text": "bukan berarti",
+   "sentence_end": false
+  },
+  {
+   "n": 271,
+   "w": [
+    905,
+    918
+   ],
+   "start": 312.69,
+   "end": 315.95,
+   "text": "dia terkenal kebenaran opini nya benar. Bukan berarti karena dia panji pergi waksono, terus",
+   "sentence_end": false
+  },
+  {
+   "n": 272,
+   "w": [
+    919,
+    929
+   ],
+   "start": 316.09,
+   "end": 318.16,
+   "text": "orang yang terkenal banget kalau dia ngomong benar. Kan nggak juga.",
+   "sentence_end": true
+  },
+  {
+   "n": 273,
+   "w": [
+    930,
+    933
+   ],
+   "start": 318.42,
+   "end": 319.23,
+   "text": "Dan bukan berarti orang",
+   "sentence_end": false
+  },
+  {
+   "n": 274,
+   "w": [
+    934,
+    936
+   ],
+   "start": 319.39,
+   "end": 320.42,
+   "text": "yang nggak terkenal,",
+   "sentence_end": false
+  },
+  {
+   "n": 275,
+   "w": [
+    937,
+    942
+   ],
+   "start": 320.49,
+   "end": 321.74,
+   "text": "kemudian omongannya nggak perlu di dengerin.",
+   "sentence_end": true
+  },
+  {
+   "n": 276,
+   "w": [
+    943,
+    955
+   ],
+   "start": 322.07,
+   "end": 324.73,
+   "text": "Kalau misalnya dia kompeten, harusnya dia di dengerin. Kan gitu kan poinnya kan.",
+   "sentence_end": true
+  },
+  {
+   "n": 277,
+   "w": [
+    956,
+    956
+   ],
+   "start": 324.98,
+   "end": 325.36,
+   "text": "Akhirnya,",
+   "sentence_end": false
+  },
+  {
+   "n": 278,
+   "w": [
+    957,
+    957
+   ],
+   "start": 325.58,
+   "end": 326.27,
+   "text": "apapun",
+   "sentence_end": false
+  },
+  {
+   "n": 279,
+   "w": [
+    958,
+    961
+   ],
+   "start": 326.39,
+   "end": 327.3,
+   "text": "aktivisme yang kita lakukan,",
+   "sentence_end": false
+  },
+  {
+   "n": 280,
+   "w": [
+    962,
+    964
+   ],
+   "start": 327.4,
+   "end": 328.65,
+   "text": "apapun perjuangan kita,",
+   "sentence_end": false
+  },
+  {
+   "n": 281,
+   "w": [
+    965,
+    971
+   ],
+   "start": 328.74,
+   "end": 330.74,
+   "text": "apapun kekritisan kita, nggak bisa mengubah apa-apa.",
+   "sentence_end": true
+  },
+  {
+   "n": 282,
+   "w": [
+    972,
+    976
+   ],
+   "start": 331.08,
+   "end": 331.83,
+   "text": "Karena kita di luar dan",
+   "sentence_end": false
+  },
+  {
+   "n": 283,
+   "w": [
+    977,
+    980
+   ],
+   "start": 332.0,
+   "end": 332.98,
+   "text": "mereka di dalam. Tentu,",
+   "sentence_end": false
+  },
+  {
+   "n": 284,
+   "w": [
+    981,
+    981
+   ],
+   "start": 333.12,
+   "end": 333.37,
+   "text": "tentu.",
+   "sentence_end": true
+  },
+  {
+   "n": 285,
+   "w": [
+    982,
+    985
+   ],
+   "start": 333.56,
+   "end": 334.6,
+   "text": "Seperti halnya sepak bola,",
+   "sentence_end": false
+  },
+  {
+   "n": 286,
+   "w": [
+    986,
+    989
+   ],
+   "start": 334.76,
+   "end": 336.09,
+   "text": "ada aja yang dibayar.",
+   "sentence_end": true
+  },
+  {
+   "n": 287,
+   "w": [
+    990,
+    993
+   ],
+   "start": 336.74,
+   "end": 339.46,
+   "text": "Ada aja yang disogok.",
+   "sentence_end": true
+  },
+  {
+   "n": 288,
+   "w": [
+    994,
+    997
+   ],
+   "start": 339.65,
+   "end": 340.61,
+   "text": "Tentu. Tapi itu kan",
+   "sentence_end": false
+  },
+  {
+   "n": 289,
+   "w": [
+    998,
+    1000
+   ],
+   "start": 340.7,
+   "end": 341.42,
+   "text": "hal yang berbeda.",
+   "sentence_end": true
+  },
+  {
+   "n": 290,
+   "w": [
+    1001,
+    1005
+   ],
+   "start": 341.53,
+   "end": 342.98,
+   "text": "Itu akan ketahuan kemudian hari.",
+   "sentence_end": true
+  },
+  {
+   "n": 291,
+   "w": [
+    1006,
+    1017
+   ],
+   "start": 343.08,
+   "end": 348.65,
+   "text": "Lo nggak bisa hanya karena lo nggak suka dengan keputusannya atau dengan",
+   "sentence_end": false
+  },
+  {
+   "n": 292,
+   "w": [
+    1018,
+    1039
+   ],
+   "start": 348.78,
+   "end": 357.33,
+   "text": "tuntutan yang dijatuhkan, terus lo nggak suka terus lo duduk, pasti dibayar. Nggak bisa juga. Kita nggak akan jadi rakyat yang benar",
+   "sentence_end": false
+  },
+  {
+   "n": 293,
+   "w": [
+    1040,
+    1040
+   ],
+   "start": 357.42,
+   "end": 357.54,
+   "text": "dan",
+   "sentence_end": false
+  },
+  {
+   "n": 294,
+   "w": [
+    1041,
+    1042
+   ],
+   "start": 357.68,
+   "end": 359.5,
+   "text": "nggak punya",
+   "sentence_end": false
+  },
+  {
+   "n": 295,
+   "w": [
+    1043,
+    1044
+   ],
+   "start": 359.63,
+   "end": 361.39,
+   "text": "nggak punya...",
+   "sentence_end": true
+  },
+  {
+   "n": 296,
+   "w": [
+    1045,
+    1045
+   ],
+   "start": 361.48,
+   "end": 361.87,
+   "text": "apa",
+   "sentence_end": false
+  },
+  {
+   "n": 297,
+   "w": [
+    1046,
+    1051
+   ],
+   "start": 362.05,
+   "end": 363.78,
+   "text": "ya, keadilan sejak dalam pikiran gitu.",
+   "sentence_end": true
+  },
+  {
+   "n": 298,
+   "w": [
+    1052,
+    1057
+   ],
+   "start": 363.89,
+   "end": 365.44,
+   "text": "Kita mesti punya kemampuan untuk objektif,",
+   "sentence_end": false
+  },
+  {
+   "n": 299,
+   "w": [
+    1058,
+    1060
+   ],
+   "start": 365.55,
+   "end": 365.87,
+   "text": "kita mesti punya",
+   "sentence_end": false
+  },
+  {
+   "n": 300,
+   "w": [
+    1061,
+    1064
+   ],
+   "start": 365.96,
+   "end": 367.43,
+   "text": "kemampuan untuk adil gitu.",
+   "sentence_end": true
+  },
+  {
+   "n": 301,
+   "w": [
+    1065,
+    1065
+   ],
+   "start": 367.62,
+   "end": 367.67,
+   "text": "Kita",
+   "sentence_end": false
+  },
+  {
+   "n": 302,
+   "w": [
+    1066,
+    1067
+   ],
+   "start": 367.76,
+   "end": 368.44,
+   "text": "nggak bisa",
+   "sentence_end": false
+  },
+  {
+   "n": 303,
+   "w": [
+    1068,
+    1075
+   ],
+   "start": 368.61,
+   "end": 371.7,
+   "text": "langsung\"Oh ini pasti dibayar nih\" atau\"Wasit dibayar nih,",
+   "sentence_end": false
+  },
+  {
+   "n": 304,
+   "w": [
+    1076,
+    1076
+   ],
+   "start": 371.85,
+   "end": 372.2,
+   "text": "parah",
+   "sentence_end": false
+  },
+  {
+   "n": 305,
+   "w": [
+    1077,
+    1078
+   ],
+   "start": 372.35,
+   "end": 372.96,
+   "text": "nih, kacau.\"",
+   "sentence_end": true
+  },
+  {
+   "n": 306,
+   "w": [
+    1079,
+    1083
+   ],
+   "start": 373.06,
+   "end": 373.87,
+   "text": "Nggak bisa kayak gitu juga.",
+   "sentence_end": true
+  },
+  {
+   "n": 307,
+   "w": [
+    1084,
+    1087
+   ],
+   "start": 374.07,
+   "end": 375.69,
+   "text": "Ada lagi pembuktiannya nanti,",
+   "sentence_end": false
+  },
+  {
+   "n": 308,
+   "w": [
+    1088,
+    1089
+   ],
+   "start": 375.76,
+   "end": 376.01,
+   "text": "tapi untuk",
+   "sentence_end": false
+  },
+  {
+   "n": 309,
+   "w": [
+    1090,
+    1091
+   ],
+   "start": 376.3,
+   "end": 376.87,
+   "text": "saat ini,",
+   "sentence_end": false
+  },
+  {
+   "n": 310,
+   "w": [
+    1092,
+    1093
+   ],
+   "start": 376.96,
+   "end": 377.44,
+   "text": "tanpa bukti,",
+   "sentence_end": false
+  },
+  {
+   "n": 311,
+   "w": [
+    1094,
+    1095
+   ],
+   "start": 377.56,
+   "end": 378.54,
+   "text": "tanpa kepastian,",
+   "sentence_end": false
+  },
+  {
+   "n": 312,
+   "w": [
+    1096,
+    1096
+   ],
+   "start": 378.63,
+   "end": 378.99,
+   "text": "lo",
+   "sentence_end": false
+  },
+  {
+   "n": 313,
+   "w": [
+    1097,
+    1098
+   ],
+   "start": 379.09,
+   "end": 379.68,
+   "text": "nggak bisa",
+   "sentence_end": false
+  },
+  {
+   "n": 314,
+   "w": [
+    1099,
+    1100
+   ],
+   "start": 379.79,
+   "end": 380.4,
+   "text": "menuduh itu.",
+   "sentence_end": true
+  },
+  {
+   "n": 315,
+   "w": [
+    1101,
+    1102
+   ],
+   "start": 380.57,
+   "end": 381.16,
+   "text": "Peluangnya ada,",
+   "sentence_end": false
+  },
+  {
+   "n": 316,
+   "w": [
+    1103,
+    1105
+   ],
+   "start": 381.3,
+   "end": 381.89,
+   "text": "tapi belum tentu.",
+   "sentence_end": true
+  },
+  {
+   "n": 317,
+   "w": [
+    1106,
+    1109
+   ],
+   "start": 382.12,
+   "end": 383.08,
+   "text": "Dan akhirnya kita frustrasi.",
+   "sentence_end": true
+  },
+  {
+   "n": 318,
+   "w": [
+    1110,
+    1113
+   ],
+   "start": 383.32,
+   "end": 384.27,
+   "text": "Mungkin kita bisa bilang,\"Ya",
+   "sentence_end": false
+  },
+  {
+   "n": 319,
+   "w": [
+    1114,
+    1130
+   ],
+   "start": 384.39,
+   "end": 388.2,
+   "text": "udah deh, kalau misalnya nggak percaya sama Panji, nggak percaya sama Ferry Ruwandi, nggak percaya sama orang-orang",
+   "sentence_end": false
+  },
+  {
+   "n": 320,
+   "w": [
+    1131,
+    1133
+   ],
+   "start": 388.35,
+   "end": 389.61,
+   "text": "lain gitu ya,",
+   "sentence_end": false
+  },
+  {
+   "n": 321,
+   "w": [
+    1134,
+    1137
+   ],
+   "start": 389.8,
+   "end": 390.46,
+   "text": "ya udah kalau gitu.\"",
+   "sentence_end": true
+  },
+  {
+   "n": 322,
+   "w": [
+    1138,
+    1150
+   ],
+   "start": 390.62,
+   "end": 393.33,
+   "text": "Kita dengerin pendapat orang-orang yang kompeten, karena ada di luar sana yang kompeten",
+   "sentence_end": false
+  },
+  {
+   "n": 323,
+   "w": [
+    1151,
+    1156
+   ],
+   "start": 393.4,
+   "end": 394.8,
+   "text": "dan bilang bahwa sidang Nadiem itu",
+   "sentence_end": false
+  },
+  {
+   "n": 324,
+   "w": [
+    1157,
+    1160
+   ],
+   "start": 394.98,
+   "end": 395.77,
+   "text": "nggak bener gitu ya.",
+   "sentence_end": true
+  },
+  {
+   "n": 325,
+   "w": [
+    1161,
+    1161
+   ],
+   "start": 395.84,
+   "end": 396.21,
+   "text": "Kayak",
+   "sentence_end": false
+  },
+  {
+   "n": 326,
+   "w": [
+    1162,
+    1163
+   ],
+   "start": 396.34,
+   "end": 397.04,
+   "text": "misalkan kalau",
+   "sentence_end": false
+  },
+  {
+   "n": 327,
+   "w": [
+    1164,
+    1168
+   ],
+   "start": 397.18,
+   "end": 398.34,
+   "text": "Mahfud MD, Mahfud MD pro",
+   "sentence_end": false
+  },
+  {
+   "n": 328,
+   "w": [
+    1169,
+    1169
+   ],
+   "start": 398.41,
+   "end": 398.91,
+   "text": "bahkan.",
+   "sentence_end": true
+  },
+  {
+   "n": 329,
+   "w": [
+    1170,
+    1171
+   ],
+   "start": 398.99,
+   "end": 399.47,
+   "text": "Mahfud MD",
+   "sentence_end": false
+  },
+  {
+   "n": 330,
+   "w": [
+    1172,
+    1174
+   ],
+   "start": 399.75,
+   "end": 400.56,
+   "text": "kompeten dan pro.",
+   "sentence_end": true
+  },
+  {
+   "n": 331,
+   "w": [
+    1175,
+    1175
+   ],
+   "start": 400.77,
+   "end": 401.55,
+   "text": "Misalnya",
+   "sentence_end": false
+  },
+  {
+   "n": 332,
+   "w": [
+    1176,
+    1181
+   ],
+   "start": 401.69,
+   "end": 404.17,
+   "text": "Proferenel Kasali yang merasa sidangnya aneh.",
+   "sentence_end": true
+  },
+  {
+   "n": 333,
+   "w": [
+    1182,
+    1183
+   ],
+   "start": 404.44,
+   "end": 405.25,
+   "text": "Misalnya Hotman,",
+   "sentence_end": false
+  },
+  {
+   "n": 334,
+   "w": [
+    1184,
+    1187
+   ],
+   "start": 405.38,
+   "end": 406.95,
+   "text": "Hotman Paris juga bilang",
+   "sentence_end": false
+  },
+  {
+   "n": 335,
+   "w": [
+    1188,
+    1195
+   ],
+   "start": 407.1,
+   "end": 409.13,
+   "text": "Nadiem nggak bersalah. Cuma kalau Hotman Paris bawa",
+   "sentence_end": false
+  },
+  {
+   "n": 336,
+   "w": [
+    1196,
+    1197
+   ],
+   "start": 409.28,
+   "end": 409.63,
+   "text": "apa ya,",
+   "sentence_end": false
+  },
+  {
+   "n": 337,
+   "w": [
+    1198,
+    1203
+   ],
+   "start": 409.77,
+   "end": 412.29,
+   "text": "bawa bingkisan sendiri dia bilang bahwa,\"Makanya",
+   "sentence_end": false
+  },
+  {
+   "n": 338,
+   "w": [
+    1204,
+    1214
+   ],
+   "start": 412.39,
+   "end": 414.69,
+   "text": "bayar gue yang bener. Kalau lo bayar gue yang bener, lo",
+   "sentence_end": false
+  },
+  {
+   "n": 339,
+   "w": [
+    1215,
+    1219
+   ],
+   "start": 415.0,
+   "end": 416.49,
+   "text": "bisa selamat.\" Tapi dia bilang",
+   "sentence_end": false
+  },
+  {
+   "n": 340,
+   "w": [
+    1220,
+    1220
+   ],
+   "start": 416.62,
+   "end": 417.15,
+   "text": "bahwa,\"Saya",
+   "sentence_end": false
+  },
+  {
+   "n": 341,
+   "w": [
+    1221,
+    1227
+   ],
+   "start": 417.26,
+   "end": 419.28,
+   "text": "bisa membuktikan bahwa Nadiem itu tidak bersalah.\"",
+   "sentence_end": true
+  },
+  {
+   "n": 342,
+   "w": [
+    1228,
+    1230
+   ],
+   "start": 419.49,
+   "end": 420.0,
+   "text": "Nah jadi kan,",
+   "sentence_end": false
+  },
+  {
+   "n": 343,
+   "w": [
+    1231,
+    1242
+   ],
+   "start": 420.15,
+   "end": 422.81,
+   "text": "lo bisa bilang,\"Ya udah kalau gitu. Kita dengerin aja opini orang-orang yang",
+   "sentence_end": false
+  },
+  {
+   "n": 344,
+   "w": [
+    1243,
+    1243
+   ],
+   "start": 423.0,
+   "end": 423.38,
+   "text": "kompeten",
+   "sentence_end": false
+  },
+  {
+   "n": 345,
+   "w": [
+    1244,
+    1251
+   ],
+   "start": 423.45,
+   "end": 425.74,
+   "text": "dan orang-orang yang terkenal. Kita percaya sama dia.\"",
+   "sentence_end": true
+  },
+  {
+   "n": 346,
+   "w": [
+    1252,
+    1259
+   ],
+   "start": 425.81,
+   "end": 427.12,
+   "text": "Tapi itu kan sama kayak sepak bola juga.",
+   "sentence_end": true
+  },
+  {
+   "n": 347,
+   "w": [
+    1260,
+    1261
+   ],
+   "start": 427.36,
+   "end": 428.0,
+   "text": "Kadang-kadang, karena",
+   "sentence_end": false
+  },
+  {
+   "n": 348,
+   "w": [
+    1262,
+    1269
+   ],
+   "start": 428.16,
+   "end": 430.72,
+   "text": "kita nggak percaya pendapatnya Panji, nggak percaya pendapatnya",
+   "sentence_end": false
+  },
+  {
+   "n": 349,
+   "w": [
+    1270,
+    1280
+   ],
+   "start": 430.83,
+   "end": 433.35,
+   "text": "orang-orang lain di dunia sepak bola karena nggak tau sepak bola,",
+   "sentence_end": false
+  },
+  {
+   "n": 350,
+   "w": [
+    1281,
+    1285
+   ],
+   "start": 433.65,
+   "end": 434.95,
+   "text": "kita percaya sama orang-orang kayak",
+   "sentence_end": false
+  },
+  {
+   "n": 351,
+   "w": [
+    1286,
+    1286
+   ],
+   "start": 435.07,
+   "end": 435.7,
+   "text": "Gary",
+   "sentence_end": false
+  },
+  {
+   "n": 352,
+   "w": [
+    1287,
+    1287
+   ],
+   "start": 435.86,
+   "end": 436.64,
+   "text": "Neville,",
+   "sentence_end": false
+  },
+  {
+   "n": 353,
+   "w": [
+    1288,
+    1289
+   ],
+   "start": 436.76,
+   "end": 438.03,
+   "text": "Michael Richards,",
+   "sentence_end": false
+  },
+  {
+   "n": 354,
+   "w": [
+    1290,
+    1290
+   ],
+   "start": 438.15,
+   "end": 438.33,
+   "text": "atau",
+   "sentence_end": false
+  },
+  {
+   "n": 355,
+   "w": [
+    1291,
+    1292
+   ],
+   "start": 438.4,
+   "end": 439.24,
+   "text": "Thierry Henry,",
+   "sentence_end": false
+  },
+  {
+   "n": 356,
+   "w": [
+    1293,
+    1293
+   ],
+   "start": 439.37,
+   "end": 440.36,
+   "text": "atau",
+   "sentence_end": false
+  },
+  {
+   "n": 357,
+   "w": [
+    1294,
+    1294
+   ],
+   "start": 440.49,
+   "end": 441.33,
+   "text": "Ger.",
+   "sentence_end": true
+  },
+  {
+   "n": 358,
+   "w": [
+    1295,
+    1297
+   ],
+   "start": 441.6,
+   "end": 442.14,
+   "text": "Kita dengerin nih,",
+   "sentence_end": false
+  },
+  {
+   "n": 359,
+   "w": [
+    1298,
+    1301
+   ],
+   "start": 442.23,
+   "end": 443.78,
+   "text": "pundit-pundit yang terkenal ini.",
+   "sentence_end": true
+  },
+  {
+   "n": 360,
+   "w": [
+    1302,
+    1305
+   ],
+   "start": 443.93,
+   "end": 445.16,
+   "text": "Kita dengerin pendapatnya mereka.",
+   "sentence_end": true
+  },
+  {
+   "n": 361,
+   "w": [
+    1306,
+    1309
+   ],
+   "start": 445.36,
+   "end": 446.65,
+   "text": "Itu pun mereka bersebrangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 362,
+   "w": [
+    1310,
+    1317
+   ],
+   "start": 447.67,
+   "end": 449.54,
+   "text": "Ya nggak, mereka bersebrangan. Kadang-kadang mereka nebat ya,",
+   "sentence_end": false
+  },
+  {
+   "n": 363,
+   "w": [
+    1318,
+    1319
+   ],
+   "start": 449.62,
+   "end": 450.28,
+   "text": "Kara sama",
+   "sentence_end": false
+  },
+  {
+   "n": 364,
+   "w": [
+    1320,
+    1320
+   ],
+   "start": 450.37,
+   "end": 450.83,
+   "text": "Gary",
+   "sentence_end": false
+  },
+  {
+   "n": 365,
+   "w": [
+    1321,
+    1323
+   ],
+   "start": 451.0,
+   "end": 452.15,
+   "text": "bersebrangan. Sama kayak",
+   "sentence_end": false
+  },
+  {
+   "n": 366,
+   "w": [
+    1324,
+    1329
+   ],
+   "start": 452.43,
+   "end": 454.64,
+   "text": "pendapatnya Mahfud MD sama pendapatnya misalkan",
+   "sentence_end": false
+  },
+  {
+   "n": 367,
+   "w": [
+    1330,
+    1333
+   ],
+   "start": 454.92,
+   "end": 456.15,
+   "text": "Prof. Reynald atau misalnya",
+   "sentence_end": false
+  },
+  {
+   "n": 368,
+   "w": [
+    1334,
+    1334
+   ],
+   "start": 456.26,
+   "end": 456.63,
+   "text": "Hotman,",
+   "sentence_end": false
+  },
+  {
+   "n": 369,
+   "w": [
+    1335,
+    1336
+   ],
+   "start": 456.87,
+   "end": 457.25,
+   "text": "Hotman bersebrangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 370,
+   "w": [
+    1337,
+    1342
+   ],
+   "start": 457.38,
+   "end": 458.77,
+   "text": "Terus kita mau percaya sama siapa?",
+   "sentence_end": true
+  },
+  {
+   "n": 371,
+   "w": [
+    1343,
+    1345
+   ],
+   "start": 458.96,
+   "end": 459.54,
+   "text": "Dan lagi pula,",
+   "sentence_end": false
+  },
+  {
+   "n": 372,
+   "w": [
+    1346,
+    1357
+   ],
+   "start": 459.69,
+   "end": 462.03,
+   "text": "nggak harus juga mau percaya sama yang ini, mau percaya sama itu.",
+   "sentence_end": true
+  },
+  {
+   "n": 373,
+   "w": [
+    1358,
+    1360
+   ],
+   "start": 462.1,
+   "end": 463.31,
+   "text": "Ujung-ujungnya di persidangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 374,
+   "w": [
+    1361,
+    1361
+   ],
+   "start": 463.55,
+   "end": 463.83,
+   "text": "Dan",
+   "sentence_end": false
+  },
+  {
+   "n": 375,
+   "w": [
+    1362,
+    1367
+   ],
+   "start": 464.02,
+   "end": 465.4,
+   "text": "lagi-lagi itu membuat kita frustrasi karena",
+   "sentence_end": false
+  },
+  {
+   "n": 376,
+   "w": [
+    1368,
+    1370
+   ],
+   "start": 465.5,
+   "end": 466.28,
+   "text": "kita takut kan.",
+   "sentence_end": true
+  },
+  {
+   "n": 377,
+   "w": [
+    1371,
+    1374
+   ],
+   "start": 466.45,
+   "end": 467.75,
+   "text": "Kayak kalau kayak begini",
+   "sentence_end": false
+  },
+  {
+   "n": 378,
+   "w": [
+    1375,
+    1377
+   ],
+   "start": 467.86,
+   "end": 468.5,
+   "text": "kayak apa tuh",
+   "sentence_end": false
+  },
+  {
+   "n": 379,
+   "w": [
+    1378,
+    1379
+   ],
+   "start": 468.65,
+   "end": 469.43,
+   "text": "putusannya nanti?",
+   "sentence_end": true
+  },
+  {
+   "n": 380,
+   "w": [
+    1380,
+    1384
+   ],
+   "start": 469.55,
+   "end": 470.53,
+   "text": "Itu yang jadi pinggiran. Kayak",
+   "sentence_end": false
+  },
+  {
+   "n": 381,
+   "w": [
+    1385,
+    1390
+   ],
+   "start": 470.89,
+   "end": 472.12,
+   "text": "contohnya Ibham ya, Ibham itu kan",
+   "sentence_end": false
+  },
+  {
+   "n": 382,
+   "w": [
+    1391,
+    1394
+   ],
+   "start": 472.26,
+   "end": 473.64,
+   "text": "ketika tuntutan 22 tahun.",
+   "sentence_end": true
+  },
+  {
+   "n": 383,
+   "w": [
+    1395,
+    1398
+   ],
+   "start": 473.93,
+   "end": 474.88,
+   "text": "Tapi ketika vonis 4.",
+   "sentence_end": true
+  },
+  {
+   "n": 384,
+   "w": [
+    1399,
+    1403
+   ],
+   "start": 475.11,
+   "end": 476.26,
+   "text": "Ini juga nih, tuntutannya 18+",
+   "sentence_end": false
+  },
+  {
+   "n": 385,
+   "w": [
+    1404,
+    1406
+   ],
+   "start": 476.41,
+   "end": 477.9,
+   "text": "9= 27 tahun.",
+   "sentence_end": true
+  },
+  {
+   "n": 386,
+   "w": [
+    1407,
+    1411
+   ],
+   "start": 478.28,
+   "end": 479.06,
+   "text": "Tapi kita nggak tau nih,",
+   "sentence_end": false
+  },
+  {
+   "n": 387,
+   "w": [
+    1412,
+    1413
+   ],
+   "start": 479.28,
+   "end": 480.21,
+   "text": "vonisnya berapa.",
+   "sentence_end": true
+  },
+  {
+   "n": 388,
+   "w": [
+    1414,
+    1414
+   ],
+   "start": 480.46,
+   "end": 480.8,
+   "text": "Tapi",
+   "sentence_end": false
+  },
+  {
+   "n": 389,
+   "w": [
+    1415,
+    1417
+   ],
+   "start": 480.92,
+   "end": 482.05,
+   "text": "apapun komentar kita,",
+   "sentence_end": false
+  },
+  {
+   "n": 390,
+   "w": [
+    1418,
+    1419
+   ],
+   "start": 482.14,
+   "end": 482.92,
+   "text": "apapun yang",
+   "sentence_end": false
+  },
+  {
+   "n": 391,
+   "w": [
+    1420,
+    1422
+   ],
+   "start": 483.04,
+   "end": 484.6,
+   "text": "nonton video ini,",
+   "sentence_end": false
+  },
+  {
+   "n": 392,
+   "w": [
+    1423,
+    1427
+   ],
+   "start": 484.75,
+   "end": 486.51,
+   "text": "18 juta juga nggak ngaruh.",
+   "sentence_end": true
+  },
+  {
+   "n": 393,
+   "w": [
+    1428,
+    1434
+   ],
+   "start": 486.77,
+   "end": 488.48,
+   "text": "Karena ujung-ujungnya apa yang terjadi di persidangan.",
+   "sentence_end": true
+  },
+  {
+   "n": 394,
+   "w": [
+    1435,
+    1437
+   ],
+   "start": 489.08,
+   "end": 489.81,
+   "text": "Terus kita bertanya-tanya.",
+   "sentence_end": true
+  },
+  {
+   "n": 395,
+   "w": [
+    1438,
+    1441
+   ],
+   "start": 490.0,
+   "end": 491.27,
+   "text": "Suram banget dong Indonesia.",
+   "sentence_end": true
+  },
+  {
+   "n": 396,
+   "w": [
+    1442,
+    1444
+   ],
+   "start": 491.5,
+   "end": 492.51,
+   "text": "Sekilas kelihatannya iya.",
+   "sentence_end": true
+  },
+  {
+   "n": 397,
+   "w": [
+    1445,
+    1447
+   ],
+   "start": 492.71,
+   "end": 493.46,
+   "text": "Tapi sebenarnya nggak.",
+   "sentence_end": true
+  }
+ ],
+ "gaps": [
+  {
+   "before": 1,
+   "start": 0.16,
+   "end": 0.24
+  },
+  {
+   "before": 5,
+   "start": 1.45,
+   "end": 1.53
+  },
+  {
+   "before": 9,
+   "start": 2.64,
+   "end": 2.77
+  },
+  {
+   "before": 10,
+   "start": 2.97,
+   "end": 3.08
+  },
+  {
+   "before": 14,
+   "start": 4.68,
+   "end": 4.82
+  },
+  {
+   "before": 16,
+   "start": 5.14,
+   "end": 5.25
+  },
+  {
+   "before": 17,
+   "start": 5.68,
+   "end": 5.85
+  },
+  {
+   "before": 22,
+   "start": 8.04,
+   "end": 8.13
+  },
+  {
+   "before": 24,
+   "start": 8.48,
+   "end": 8.67
+  },
+  {
+   "before": 25,
+   "start": 9.11,
+   "end": 9.2
+  },
+  {
+   "before": 30,
+   "start": 10.79,
+   "end": 10.87
+  },
+  {
+   "before": 31,
+   "start": 11.14,
+   "end": 11.35
+  },
+  {
+   "before": 33,
+   "start": 12.17,
+   "end": 12.35
+  },
+  {
+   "before": 34,
+   "start": 12.98,
+   "end": 13.08
+  },
+  {
+   "before": 35,
+   "start": 13.63,
+   "end": 13.73
+  },
+  {
+   "before": 37,
+   "start": 15.23,
+   "end": 15.4
+  },
+  {
+   "before": 38,
+   "start": 17.27,
+   "end": 17.38
+  },
+  {
+   "before": 39,
+   "start": 18.12,
+   "end": 18.21
+  },
+  {
+   "before": 40,
+   "start": 18.72,
+   "end": 18.84
+  },
+  {
+   "before": 42,
+   "start": 19.55,
+   "end": 19.7
+  },
+  {
+   "before": 43,
+   "start": 20.29,
+   "end": 20.38
+  },
+  {
+   "before": 44,
+   "start": 20.53,
+   "end": 20.66
+  },
+  {
+   "before": 46,
+   "start": 21.51,
+   "end": 21.59
+  },
+  {
+   "before": 47,
+   "start": 22.24,
+   "end": 22.35
+  },
+  {
+   "before": 49,
+   "start": 23.41,
+   "end": 23.55
+  },
+  {
+   "before": 50,
+   "start": 23.7,
+   "end": 23.8
+  },
+  {
+   "before": 51,
+   "start": 24.17,
+   "end": 24.47
+  },
+  {
+   "before": 53,
+   "start": 25.74,
+   "end": 25.83
+  },
+  {
+   "before": 55,
+   "start": 27.3,
+   "end": 27.4
+  },
+  {
+   "before": 59,
+   "start": 29.08,
+   "end": 29.16
+  },
+  {
+   "before": 60,
+   "start": 29.37,
+   "end": 29.44
+  },
+  {
+   "before": 62,
+   "start": 29.71,
+   "end": 29.79
+  },
+  {
+   "before": 65,
+   "start": 30.69,
+   "end": 30.91
+  },
+  {
+   "before": 69,
+   "start": 31.94,
+   "end": 32.07
+  },
+  {
+   "before": 70,
+   "start": 32.16,
+   "end": 32.23
+  },
+  {
+   "before": 75,
+   "start": 33.93,
+   "end": 34.09
+  },
+  {
+   "before": 76,
+   "start": 34.49,
+   "end": 34.57
+  },
+  {
+   "before": 80,
+   "start": 36.29,
+   "end": 36.5
+  },
+  {
+   "before": 82,
+   "start": 37.07,
+   "end": 37.26
+  },
+  {
+   "before": 86,
+   "start": 38.16,
+   "end": 38.23
+  },
+  {
+   "before": 87,
+   "start": 38.54,
+   "end": 38.61
+  },
+  {
+   "before": 88,
+   "start": 38.84,
+   "end": 39.0
+  },
+  {
+   "before": 93,
+   "start": 40.24,
+   "end": 40.38
+  },
+  {
+   "before": 94,
+   "start": 40.48,
+   "end": 40.56
+  },
+  {
+   "before": 95,
+   "start": 41.2,
+   "end": 41.34
+  },
+  {
+   "before": 97,
+   "start": 41.57,
+   "end": 41.69
+  },
+  {
+   "before": 99,
+   "start": 42.96,
+   "end": 43.16
+  },
+  {
+   "before": 100,
+   "start": 44.21,
+   "end": 44.32
+  },
+  {
+   "before": 101,
+   "start": 44.72,
+   "end": 44.83
+  },
+  {
+   "before": 103,
+   "start": 46.29,
+   "end": 46.46
+  },
+  {
+   "before": 104,
+   "start": 46.86,
+   "end": 47.15
+  },
+  {
+   "before": 106,
+   "start": 47.67,
+   "end": 47.79
+  },
+  {
+   "before": 108,
+   "start": 48.98,
+   "end": 49.15
+  },
+  {
+   "before": 110,
+   "start": 50.15,
+   "end": 50.28
+  },
+  {
+   "before": 111,
+   "start": 50.4,
+   "end": 50.5
+  },
+  {
+   "before": 116,
+   "start": 52.91,
+   "end": 53.18
+  },
+  {
+   "before": 119,
+   "start": 54.69,
+   "end": 54.87
+  },
+  {
+   "before": 121,
+   "start": 55.52,
+   "end": 55.59
+  },
+  {
+   "before": 125,
+   "start": 56.84,
+   "end": 57.0
+  },
+  {
+   "before": 126,
+   "start": 57.1,
+   "end": 57.19
+  },
+  {
+   "before": 136,
+   "start": 59.81,
+   "end": 59.96
+  },
+  {
+   "before": 144,
+   "start": 62.14,
+   "end": 62.21
+  },
+  {
+   "before": 145,
+   "start": 62.45,
+   "end": 62.7
+  },
+  {
+   "before": 148,
+   "start": 63.72,
+   "end": 63.88
+  },
+  {
+   "before": 153,
+   "start": 64.93,
+   "end": 65.14
+  },
+  {
+   "before": 157,
+   "start": 66.34,
+   "end": 66.59
+  },
+  {
+   "before": 161,
+   "start": 67.78,
+   "end": 67.85
+  },
+  {
+   "before": 171,
+   "start": 70.46,
+   "end": 70.55
+  },
+  {
+   "before": 172,
+   "start": 70.72,
+   "end": 70.8
+  },
+  {
+   "before": 174,
+   "start": 71.52,
+   "end": 71.62
+  },
+  {
+   "before": 181,
+   "start": 73.39,
+   "end": 73.57
+  },
+  {
+   "before": 184,
+   "start": 74.53,
+   "end": 74.67
+  },
+  {
+   "before": 187,
+   "start": 75.48,
+   "end": 75.61
+  },
+  {
+   "before": 190,
+   "start": 76.25,
+   "end": 76.49
+  },
+  {
+   "before": 195,
+   "start": 77.67,
+   "end": 77.87
+  },
+  {
+   "before": 201,
+   "start": 79.7,
+   "end": 79.77
+  },
+  {
+   "before": 203,
+   "start": 80.13,
+   "end": 80.23
+  },
+  {
+   "before": 205,
+   "start": 80.94,
+   "end": 81.11
+  },
+  {
+   "before": 209,
+   "start": 81.8,
+   "end": 81.95
+  },
+  {
+   "before": 210,
+   "start": 82.54,
+   "end": 82.67
+  },
+  {
+   "before": 216,
+   "start": 84.33,
+   "end": 85.18
+  },
+  {
+   "before": 220,
+   "start": 86.0,
+   "end": 86.21
+  },
+  {
+   "before": 223,
+   "start": 86.99,
+   "end": 87.1
+  },
+  {
+   "before": 230,
+   "start": 89.31,
+   "end": 89.46
+  },
+  {
+   "before": 231,
+   "start": 89.54,
+   "end": 89.61
+  },
+  {
+   "before": 232,
+   "start": 90.12,
+   "end": 90.2
+  },
+  {
+   "before": 234,
+   "start": 91.02,
+   "end": 91.11
+  },
+  {
+   "before": 237,
+   "start": 92.28,
+   "end": 92.39
+  },
+  {
+   "before": 241,
+   "start": 93.27,
+   "end": 93.54
+  },
+  {
+   "before": 245,
+   "start": 94.42,
+   "end": 94.6
+  },
+  {
+   "before": 246,
+   "start": 94.99,
+   "end": 95.22
+  },
+  {
+   "before": 250,
+   "start": 95.98,
+   "end": 96.09
+  },
+  {
+   "before": 254,
+   "start": 96.97,
+   "end": 97.17
+  },
+  {
+   "before": 255,
+   "start": 97.77,
+   "end": 97.9
+  },
+  {
+   "before": 258,
+   "start": 99.12,
+   "end": 99.27
+  },
+  {
+   "before": 269,
+   "start": 103.36,
+   "end": 103.49
+  },
+  {
+   "before": 274,
+   "start": 104.69,
+   "end": 104.95
+  },
+  {
+   "before": 276,
+   "start": 105.29,
+   "end": 105.52
+  },
+  {
+   "before": 277,
+   "start": 105.96,
+   "end": 106.13
+  },
+  {
+   "before": 278,
+   "start": 106.96,
+   "end": 107.04
+  },
+  {
+   "before": 283,
+   "start": 108.24,
+   "end": 108.38
+  },
+  {
+   "before": 288,
+   "start": 110.12,
+   "end": 110.31
+  },
+  {
+   "before": 291,
+   "start": 110.56,
+   "end": 110.64
+  },
+  {
+   "before": 292,
+   "start": 111.08,
+   "end": 111.16
+  },
+  {
+   "before": 295,
+   "start": 111.86,
+   "end": 111.94
+  },
+  {
+   "before": 298,
+   "start": 112.64,
+   "end": 112.77
+  },
+  {
+   "before": 300,
+   "start": 113.54,
+   "end": 113.77
+  },
+  {
+   "before": 301,
+   "start": 113.93,
+   "end": 114.02
+  },
+  {
+   "before": 305,
+   "start": 115.36,
+   "end": 115.46
+  },
+  {
+   "before": 308,
+   "start": 116.41,
+   "end": 116.57
+  },
+  {
+   "before": 316,
+   "start": 119.05,
+   "end": 119.3
+  },
+  {
+   "before": 319,
+   "start": 120.25,
+   "end": 120.37
+  },
+  {
+   "before": 322,
+   "start": 121.34,
+   "end": 121.47
+  },
+  {
+   "before": 329,
+   "start": 123.22,
+   "end": 123.39
+  },
+  {
+   "before": 334,
+   "start": 124.11,
+   "end": 124.26
+  },
+  {
+   "before": 335,
+   "start": 124.91,
+   "end": 125.1
+  },
+  {
+   "before": 338,
+   "start": 125.8,
+   "end": 126.03
+  },
+  {
+   "before": 345,
+   "start": 127.7,
+   "end": 127.78
+  },
+  {
+   "before": 348,
+   "start": 128.8,
+   "end": 128.91
+  },
+  {
+   "before": 350,
+   "start": 129.47,
+   "end": 129.57
+  },
+  {
+   "before": 352,
+   "start": 130.28,
+   "end": 130.39
+  },
+  {
+   "before": 353,
+   "start": 131.06,
+   "end": 131.16
+  },
+  {
+   "before": 355,
+   "start": 132.13,
+   "end": 132.24
+  },
+  {
+   "before": 357,
+   "start": 132.88,
+   "end": 133.01
+  },
+  {
+   "before": 359,
+   "start": 133.79,
+   "end": 133.95
+  },
+  {
+   "before": 372,
+   "start": 137.36,
+   "end": 137.47
+  },
+  {
+   "before": 373,
+   "start": 137.82,
+   "end": 137.91
+  },
+  {
+   "before": 381,
+   "start": 139.45,
+   "end": 139.54
+  },
+  {
+   "before": 384,
+   "start": 140.19,
+   "end": 140.41
+  },
+  {
+   "before": 389,
+   "start": 141.57,
+   "end": 141.77
+  },
+  {
+   "before": 392,
+   "start": 142.46,
+   "end": 142.53
+  },
+  {
+   "before": 393,
+   "start": 142.66,
+   "end": 142.77
+  },
+  {
+   "before": 403,
+   "start": 145.78,
+   "end": 145.85
+  },
+  {
+   "before": 409,
+   "start": 146.98,
+   "end": 147.21
+  },
+  {
+   "before": 412,
+   "start": 148.15,
+   "end": 148.38
+  },
+  {
+   "before": 415,
+   "start": 149.16,
+   "end": 149.31
+  },
+  {
+   "before": 416,
+   "start": 149.64,
+   "end": 149.71
+  },
+  {
+   "before": 417,
+   "start": 150.37,
+   "end": 150.5
+  },
+  {
+   "before": 421,
+   "start": 151.71,
+   "end": 151.83
+  },
+  {
+   "before": 426,
+   "start": 154.07,
+   "end": 154.2
+  },
+  {
+   "before": 429,
+   "start": 154.65,
+   "end": 154.81
+  },
+  {
+   "before": 437,
+   "start": 156.5,
+   "end": 156.62
+  },
+  {
+   "before": 440,
+   "start": 157.44,
+   "end": 157.59
+  },
+  {
+   "before": 443,
+   "start": 158.35,
+   "end": 158.47
+  },
+  {
+   "before": 446,
+   "start": 159.58,
+   "end": 159.73
+  },
+  {
+   "before": 450,
+   "start": 160.97,
+   "end": 161.11
+  },
+  {
+   "before": 454,
+   "start": 162.18,
+   "end": 162.25
+  },
+  {
+   "before": 457,
+   "start": 163.21,
+   "end": 163.36
+  },
+  {
+   "before": 458,
+   "start": 163.51,
+   "end": 163.67
+  },
+  {
+   "before": 459,
+   "start": 164.07,
+   "end": 164.15
+  },
+  {
+   "before": 460,
+   "start": 164.45,
+   "end": 164.56
+  },
+  {
+   "before": 465,
+   "start": 166.41,
+   "end": 166.49
+  },
+  {
+   "before": 467,
+   "start": 167.14,
+   "end": 167.35
+  },
+  {
+   "before": 469,
+   "start": 167.74,
+   "end": 167.93
+  },
+  {
+   "before": 471,
+   "start": 168.63,
+   "end": 168.77
+  },
+  {
+   "before": 473,
+   "start": 169.6,
+   "end": 169.85
+  },
+  {
+   "before": 475,
+   "start": 170.38,
+   "end": 170.51
+  },
+  {
+   "before": 477,
+   "start": 171.19,
+   "end": 171.29
+  },
+  {
+   "before": 479,
+   "start": 171.62,
+   "end": 171.71
+  },
+  {
+   "before": 480,
+   "start": 172.52,
+   "end": 172.72
+  },
+  {
+   "before": 487,
+   "start": 174.0,
+   "end": 174.3
+  },
+  {
+   "before": 493,
+   "start": 175.46,
+   "end": 175.58
+  },
+  {
+   "before": 498,
+   "start": 176.84,
+   "end": 176.98
+  },
+  {
+   "before": 503,
+   "start": 178.52,
+   "end": 178.69
+  },
+  {
+   "before": 508,
+   "start": 180.15,
+   "end": 180.41
+  },
+  {
+   "before": 512,
+   "start": 181.01,
+   "end": 181.26
+  },
+  {
+   "before": 519,
+   "start": 183.15,
+   "end": 183.3
+  },
+  {
+   "before": 523,
+   "start": 184.79,
+   "end": 184.9
+  },
+  {
+   "before": 526,
+   "start": 186.0,
+   "end": 186.14
+  },
+  {
+   "before": 527,
+   "start": 186.76,
+   "end": 186.85
+  },
+  {
+   "before": 531,
+   "start": 188.5,
+   "end": 188.69
+  },
+  {
+   "before": 535,
+   "start": 189.48,
+   "end": 189.65
+  },
+  {
+   "before": 541,
+   "start": 191.32,
+   "end": 191.44
+  },
+  {
+   "before": 545,
+   "start": 192.2,
+   "end": 192.37
+  },
+  {
+   "before": 559,
+   "start": 195.71,
+   "end": 195.79
+  },
+  {
+   "before": 560,
+   "start": 196.06,
+   "end": 196.29
+  },
+  {
+   "before": 564,
+   "start": 196.94,
+   "end": 197.02
+  },
+  {
+   "before": 571,
+   "start": 198.45,
+   "end": 198.53
+  },
+  {
+   "before": 573,
+   "start": 199.79,
+   "end": 200.08
+  },
+  {
+   "before": 574,
+   "start": 200.85,
+   "end": 200.93
+  },
+  {
+   "before": 576,
+   "start": 201.65,
+   "end": 201.8
+  },
+  {
+   "before": 584,
+   "start": 203.94,
+   "end": 204.09
+  },
+  {
+   "before": 585,
+   "start": 204.74,
+   "end": 204.95
+  },
+  {
+   "before": 586,
+   "start": 205.78,
+   "end": 205.93
+  },
+  {
+   "before": 589,
+   "start": 206.98,
+   "end": 207.05
+  },
+  {
+   "before": 590,
+   "start": 207.71,
+   "end": 207.82
+  },
+  {
+   "before": 591,
+   "start": 208.21,
+   "end": 208.31
+  },
+  {
+   "before": 594,
+   "start": 209.0,
+   "end": 209.09
+  },
+  {
+   "before": 595,
+   "start": 209.55,
+   "end": 209.62
+  },
+  {
+   "before": 600,
+   "start": 210.89,
+   "end": 211.14
+  },
+  {
+   "before": 605,
+   "start": 212.45,
+   "end": 212.76
+  },
+  {
+   "before": 618,
+   "start": 215.12,
+   "end": 215.27
+  },
+  {
+   "before": 622,
+   "start": 216.74,
+   "end": 216.92
+  },
+  {
+   "before": 629,
+   "start": 218.53,
+   "end": 218.6
+  },
+  {
+   "before": 630,
+   "start": 219.0,
+   "end": 219.12
+  },
+  {
+   "before": 631,
+   "start": 219.43,
+   "end": 219.58
+  },
+  {
+   "before": 636,
+   "start": 220.93,
+   "end": 221.01
+  },
+  {
+   "before": 638,
+   "start": 221.45,
+   "end": 221.55
+  },
+  {
+   "before": 642,
+   "start": 222.56,
+   "end": 222.69
+  },
+  {
+   "before": 644,
+   "start": 223.39,
+   "end": 223.47
+  },
+  {
+   "before": 648,
+   "start": 224.79,
+   "end": 225.07
+  },
+  {
+   "before": 649,
+   "start": 225.42,
+   "end": 225.57
+  },
+  {
+   "before": 652,
+   "start": 227.4,
+   "end": 227.52
+  },
+  {
+   "before": 660,
+   "start": 229.01,
+   "end": 229.26
+  },
+  {
+   "before": 666,
+   "start": 231.96,
+   "end": 232.03
+  },
+  {
+   "before": 667,
+   "start": 232.34,
+   "end": 232.42
+  },
+  {
+   "before": 668,
+   "start": 233.13,
+   "end": 233.27
+  },
+  {
+   "before": 673,
+   "start": 234.66,
+   "end": 234.9
+  },
+  {
+   "before": 675,
+   "start": 235.75,
+   "end": 235.96
+  },
+  {
+   "before": 678,
+   "start": 236.91,
+   "end": 237.05
+  },
+  {
+   "before": 683,
+   "start": 238.16,
+   "end": 238.28
+  },
+  {
+   "before": 690,
+   "start": 239.92,
+   "end": 240.12
+  },
+  {
+   "before": 691,
+   "start": 240.59,
+   "end": 240.82
+  },
+  {
+   "before": 694,
+   "start": 241.55,
+   "end": 241.65
+  },
+  {
+   "before": 696,
+   "start": 242.07,
+   "end": 242.21
+  },
+  {
+   "before": 697,
+   "start": 242.83,
+   "end": 242.94
+  },
+  {
+   "before": 701,
+   "start": 244.37,
+   "end": 244.45
+  },
+  {
+   "before": 706,
+   "start": 245.59,
+   "end": 245.69
+  },
+  {
+   "before": 707,
+   "start": 245.81,
+   "end": 245.88
+  },
+  {
+   "before": 710,
+   "start": 246.46,
+   "end": 246.79
+  },
+  {
+   "before": 717,
+   "start": 247.88,
+   "end": 248.27
+  },
+  {
+   "before": 726,
+   "start": 250.41,
+   "end": 250.59
+  },
+  {
+   "before": 730,
+   "start": 252.32,
+   "end": 252.41
+  },
+  {
+   "before": 732,
+   "start": 253.07,
+   "end": 253.23
+  },
+  {
+   "before": 733,
+   "start": 253.39,
+   "end": 254.22
+  },
+  {
+   "before": 734,
+   "start": 255.14,
+   "end": 255.83
+  },
+  {
+   "before": 735,
+   "start": 255.93,
+   "end": 256.0
+  },
+  {
+   "before": 740,
+   "start": 257.05,
+   "end": 257.3
+  },
+  {
+   "before": 750,
+   "start": 260.97,
+   "end": 261.07
+  },
+  {
+   "before": 767,
+   "start": 267.4,
+   "end": 267.49
+  },
+  {
+   "before": 772,
+   "start": 271.7,
+   "end": 272.02
+  },
+  {
+   "before": 773,
+   "start": 272.03,
+   "end": 272.13
+  },
+  {
+   "before": 775,
+   "start": 273.02,
+   "end": 273.12
+  },
+  {
+   "before": 777,
+   "start": 273.82,
+   "end": 273.91
+  },
+  {
+   "before": 778,
+   "start": 273.92,
+   "end": 274.15
+  },
+  {
+   "before": 781,
+   "start": 275.03,
+   "end": 275.12
+  },
+  {
+   "before": 782,
+   "start": 275.24,
+   "end": 275.46
+  },
+  {
+   "before": 786,
+   "start": 276.68,
+   "end": 276.8
+  },
+  {
+   "before": 792,
+   "start": 277.2,
+   "end": 277.3
+  },
+  {
+   "before": 794,
+   "start": 277.82,
+   "end": 277.96
+  },
+  {
+   "before": 799,
+   "start": 279.36,
+   "end": 279.5
+  },
+  {
+   "before": 811,
+   "start": 282.22,
+   "end": 282.34
+  },
+  {
+   "before": 816,
+   "start": 284.07,
+   "end": 284.15
+  },
+  {
+   "before": 818,
+   "start": 284.64,
+   "end": 284.84
+  },
+  {
+   "before": 821,
+   "start": 285.89,
+   "end": 285.96
+  },
+  {
+   "before": 826,
+   "start": 287.26,
+   "end": 287.34
+  },
+  {
+   "before": 828,
+   "start": 287.86,
+   "end": 288.08
+  },
+  {
+   "before": 832,
+   "start": 288.96,
+   "end": 289.05
+  },
+  {
+   "before": 839,
+   "start": 290.64,
+   "end": 290.76
+  },
+  {
+   "before": 843,
+   "start": 292.01,
+   "end": 292.12
+  },
+  {
+   "before": 845,
+   "start": 292.63,
+   "end": 292.71
+  },
+  {
+   "before": 849,
+   "start": 293.37,
+   "end": 293.54
+  },
+  {
+   "before": 852,
+   "start": 294.39,
+   "end": 294.61
+  },
+  {
+   "before": 856,
+   "start": 296.77,
+   "end": 296.88
+  },
+  {
+   "before": 857,
+   "start": 297.47,
+   "end": 297.63
+  },
+  {
+   "before": 860,
+   "start": 298.61,
+   "end": 298.7
+  },
+  {
+   "before": 862,
+   "start": 299.31,
+   "end": 299.52
+  },
+  {
+   "before": 864,
+   "start": 300.33,
+   "end": 300.43
+  },
+  {
+   "before": 867,
+   "start": 301.28,
+   "end": 301.35
+  },
+  {
+   "before": 869,
+   "start": 301.79,
+   "end": 302.03
+  },
+  {
+   "before": 880,
+   "start": 304.15,
+   "end": 304.3
+  },
+  {
+   "before": 883,
+   "start": 305.32,
+   "end": 305.51
+  },
+  {
+   "before": 885,
+   "start": 306.17,
+   "end": 306.3
+  },
+  {
+   "before": 886,
+   "start": 306.5,
+   "end": 306.58
+  },
+  {
+   "before": 887,
+   "start": 307.48,
+   "end": 307.59
+  },
+  {
+   "before": 890,
+   "start": 308.42,
+   "end": 308.6
+  },
+  {
+   "before": 898,
+   "start": 310.4,
+   "end": 310.57
+  },
+  {
+   "before": 902,
+   "start": 311.41,
+   "end": 311.69
+  },
+  {
+   "before": 903,
+   "start": 311.97,
+   "end": 312.07
+  },
+  {
+   "before": 905,
+   "start": 312.62,
+   "end": 312.69
+  },
+  {
+   "before": 919,
+   "start": 315.95,
+   "end": 316.09
+  },
+  {
+   "before": 930,
+   "start": 318.16,
+   "end": 318.42
+  },
+  {
+   "before": 934,
+   "start": 319.23,
+   "end": 319.39
+  },
+  {
+   "before": 937,
+   "start": 320.42,
+   "end": 320.49
+  },
+  {
+   "before": 943,
+   "start": 321.74,
+   "end": 322.07
+  },
+  {
+   "before": 956,
+   "start": 324.73,
+   "end": 324.98
+  },
+  {
+   "before": 957,
+   "start": 325.36,
+   "end": 325.58
+  },
+  {
+   "before": 958,
+   "start": 326.27,
+   "end": 326.39
+  },
+  {
+   "before": 962,
+   "start": 327.3,
+   "end": 327.4
+  },
+  {
+   "before": 965,
+   "start": 328.65,
+   "end": 328.74
+  },
+  {
+   "before": 972,
+   "start": 330.74,
+   "end": 331.08
+  },
+  {
+   "before": 977,
+   "start": 331.83,
+   "end": 332.0
+  },
+  {
+   "before": 981,
+   "start": 332.98,
+   "end": 333.12
+  },
+  {
+   "before": 982,
+   "start": 333.37,
+   "end": 333.56
+  },
+  {
+   "before": 986,
+   "start": 334.6,
+   "end": 334.76
+  },
+  {
+   "before": 990,
+   "start": 336.09,
+   "end": 336.74
+  },
+  {
+   "before": 994,
+   "start": 339.46,
+   "end": 339.65
+  },
+  {
+   "before": 998,
+   "start": 340.61,
+   "end": 340.7
+  },
+  {
+   "before": 1001,
+   "start": 341.42,
+   "end": 341.53
+  },
+  {
+   "before": 1006,
+   "start": 342.98,
+   "end": 343.08
+  },
+  {
+   "before": 1018,
+   "start": 348.65,
+   "end": 348.78
+  },
+  {
+   "before": 1040,
+   "start": 357.33,
+   "end": 357.42
+  },
+  {
+   "before": 1041,
+   "start": 357.54,
+   "end": 357.68
+  },
+  {
+   "before": 1043,
+   "start": 359.5,
+   "end": 359.63
+  },
+  {
+   "before": 1045,
+   "start": 361.39,
+   "end": 361.48
+  },
+  {
+   "before": 1046,
+   "start": 361.87,
+   "end": 362.05
+  },
+  {
+   "before": 1052,
+   "start": 363.78,
+   "end": 363.89
+  },
+  {
+   "before": 1058,
+   "start": 365.44,
+   "end": 365.55
+  },
+  {
+   "before": 1061,
+   "start": 365.87,
+   "end": 365.96
+  },
+  {
+   "before": 1065,
+   "start": 367.43,
+   "end": 367.62
+  },
+  {
+   "before": 1066,
+   "start": 367.67,
+   "end": 367.76
+  },
+  {
+   "before": 1068,
+   "start": 368.44,
+   "end": 368.61
+  },
+  {
+   "before": 1076,
+   "start": 371.7,
+   "end": 371.85
+  },
+  {
+   "before": 1077,
+   "start": 372.2,
+   "end": 372.35
+  },
+  {
+   "before": 1079,
+   "start": 372.96,
+   "end": 373.06
+  },
+  {
+   "before": 1084,
+   "start": 373.87,
+   "end": 374.07
+  },
+  {
+   "before": 1088,
+   "start": 375.69,
+   "end": 375.76
+  },
+  {
+   "before": 1090,
+   "start": 376.01,
+   "end": 376.3
+  },
+  {
+   "before": 1092,
+   "start": 376.87,
+   "end": 376.96
+  },
+  {
+   "before": 1094,
+   "start": 377.44,
+   "end": 377.56
+  },
+  {
+   "before": 1096,
+   "start": 378.54,
+   "end": 378.63
+  },
+  {
+   "before": 1097,
+   "start": 378.99,
+   "end": 379.09
+  },
+  {
+   "before": 1099,
+   "start": 379.68,
+   "end": 379.79
+  },
+  {
+   "before": 1101,
+   "start": 380.4,
+   "end": 380.57
+  },
+  {
+   "before": 1103,
+   "start": 381.16,
+   "end": 381.3
+  },
+  {
+   "before": 1106,
+   "start": 381.89,
+   "end": 382.12
+  },
+  {
+   "before": 1110,
+   "start": 383.08,
+   "end": 383.32
+  },
+  {
+   "before": 1114,
+   "start": 384.27,
+   "end": 384.39
+  },
+  {
+   "before": 1131,
+   "start": 388.2,
+   "end": 388.35
+  },
+  {
+   "before": 1134,
+   "start": 389.61,
+   "end": 389.8
+  },
+  {
+   "before": 1138,
+   "start": 390.46,
+   "end": 390.62
+  },
+  {
+   "before": 1151,
+   "start": 393.33,
+   "end": 393.4
+  },
+  {
+   "before": 1157,
+   "start": 394.8,
+   "end": 394.98
+  },
+  {
+   "before": 1161,
+   "start": 395.77,
+   "end": 395.84
+  },
+  {
+   "before": 1162,
+   "start": 396.21,
+   "end": 396.34
+  },
+  {
+   "before": 1164,
+   "start": 397.04,
+   "end": 397.18
+  },
+  {
+   "before": 1169,
+   "start": 398.34,
+   "end": 398.41
+  },
+  {
+   "before": 1170,
+   "start": 398.91,
+   "end": 398.99
+  },
+  {
+   "before": 1172,
+   "start": 399.47,
+   "end": 399.75
+  },
+  {
+   "before": 1175,
+   "start": 400.56,
+   "end": 400.77
+  },
+  {
+   "before": 1176,
+   "start": 401.55,
+   "end": 401.69
+  },
+  {
+   "before": 1182,
+   "start": 404.17,
+   "end": 404.44
+  },
+  {
+   "before": 1184,
+   "start": 405.25,
+   "end": 405.38
+  },
+  {
+   "before": 1188,
+   "start": 406.95,
+   "end": 407.1
+  },
+  {
+   "before": 1196,
+   "start": 409.13,
+   "end": 409.28
+  },
+  {
+   "before": 1198,
+   "start": 409.63,
+   "end": 409.77
+  },
+  {
+   "before": 1204,
+   "start": 412.29,
+   "end": 412.39
+  },
+  {
+   "before": 1215,
+   "start": 414.69,
+   "end": 415.0
+  },
+  {
+   "before": 1220,
+   "start": 416.49,
+   "end": 416.62
+  },
+  {
+   "before": 1221,
+   "start": 417.15,
+   "end": 417.26
+  },
+  {
+   "before": 1228,
+   "start": 419.28,
+   "end": 419.49
+  },
+  {
+   "before": 1231,
+   "start": 420.0,
+   "end": 420.15
+  },
+  {
+   "before": 1243,
+   "start": 422.81,
+   "end": 423.0
+  },
+  {
+   "before": 1244,
+   "start": 423.38,
+   "end": 423.45
+  },
+  {
+   "before": 1252,
+   "start": 425.74,
+   "end": 425.81
+  },
+  {
+   "before": 1260,
+   "start": 427.12,
+   "end": 427.36
+  },
+  {
+   "before": 1262,
+   "start": 428.0,
+   "end": 428.16
+  },
+  {
+   "before": 1270,
+   "start": 430.72,
+   "end": 430.83
+  },
+  {
+   "before": 1281,
+   "start": 433.35,
+   "end": 433.65
+  },
+  {
+   "before": 1286,
+   "start": 434.95,
+   "end": 435.07
+  },
+  {
+   "before": 1287,
+   "start": 435.7,
+   "end": 435.86
+  },
+  {
+   "before": 1288,
+   "start": 436.64,
+   "end": 436.76
+  },
+  {
+   "before": 1290,
+   "start": 438.03,
+   "end": 438.15
+  },
+  {
+   "before": 1291,
+   "start": 438.33,
+   "end": 438.4
+  },
+  {
+   "before": 1293,
+   "start": 439.24,
+   "end": 439.37
+  },
+  {
+   "before": 1294,
+   "start": 440.36,
+   "end": 440.49
+  },
+  {
+   "before": 1295,
+   "start": 441.33,
+   "end": 441.6
+  },
+  {
+   "before": 1298,
+   "start": 442.14,
+   "end": 442.23
+  },
+  {
+   "before": 1302,
+   "start": 443.78,
+   "end": 443.93
+  },
+  {
+   "before": 1306,
+   "start": 445.16,
+   "end": 445.36
+  },
+  {
+   "before": 1310,
+   "start": 446.65,
+   "end": 447.67
+  },
+  {
+   "before": 1318,
+   "start": 449.54,
+   "end": 449.62
+  },
+  {
+   "before": 1320,
+   "start": 450.28,
+   "end": 450.37
+  },
+  {
+   "before": 1321,
+   "start": 450.83,
+   "end": 451.0
+  },
+  {
+   "before": 1324,
+   "start": 452.15,
+   "end": 452.43
+  },
+  {
+   "before": 1330,
+   "start": 454.64,
+   "end": 454.92
+  },
+  {
+   "before": 1334,
+   "start": 456.15,
+   "end": 456.26
+  },
+  {
+   "before": 1335,
+   "start": 456.63,
+   "end": 456.87
+  },
+  {
+   "before": 1337,
+   "start": 457.25,
+   "end": 457.38
+  },
+  {
+   "before": 1343,
+   "start": 458.77,
+   "end": 458.96
+  },
+  {
+   "before": 1346,
+   "start": 459.54,
+   "end": 459.69
+  },
+  {
+   "before": 1358,
+   "start": 462.03,
+   "end": 462.1
+  },
+  {
+   "before": 1361,
+   "start": 463.31,
+   "end": 463.55
+  },
+  {
+   "before": 1362,
+   "start": 463.83,
+   "end": 464.02
+  },
+  {
+   "before": 1368,
+   "start": 465.4,
+   "end": 465.5
+  },
+  {
+   "before": 1371,
+   "start": 466.28,
+   "end": 466.45
+  },
+  {
+   "before": 1375,
+   "start": 467.75,
+   "end": 467.86
+  },
+  {
+   "before": 1378,
+   "start": 468.5,
+   "end": 468.65
+  },
+  {
+   "before": 1380,
+   "start": 469.43,
+   "end": 469.55
+  },
+  {
+   "before": 1385,
+   "start": 470.53,
+   "end": 470.89
+  },
+  {
+   "before": 1391,
+   "start": 472.12,
+   "end": 472.26
+  },
+  {
+   "before": 1395,
+   "start": 473.64,
+   "end": 473.93
+  },
+  {
+   "before": 1399,
+   "start": 474.88,
+   "end": 475.11
+  },
+  {
+   "before": 1404,
+   "start": 476.26,
+   "end": 476.41
+  },
+  {
+   "before": 1407,
+   "start": 477.9,
+   "end": 478.28
+  },
+  {
+   "before": 1412,
+   "start": 479.06,
+   "end": 479.28
+  },
+  {
+   "before": 1414,
+   "start": 480.21,
+   "end": 480.46
+  },
+  {
+   "before": 1415,
+   "start": 480.8,
+   "end": 480.92
+  },
+  {
+   "before": 1418,
+   "start": 482.05,
+   "end": 482.14
+  },
+  {
+   "before": 1420,
+   "start": 482.92,
+   "end": 483.04
+  },
+  {
+   "before": 1423,
+   "start": 484.6,
+   "end": 484.75
+  },
+  {
+   "before": 1428,
+   "start": 486.51,
+   "end": 486.77
+  },
+  {
+   "before": 1435,
+   "start": 488.48,
+   "end": 489.08
+  },
+  {
+   "before": 1438,
+   "start": 489.81,
+   "end": 490.0
+  },
+  {
+   "before": 1442,
+   "start": 491.27,
+   "end": 491.5
+  },
+  {
+   "before": 1445,
+   "start": 492.51,
+   "end": 492.71
+  }
+ ],
+ "words": [
+  {
+   "text": "Di",
+   "start": 0.0,
+   "end": 0.16
+  },
+  {
+   "text": "konten",
+   "start": 0.24,
+   "end": 0.739
+  },
+  {
+   "text": "Sila",
+   "start": 0.739,
+   "end": 0.97
+  },
+  {
+   "text": "kali",
+   "start": 0.97,
+   "end": 1.181
+  },
+  {
+   "text": "ini,",
+   "start": 1.181,
+   "end": 1.45
+  },
+  {
+   "text": "kita",
+   "start": 1.53,
+   "end": 1.744
+  },
+  {
+   "text": "akan",
+   "start": 1.744,
+   "end": 1.881
+  },
+  {
+   "text": "ngomongin",
+   "start": 1.881,
+   "end": 2.328
+  },
+  {
+   "text": "betapa",
+   "start": 2.328,
+   "end": 2.64
+  },
+  {
+   "text": "frustrasinya",
+   "start": 2.77,
+   "end": 2.97
+  },
+  {
+   "text": "kita",
+   "start": 3.08,
+   "end": 3.464
+  },
+  {
+   "text": "sebagai",
+   "start": 3.464,
+   "end": 3.912
+  },
+  {
+   "text": "bangsa",
+   "start": 3.912,
+   "end": 4.36
+  },
+  {
+   "text": "Indonesia",
+   "start": 4.36,
+   "end": 4.68
+  },
+  {
+   "text": "melihat",
+   "start": 4.82,
+   "end": 5.025
+  },
+  {
+   "text": "apa",
+   "start": 5.025,
+   "end": 5.14
+  },
+  {
+   "text": "yang",
+   "start": 5.25,
+   "end": 5.68
+  },
+  {
+   "text": "terjadi",
+   "start": 5.85,
+   "end": 6.271
+  },
+  {
+   "text": "kepada",
+   "start": 6.271,
+   "end": 6.566
+  },
+  {
+   "text": "Nadiem",
+   "start": 6.566,
+   "end": 7.282
+  },
+  {
+   "text": "dan",
+   "start": 7.282,
+   "end": 7.556
+  },
+  {
+   "text": "kasus",
+   "start": 7.556,
+   "end": 8.04
+  },
+  {
+   "text": "Chromebook",
+   "start": 8.13,
+   "end": 8.36
+  },
+  {
+   "text": "yang",
+   "start": 8.36,
+   "end": 8.48
+  },
+  {
+   "text": "terkait",
+   "start": 8.67,
+   "end": 9.11
+  },
+  {
+   "text": "padanya.",
+   "start": 9.2,
+   "end": 9.485
+  },
+  {
+   "text": "Selamat",
+   "start": 9.587,
+   "end": 9.791
+  },
+  {
+   "text": "datang",
+   "start": 9.791,
+   "end": 10.138
+  },
+  {
+   "text": "di",
+   "start": 10.138,
+   "end": 10.28
+  },
+  {
+   "text": "konten",
+   "start": 10.28,
+   "end": 10.79
+  },
+  {
+   "text": "Sila.",
+   "start": 10.87,
+   "end": 11.14
+  },
+  {
+   "text": "Baru",
+   "start": 11.35,
+   "end": 11.76
+  },
+  {
+   "text": "saja",
+   "start": 11.76,
+   "end": 12.17
+  },
+  {
+   "text": "Indonesia",
+   "start": 12.35,
+   "end": 12.98
+  },
+  {
+   "text": "terhebohkan",
+   "start": 13.08,
+   "end": 13.63
+  },
+  {
+   "text": "dengan",
+   "start": 13.73,
+   "end": 14.052
+  },
+  {
+   "text": "diumumkannya",
+   "start": 14.052,
+   "end": 15.23
+  },
+  {
+   "text": "tuntutan",
+   "start": 15.4,
+   "end": 17.27
+  },
+  {
+   "text": "kejaksaan",
+   "start": 17.38,
+   "end": 18.12
+  },
+  {
+   "text": "terhadap",
+   "start": 18.21,
+   "end": 18.72
+  },
+  {
+   "text": "Nadiem",
+   "start": 18.84,
+   "end": 19.084
+  },
+  {
+   "text": "Makarim",
+   "start": 19.084,
+   "end": 19.55
+  },
+  {
+   "text": "yaitu",
+   "start": 19.7,
+   "end": 20.29
+  },
+  {
+   "text": "praktis",
+   "start": 20.38,
+   "end": 20.53
+  },
+  {
+   "text": "18",
+   "start": 20.66,
+   "end": 20.95
+  },
+  {
+   "text": "plus",
+   "start": 20.95,
+   "end": 21.51
+  },
+  {
+   "text": "9,",
+   "start": 21.59,
+   "end": 22.24
+  },
+  {
+   "text": "18",
+   "start": 22.35,
+   "end": 22.599
+  },
+  {
+   "text": "tahun,",
+   "start": 22.599,
+   "end": 23.41
+  },
+  {
+   "text": "tapi",
+   "start": 23.55,
+   "end": 23.7
+  },
+  {
+   "text": "dia",
+   "start": 23.8,
+   "end": 24.17
+  },
+  {
+   "text": "harus",
+   "start": 24.47,
+   "end": 24.9
+  },
+  {
+   "text": "mengganti",
+   "start": 24.9,
+   "end": 25.74
+  },
+  {
+   "text": "rugi",
+   "start": 25.83,
+   "end": 26.654
+  },
+  {
+   "text": "4,8",
+   "start": 26.654,
+   "end": 27.3
+  },
+  {
+   "text": "triliun",
+   "start": 27.4,
+   "end": 28.213
+  },
+  {
+   "text": "kalau",
+   "start": 28.416,
+   "end": 28.511
+  },
+  {
+   "text": "nggak",
+   "start": 28.619,
+   "end": 28.755
+  },
+  {
+   "text": "salah,",
+   "start": 28.755,
+   "end": 29.08
+  },
+  {
+   "text": "tolong",
+   "start": 29.16,
+   "end": 29.37
+  },
+  {
+   "text": "dikoreksi",
+   "start": 29.44,
+   "end": 29.612
+  },
+  {
+   "text": "kalau",
+   "start": 29.661,
+   "end": 29.71
+  },
+  {
+   "text": "memang",
+   "start": 29.79,
+   "end": 29.931
+  },
+  {
+   "text": "angkanya",
+   "start": 30.127,
+   "end": 30.381
+  },
+  {
+   "text": "salah.",
+   "start": 30.577,
+   "end": 30.69
+  },
+  {
+   "text": "Kalau",
+   "start": 30.91,
+   "end": 30.951
+  },
+  {
+   "text": "nggak",
+   "start": 30.951,
+   "end": 31.178
+  },
+  {
+   "text": "sanggup",
+   "start": 31.178,
+   "end": 31.693
+  },
+  {
+   "text": "atau",
+   "start": 31.693,
+   "end": 31.94
+  },
+  {
+   "text": "nggak",
+   "start": 32.07,
+   "end": 32.16
+  },
+  {
+   "text": "mau",
+   "start": 32.23,
+   "end": 32.505
+  },
+  {
+   "text": "untuk",
+   "start": 32.505,
+   "end": 32.78
+  },
+  {
+   "text": "membayar",
+   "start": 32.78,
+   "end": 33.28
+  },
+  {
+   "text": "angka",
+   "start": 33.28,
+   "end": 33.605
+  },
+  {
+   "text": "itu,",
+   "start": 33.605,
+   "end": 33.93
+  },
+  {
+   "text": "substitusinya",
+   "start": 34.09,
+   "end": 34.49
+  },
+  {
+   "text": "adalah",
+   "start": 34.57,
+   "end": 34.955
+  },
+  {
+   "text": "9",
+   "start": 34.955,
+   "end": 35.366
+  },
+  {
+   "text": "tahun",
+   "start": 35.366,
+   "end": 35.802
+  },
+  {
+   "text": "penjara.",
+   "start": 35.802,
+   "end": 36.29
+  },
+  {
+   "text": "Nah",
+   "start": 36.5,
+   "end": 36.525
+  },
+  {
+   "text": "jelas,",
+   "start": 36.525,
+   "end": 37.07
+  },
+  {
+   "text": "Nadiem",
+   "start": 37.26,
+   "end": 37.654
+  },
+  {
+   "text": "juga",
+   "start": 37.654,
+   "end": 37.766
+  },
+  {
+   "text": "udah",
+   "start": 37.766,
+   "end": 37.879
+  },
+  {
+   "text": "berkata",
+   "start": 37.879,
+   "end": 38.16
+  },
+  {
+   "text": "bahkan",
+   "start": 38.23,
+   "end": 38.54
+  },
+  {
+   "text": "dia",
+   "start": 38.61,
+   "end": 38.84
+  },
+  {
+   "text": "nggak",
+   "start": 39.0,
+   "end": 39.132
+  },
+  {
+   "text": "punya",
+   "start": 39.132,
+   "end": 39.369
+  },
+  {
+   "text": "uang",
+   "start": 39.369,
+   "end": 39.58
+  },
+  {
+   "text": "sebanyak",
+   "start": 39.58,
+   "end": 39.95
+  },
+  {
+   "text": "itu,",
+   "start": 39.95,
+   "end": 40.24
+  },
+  {
+   "text": "maka",
+   "start": 40.38,
+   "end": 40.48
+  },
+  {
+   "text": "18",
+   "start": 40.56,
+   "end": 41.2
+  },
+  {
+   "text": "plus",
+   "start": 41.34,
+   "end": 41.392
+  },
+  {
+   "text": "9.",
+   "start": 41.465,
+   "end": 41.57
+  },
+  {
+   "text": "Jadinya",
+   "start": 41.69,
+   "end": 41.975
+  },
+  {
+   "text": "berapa?",
+   "start": 41.975,
+   "end": 42.96
+  },
+  {
+   "text": "27",
+   "start": 43.16,
+   "end": 44.21
+  },
+  {
+   "text": "tahun",
+   "start": 44.32,
+   "end": 44.72
+  },
+  {
+   "text": "Nadiem",
+   "start": 44.83,
+   "end": 45.334
+  },
+  {
+   "text": "dituntut",
+   "start": 45.334,
+   "end": 46.29
+  },
+  {
+   "text": "penjara.",
+   "start": 46.46,
+   "end": 46.86
+  },
+  {
+   "text": "Dan",
+   "start": 47.15,
+   "end": 47.21
+  },
+  {
+   "text": "kita",
+   "start": 47.21,
+   "end": 47.67
+  },
+  {
+   "text": "semua",
+   "start": 47.79,
+   "end": 48.045
+  },
+  {
+   "text": "frustrasi.",
+   "start": 48.045,
+   "end": 48.98
+  },
+  {
+   "text": "Frustrasi",
+   "start": 49.15,
+   "end": 49.801
+  },
+  {
+   "text": "karena",
+   "start": 50.087,
+   "end": 50.15
+  },
+  {
+   "text": "kita",
+   "start": 50.28,
+   "end": 50.4
+  },
+  {
+   "text": "nggak",
+   "start": 50.5,
+   "end": 51.074
+  },
+  {
+   "text": "merasa",
+   "start": 51.074,
+   "end": 51.791
+  },
+  {
+   "text": "itu",
+   "start": 51.791,
+   "end": 52.135
+  },
+  {
+   "text": "adalah",
+   "start": 52.135,
+   "end": 52.537
+  },
+  {
+   "text": "sebuah...",
+   "start": 52.537,
+   "end": 52.91
+  },
+  {
+   "text": "tuntutan",
+   "start": 53.18,
+   "end": 54.032
+  },
+  {
+   "text": "yang",
+   "start": 54.032,
+   "end": 54.303
+  },
+  {
+   "text": "adil",
+   "start": 54.303,
+   "end": 54.69
+  },
+  {
+   "text": "terhadap",
+   "start": 54.87,
+   "end": 55.246
+  },
+  {
+   "text": "sesuatu",
+   "start": 55.246,
+   "end": 55.52
+  },
+  {
+   "text": "yang",
+   "start": 55.59,
+   "end": 55.849
+  },
+  {
+   "text": "di",
+   "start": 55.849,
+   "end": 56.064
+  },
+  {
+   "text": "mata",
+   "start": 56.064,
+   "end": 56.431
+  },
+  {
+   "text": "kita,",
+   "start": 56.431,
+   "end": 56.84
+  },
+  {
+   "text": "kita,",
+   "start": 57.0,
+   "end": 57.1
+  },
+  {
+   "text": "ya",
+   "start": 57.19,
+   "end": 57.532
+  },
+  {
+   "text": "mungkin",
+   "start": 57.532,
+   "end": 57.737
+  },
+  {
+   "text": "lo",
+   "start": 57.737,
+   "end": 57.919
+  },
+  {
+   "text": "nggak,",
+   "start": 57.919,
+   "end": 58.124
+  },
+  {
+   "text": "tapi",
+   "start": 58.238,
+   "end": 58.443
+  },
+  {
+   "text": "di",
+   "start": 58.443,
+   "end": 58.603
+  },
+  {
+   "text": "mata",
+   "start": 58.603,
+   "end": 58.739
+  },
+  {
+   "text": "banyak",
+   "start": 58.739,
+   "end": 59.286
+  },
+  {
+   "text": "sekali",
+   "start": 59.286,
+   "end": 59.491
+  },
+  {
+   "text": "orang,",
+   "start": 59.571,
+   "end": 59.81
+  },
+  {
+   "text": "sidangnya",
+   "start": 59.96,
+   "end": 60.396
+  },
+  {
+   "text": "sendiri",
+   "start": 60.396,
+   "end": 60.624
+  },
+  {
+   "text": "atau",
+   "start": 60.624,
+   "end": 60.894
+  },
+  {
+   "text": "kasusnya",
+   "start": 60.894,
+   "end": 61.413
+  },
+  {
+   "text": "sendiri",
+   "start": 61.413,
+   "end": 61.642
+  },
+  {
+   "text": "itu",
+   "start": 61.642,
+   "end": 61.787
+  },
+  {
+   "text": "nggak",
+   "start": 61.787,
+   "end": 61.912
+  },
+  {
+   "text": "masuk",
+   "start": 61.912,
+   "end": 62.14
+  },
+  {
+   "text": "akal.",
+   "start": 62.21,
+   "end": 62.45
+  },
+  {
+   "text": "Kenapa",
+   "start": 62.7,
+   "end": 62.846
+  },
+  {
+   "text": "kita",
+   "start": 62.846,
+   "end": 63.04
+  },
+  {
+   "text": "frustrasi?",
+   "start": 63.04,
+   "end": 63.72
+  },
+  {
+   "text": "Karena",
+   "start": 63.88,
+   "end": 64.012
+  },
+  {
+   "text": "kita",
+   "start": 64.012,
+   "end": 64.179
+  },
+  {
+   "text": "nggak",
+   "start": 64.179,
+   "end": 64.346
+  },
+  {
+   "text": "bisa",
+   "start": 64.346,
+   "end": 64.471
+  },
+  {
+   "text": "ngapa-ngapain.",
+   "start": 64.471,
+   "end": 64.93
+  },
+  {
+   "text": "Ada",
+   "start": 65.14,
+   "end": 65.276
+  },
+  {
+   "text": "banyak",
+   "start": 65.276,
+   "end": 65.819
+  },
+  {
+   "text": "banget",
+   "start": 65.819,
+   "end": 66.046
+  },
+  {
+   "text": "orang,",
+   "start": 66.046,
+   "end": 66.34
+  },
+  {
+   "text": "baik",
+   "start": 66.59,
+   "end": 66.945
+  },
+  {
+   "text": "itu",
+   "start": 66.945,
+   "end": 67.115
+  },
+  {
+   "text": "gue,",
+   "start": 67.115,
+   "end": 67.255
+  },
+  {
+   "text": "ataupun",
+   "start": 67.486,
+   "end": 67.78
+  },
+  {
+   "text": "konten",
+   "start": 67.85,
+   "end": 68.24
+  },
+  {
+   "text": "kreator",
+   "start": 68.24,
+   "end": 68.59
+  },
+  {
+   "text": "lain,",
+   "start": 68.631,
+   "end": 68.795
+  },
+  {
+   "text": "baik",
+   "start": 69.042,
+   "end": 69.206
+  },
+  {
+   "text": "konten",
+   "start": 69.217,
+   "end": 69.494
+  },
+  {
+   "text": "kreator",
+   "start": 69.494,
+   "end": 69.843
+  },
+  {
+   "text": "yang",
+   "start": 69.843,
+   "end": 69.946
+  },
+  {
+   "text": "ada",
+   "start": 70.028,
+   "end": 70.049
+  },
+  {
+   "text": "di",
+   "start": 70.121,
+   "end": 70.193
+  },
+  {
+   "text": "Youtube,",
+   "start": 70.213,
+   "end": 70.46
+  },
+  {
+   "text": "ataupun",
+   "start": 70.55,
+   "end": 70.72
+  },
+  {
+   "text": "di",
+   "start": 70.8,
+   "end": 71.008
+  },
+  {
+   "text": "Instagram,",
+   "start": 71.008,
+   "end": 71.52
+  },
+  {
+   "text": "ini",
+   "start": 71.62,
+   "end": 71.643
+  },
+  {
+   "text": "punya",
+   "start": 71.643,
+   "end": 71.847
+  },
+  {
+   "text": "banyak",
+   "start": 71.847,
+   "end": 72.142
+  },
+  {
+   "text": "komentar,",
+   "start": 72.142,
+   "end": 72.618
+  },
+  {
+   "text": "punya",
+   "start": 72.664,
+   "end": 72.868
+  },
+  {
+   "text": "banyak",
+   "start": 72.868,
+   "end": 73.118
+  },
+  {
+   "text": "opini.",
+   "start": 73.118,
+   "end": 73.39
+  },
+  {
+   "text": "Tapi",
+   "start": 73.57,
+   "end": 73.679
+  },
+  {
+   "text": "pada",
+   "start": 73.679,
+   "end": 73.919
+  },
+  {
+   "text": "akhirnya,",
+   "start": 73.963,
+   "end": 74.53
+  },
+  {
+   "text": "yang",
+   "start": 74.67,
+   "end": 74.732
+  },
+  {
+   "text": "gue",
+   "start": 74.732,
+   "end": 75.031
+  },
+  {
+   "text": "punya,",
+   "start": 75.081,
+   "end": 75.48
+  },
+  {
+   "text": "ya",
+   "start": 75.61,
+   "end": 75.653
+  },
+  {
+   "text": "hanya",
+   "start": 75.663,
+   "end": 75.845
+  },
+  {
+   "text": "komentar.",
+   "start": 75.845,
+   "end": 76.25
+  },
+  {
+   "text": "Gue",
+   "start": 76.49,
+   "end": 76.614
+  },
+  {
+   "text": "nggak",
+   "start": 76.614,
+   "end": 76.759
+  },
+  {
+   "text": "bisa",
+   "start": 76.759,
+   "end": 76.966
+  },
+  {
+   "text": "mengubah",
+   "start": 76.966,
+   "end": 77.318
+  },
+  {
+   "text": "apa-apa.",
+   "start": 77.318,
+   "end": 77.67
+  },
+  {
+   "text": "Frustrasinya",
+   "start": 77.87,
+   "end": 78.39
+  },
+  {
+   "text": "itu",
+   "start": 78.39,
+   "end": 78.544
+  },
+  {
+   "text": "kayak",
+   "start": 78.544,
+   "end": 78.756
+  },
+  {
+   "text": "lagi",
+   "start": 78.756,
+   "end": 79.026
+  },
+  {
+   "text": "nonton",
+   "start": 79.026,
+   "end": 79.488
+  },
+  {
+   "text": "tim",
+   "start": 79.488,
+   "end": 79.7
+  },
+  {
+   "text": "sepak",
+   "start": 79.77,
+   "end": 80.02
+  },
+  {
+   "text": "bola",
+   "start": 80.02,
+   "end": 80.13
+  },
+  {
+   "text": "kesayangan",
+   "start": 80.23,
+   "end": 80.711
+  },
+  {
+   "text": "lo.",
+   "start": 80.711,
+   "end": 80.94
+  },
+  {
+   "text": "Lalu",
+   "start": 81.11,
+   "end": 81.189
+  },
+  {
+   "text": "lo",
+   "start": 81.189,
+   "end": 81.276
+  },
+  {
+   "text": "merasa,",
+   "start": 81.276,
+   "end": 81.66
+  },
+  {
+   "text": "lo",
+   "start": 81.678,
+   "end": 81.8
+  },
+  {
+   "text": "merasa,",
+   "start": 81.95,
+   "end": 82.54
+  },
+  {
+   "text": "wasit",
+   "start": 82.67,
+   "end": 82.974
+  },
+  {
+   "text": "tuh",
+   "start": 82.974,
+   "end": 83.091
+  },
+  {
+   "text": "nggak",
+   "start": 83.091,
+   "end": 83.255
+  },
+  {
+   "text": "adil",
+   "start": 83.255,
+   "end": 83.629
+  },
+  {
+   "text": "kepada",
+   "start": 83.629,
+   "end": 83.816
+  },
+  {
+   "text": "pemain",
+   "start": 83.816,
+   "end": 84.33
+  },
+  {
+   "text": "di",
+   "start": 85.18,
+   "end": 85.59
+  },
+  {
+   "text": "tim",
+   "start": 85.59,
+   "end": 85.731
+  },
+  {
+   "text": "favorit",
+   "start": 85.731,
+   "end": 85.93
+  },
+  {
+   "text": "lo.",
+   "start": 85.93,
+   "end": 86.0
+  },
+  {
+   "text": "Terus",
+   "start": 86.21,
+   "end": 86.267
+  },
+  {
+   "text": "kita",
+   "start": 86.267,
+   "end": 86.402
+  },
+  {
+   "text": "berkomentar,",
+   "start": 86.402,
+   "end": 86.99
+  },
+  {
+   "text": "kita",
+   "start": 87.1,
+   "end": 87.147
+  },
+  {
+   "text": "berkomentar,",
+   "start": 87.147,
+   "end": 87.751
+  },
+  {
+   "text": "kita",
+   "start": 87.914,
+   "end": 88.124
+  },
+  {
+   "text": "berdebat",
+   "start": 88.158,
+   "end": 88.589
+  },
+  {
+   "text": "di",
+   "start": 88.589,
+   "end": 88.705
+  },
+  {
+   "text": "sosial",
+   "start": 88.705,
+   "end": 89.054
+  },
+  {
+   "text": "media,",
+   "start": 89.054,
+   "end": 89.31
+  },
+  {
+   "text": "tapi",
+   "start": 89.46,
+   "end": 89.54
+  },
+  {
+   "text": "semua",
+   "start": 89.61,
+   "end": 90.12
+  },
+  {
+   "text": "frustrasi",
+   "start": 90.2,
+   "end": 90.84
+  },
+  {
+   "text": "ini,",
+   "start": 90.938,
+   "end": 91.02
+  },
+  {
+   "text": "semua",
+   "start": 91.11,
+   "end": 91.248
+  },
+  {
+   "text": "komentar",
+   "start": 91.248,
+   "end": 91.978
+  },
+  {
+   "text": "ini,",
+   "start": 91.978,
+   "end": 92.28
+  },
+  {
+   "text": "ya",
+   "start": 92.39,
+   "end": 92.44
+  },
+  {
+   "text": "cuma",
+   "start": 92.451,
+   "end": 92.674
+  },
+  {
+   "text": "jadi",
+   "start": 92.674,
+   "end": 92.844
+  },
+  {
+   "text": "komentar.",
+   "start": 92.887,
+   "end": 93.27
+  },
+  {
+   "text": "Nggak",
+   "start": 93.54,
+   "end": 93.63
+  },
+  {
+   "text": "bisa",
+   "start": 93.675,
+   "end": 93.766
+  },
+  {
+   "text": "jadi",
+   "start": 93.845,
+   "end": 93.946
+  },
+  {
+   "text": "apa-apa.",
+   "start": 94.138,
+   "end": 94.42
+  },
+  {
+   "text": "Kenapa?",
+   "start": 94.6,
+   "end": 94.99
+  },
+  {
+   "text": "Karena",
+   "start": 95.22,
+   "end": 95.293
+  },
+  {
+   "text": "kita",
+   "start": 95.293,
+   "end": 95.501
+  },
+  {
+   "text": "di",
+   "start": 95.501,
+   "end": 95.605
+  },
+  {
+   "text": "luar,",
+   "start": 95.605,
+   "end": 95.98
+  },
+  {
+   "text": "kita",
+   "start": 96.09,
+   "end": 96.161
+  },
+  {
+   "text": "nggak",
+   "start": 96.161,
+   "end": 96.352
+  },
+  {
+   "text": "ikut",
+   "start": 96.352,
+   "end": 96.589
+  },
+  {
+   "text": "bermain.",
+   "start": 96.589,
+   "end": 96.97
+  },
+  {
+   "text": "Bahkan,",
+   "start": 97.17,
+   "end": 97.77
+  },
+  {
+   "text": "semua",
+   "start": 97.9,
+   "end": 98.098
+  },
+  {
+   "text": "orang,",
+   "start": 98.098,
+   "end": 98.609
+  },
+  {
+   "text": "atau",
+   "start": 98.741,
+   "end": 99.12
+  },
+  {
+   "text": "mungkin",
+   "start": 99.27,
+   "end": 99.496
+  },
+  {
+   "text": "banyak",
+   "start": 99.496,
+   "end": 100.01
+  },
+  {
+   "text": "orang",
+   "start": 100.01,
+   "end": 100.442
+  },
+  {
+   "text": "yang",
+   "start": 100.442,
+   "end": 101.572
+  },
+  {
+   "text": "ada",
+   "start": 101.572,
+   "end": 101.819
+  },
+  {
+   "text": "di",
+   "start": 101.819,
+   "end": 101.962
+  },
+  {
+   "text": "dalam",
+   "start": 101.962,
+   "end": 102.147
+  },
+  {
+   "text": "lapangan,",
+   "start": 102.147,
+   "end": 102.538
+  },
+  {
+   "text": "akan",
+   "start": 102.558,
+   "end": 102.723
+  },
+  {
+   "text": "bilang",
+   "start": 102.846,
+   "end": 103.031
+  },
+  {
+   "text": "bahwa,",
+   "start": 103.031,
+   "end": 103.36
+  },
+  {
+   "text": "lo",
+   "start": 103.49,
+   "end": 103.591
+  },
+  {
+   "text": "tuh",
+   "start": 103.591,
+   "end": 103.748
+  },
+  {
+   "text": "nggak",
+   "start": 103.748,
+   "end": 103.905
+  },
+  {
+   "text": "ngerti",
+   "start": 103.905,
+   "end": 104.152
+  },
+  {
+   "text": "permainan.",
+   "start": 104.152,
+   "end": 104.69
+  },
+  {
+   "text": "Lo",
+   "start": 104.95,
+   "end": 105.018
+  },
+  {
+   "text": "tuh",
+   "start": 105.018,
+   "end": 105.29
+  },
+  {
+   "text": "bukan",
+   "start": 105.52,
+   "end": 105.96
+  },
+  {
+   "text": "wasit,",
+   "start": 106.13,
+   "end": 106.96
+  },
+  {
+   "text": "lo",
+   "start": 107.04,
+   "end": 107.078
+  },
+  {
+   "text": "nggak",
+   "start": 107.078,
+   "end": 107.25
+  },
+  {
+   "text": "bekerja",
+   "start": 107.25,
+   "end": 107.65
+  },
+  {
+   "text": "sebagai",
+   "start": 107.65,
+   "end": 107.802
+  },
+  {
+   "text": "wasit,",
+   "start": 107.802,
+   "end": 108.24
+  },
+  {
+   "text": "lo",
+   "start": 108.38,
+   "end": 108.4
+  },
+  {
+   "text": "nggak",
+   "start": 108.4,
+   "end": 108.578
+  },
+  {
+   "text": "punya",
+   "start": 108.578,
+   "end": 108.756
+  },
+  {
+   "text": "lisensi",
+   "start": 108.756,
+   "end": 109.29
+  },
+  {
+   "text": "wasit,",
+   "start": 109.477,
+   "end": 110.12
+  },
+  {
+   "text": "lo",
+   "start": 110.31,
+   "end": 110.343
+  },
+  {
+   "text": "nggak",
+   "start": 110.348,
+   "end": 110.43
+  },
+  {
+   "text": "pernah",
+   "start": 110.43,
+   "end": 110.56
+  },
+  {
+   "text": "melatih",
+   "start": 110.64,
+   "end": 111.08
+  },
+  {
+   "text": "diri",
+   "start": 111.16,
+   "end": 111.354
+  },
+  {
+   "text": "lo",
+   "start": 111.432,
+   "end": 111.452
+  },
+  {
+   "text": "supaya",
+   "start": 111.636,
+   "end": 111.86
+  },
+  {
+   "text": "lo",
+   "start": 111.94,
+   "end": 112.096
+  },
+  {
+   "text": "bisa",
+   "start": 112.316,
+   "end": 112.355
+  },
+  {
+   "text": "dapet",
+   "start": 112.381,
+   "end": 112.64
+  },
+  {
+   "text": "lisensi",
+   "start": 112.77,
+   "end": 113.217
+  },
+  {
+   "text": "wasit.",
+   "start": 113.217,
+   "end": 113.54
+  },
+  {
+   "text": "Apa",
+   "start": 113.77,
+   "end": 113.93
+  },
+  {
+   "text": "yang",
+   "start": 114.02,
+   "end": 114.345
+  },
+  {
+   "text": "membuat",
+   "start": 114.345,
+   "end": 114.771
+  },
+  {
+   "text": "lo",
+   "start": 114.771,
+   "end": 114.893
+  },
+  {
+   "text": "merasa,",
+   "start": 114.893,
+   "end": 115.36
+  },
+  {
+   "text": "opini",
+   "start": 115.46,
+   "end": 115.793
+  },
+  {
+   "text": "lo",
+   "start": 115.842,
+   "end": 116.065
+  },
+  {
+   "text": "itu,",
+   "start": 116.176,
+   "end": 116.41
+  },
+  {
+   "text": "lebih",
+   "start": 116.57,
+   "end": 116.73
+  },
+  {
+   "text": "benar",
+   "start": 116.73,
+   "end": 117.432
+  },
+  {
+   "text": "daripada",
+   "start": 117.432,
+   "end": 117.879
+  },
+  {
+   "text": "gue",
+   "start": 117.879,
+   "end": 118.156
+  },
+  {
+   "text": "yang",
+   "start": 118.156,
+   "end": 118.411
+  },
+  {
+   "text": "ada",
+   "start": 118.411,
+   "end": 118.603
+  },
+  {
+   "text": "di",
+   "start": 118.603,
+   "end": 118.731
+  },
+  {
+   "text": "lapangan.",
+   "start": 118.731,
+   "end": 119.05
+  },
+  {
+   "text": "Itulah",
+   "start": 119.3,
+   "end": 119.581
+  },
+  {
+   "text": "yang",
+   "start": 119.581,
+   "end": 119.661
+  },
+  {
+   "text": "sebenarnya",
+   "start": 119.661,
+   "end": 120.25
+  },
+  {
+   "text": "membuat",
+   "start": 120.37,
+   "end": 120.577
+  },
+  {
+   "text": "kita",
+   "start": 120.577,
+   "end": 120.73
+  },
+  {
+   "text": "frustrasi.",
+   "start": 120.828,
+   "end": 121.34
+  },
+  {
+   "text": "Karena",
+   "start": 121.47,
+   "end": 121.598
+  },
+  {
+   "text": "itu",
+   "start": 121.651,
+   "end": 121.875
+  },
+  {
+   "text": "juga",
+   "start": 122.014,
+   "end": 122.036
+  },
+  {
+   "text": "terjadi",
+   "start": 122.025,
+   "end": 122.388
+  },
+  {
+   "text": "di",
+   "start": 122.388,
+   "end": 122.537
+  },
+  {
+   "text": "sidangnya",
+   "start": 122.537,
+   "end": 122.9
+  },
+  {
+   "text": "Nadiem.",
+   "start": 122.953,
+   "end": 123.22
+  },
+  {
+   "text": "Kita",
+   "start": 123.39,
+   "end": 123.471
+  },
+  {
+   "text": "kan",
+   "start": 123.471,
+   "end": 123.562
+  },
+  {
+   "text": "semua",
+   "start": 123.562,
+   "end": 123.688
+  },
+  {
+   "text": "kan",
+   "start": 123.688,
+   "end": 123.851
+  },
+  {
+   "text": "punya",
+   "start": 123.896,
+   "end": 124.11
+  },
+  {
+   "text": "komentar.",
+   "start": 124.26,
+   "end": 124.91
+  },
+  {
+   "text": "Ada",
+   "start": 125.1,
+   "end": 125.158
+  },
+  {
+   "text": "yang",
+   "start": 125.217,
+   "end": 125.377
+  },
+  {
+   "text": "pro",
+   "start": 125.384,
+   "end": 125.8
+  },
+  {
+   "text": "Nadiem",
+   "start": 126.03,
+   "end": 126.471
+  },
+  {
+   "text": "di",
+   "start": 126.471,
+   "end": 126.606
+  },
+  {
+   "text": "penjara,",
+   "start": 126.606,
+   "end": 126.894
+  },
+  {
+   "text": "ada",
+   "start": 127.105,
+   "end": 127.239
+  },
+  {
+   "text": "yang",
+   "start": 127.268,
+   "end": 127.393
+  },
+  {
+   "text": "nggak",
+   "start": 127.479,
+   "end": 127.508
+  },
+  {
+   "text": "pro",
+   "start": 127.508,
+   "end": 127.7
+  },
+  {
+   "text": "Nadiem",
+   "start": 127.78,
+   "end": 128.203
+  },
+  {
+   "text": "di",
+   "start": 128.203,
+   "end": 128.377
+  },
+  {
+   "text": "penjara,",
+   "start": 128.377,
+   "end": 128.8
+  },
+  {
+   "text": "ada",
+   "start": 128.91,
+   "end": 129.016
+  },
+  {
+   "text": "yang",
+   "start": 129.243,
+   "end": 129.47
+  },
+  {
+   "text": "sebenarnya",
+   "start": 129.57,
+   "end": 129.996
+  },
+  {
+   "text": "nggak",
+   "start": 129.996,
+   "end": 130.28
+  },
+  {
+   "text": "merasa",
+   "start": 130.39,
+   "end": 131.06
+  },
+  {
+   "text": "kasusnya",
+   "start": 131.16,
+   "end": 131.777
+  },
+  {
+   "text": "itu",
+   "start": 131.932,
+   "end": 132.13
+  },
+  {
+   "text": "punya",
+   "start": 132.24,
+   "end": 132.368
+  },
+  {
+   "text": "basis",
+   "start": 132.468,
+   "end": 132.88
+  },
+  {
+   "text": "yang",
+   "start": 133.01,
+   "end": 133.386
+  },
+  {
+   "text": "kuat,",
+   "start": 133.559,
+   "end": 133.79
+  },
+  {
+   "text": "tapi",
+   "start": 133.95,
+   "end": 134.0
+  },
+  {
+   "text": "emang",
+   "start": 134.118,
+   "end": 134.237
+  },
+  {
+   "text": "nggak",
+   "start": 134.237,
+   "end": 134.376
+  },
+  {
+   "text": "suka",
+   "start": 134.376,
+   "end": 134.653
+  },
+  {
+   "text": "juga",
+   "start": 134.653,
+   "end": 134.851
+  },
+  {
+   "text": "aja",
+   "start": 134.851,
+   "end": 135.069
+  },
+  {
+   "text": "sama",
+   "start": 135.247,
+   "end": 135.267
+  },
+  {
+   "text": "Nadiem",
+   "start": 135.465,
+   "end": 135.663
+  },
+  {
+   "text": "dan",
+   "start": 135.663,
+   "end": 135.802
+  },
+  {
+   "text": "kebijakan-kebijakannya",
+   "start": 135.802,
+   "end": 136.674
+  },
+  {
+   "text": "menjadi",
+   "start": 136.674,
+   "end": 136.852
+  },
+  {
+   "text": "menteri.",
+   "start": 136.852,
+   "end": 137.05
+  },
+  {
+   "text": "Jadi",
+   "start": 137.119,
+   "end": 137.36
+  },
+  {
+   "text": "ya",
+   "start": 137.47,
+   "end": 137.82
+  },
+  {
+   "text": "biarin",
+   "start": 137.91,
+   "end": 138.097
+  },
+  {
+   "text": "aja",
+   "start": 138.097,
+   "end": 138.243
+  },
+  {
+   "text": "kalau",
+   "start": 138.243,
+   "end": 138.493
+  },
+  {
+   "text": "Nadiem",
+   "start": 138.493,
+   "end": 138.784
+  },
+  {
+   "text": "mau",
+   "start": 138.784,
+   "end": 138.888
+  },
+  {
+   "text": "di",
+   "start": 138.888,
+   "end": 138.951
+  },
+  {
+   "text": "penjara",
+   "start": 138.951,
+   "end": 139.242
+  },
+  {
+   "text": "gitu.",
+   "start": 139.242,
+   "end": 139.45
+  },
+  {
+   "text": "Ada",
+   "start": 139.54,
+   "end": 139.65
+  },
+  {
+   "text": "banyak",
+   "start": 139.699,
+   "end": 139.945
+  },
+  {
+   "text": "banget.",
+   "start": 139.945,
+   "end": 140.19
+  },
+  {
+   "text": "Tapi",
+   "start": 140.41,
+   "end": 140.477
+  },
+  {
+   "text": "semua",
+   "start": 140.477,
+   "end": 140.722
+  },
+  {
+   "text": "ini",
+   "start": 140.722,
+   "end": 140.945
+  },
+  {
+   "text": "adalah",
+   "start": 140.945,
+   "end": 141.102
+  },
+  {
+   "text": "komentar.",
+   "start": 141.102,
+   "end": 141.57
+  },
+  {
+   "text": "Kita",
+   "start": 141.77,
+   "end": 141.812
+  },
+  {
+   "text": "mau",
+   "start": 142.052,
+   "end": 142.08
+  },
+  {
+   "text": "ngomong",
+   "start": 142.066,
+   "end": 142.46
+  },
+  {
+   "text": "apapun",
+   "start": 142.53,
+   "end": 142.66
+  },
+  {
+   "text": "gitu.",
+   "start": 142.77,
+   "end": 142.826
+  },
+  {
+   "text": "Kita",
+   "start": 142.937,
+   "end": 143.07
+  },
+  {
+   "text": "mau",
+   "start": 143.07,
+   "end": 143.292
+  },
+  {
+   "text": "berselorong,",
+   "start": 143.292,
+   "end": 144.225
+  },
+  {
+   "text": "mau",
+   "start": 144.247,
+   "end": 144.314
+  },
+  {
+   "text": "berteriak,",
+   "start": 144.314,
+   "end": 144.958
+  },
+  {
+   "text": "mau",
+   "start": 144.958,
+   "end": 145.069
+  },
+  {
+   "text": "ngomong",
+   "start": 145.069,
+   "end": 145.402
+  },
+  {
+   "text": "segala",
+   "start": 145.402,
+   "end": 145.602
+  },
+  {
+   "text": "macam.",
+   "start": 145.602,
+   "end": 145.78
+  },
+  {
+   "text": "Kita",
+   "start": 145.85,
+   "end": 145.947
+  },
+  {
+   "text": "itu",
+   "start": 145.947,
+   "end": 146.076
+  },
+  {
+   "text": "semua",
+   "start": 146.076,
+   "end": 146.227
+  },
+  {
+   "text": "di",
+   "start": 146.227,
+   "end": 146.399
+  },
+  {
+   "text": "luar",
+   "start": 146.399,
+   "end": 146.657
+  },
+  {
+   "text": "lapangan.",
+   "start": 146.657,
+   "end": 146.98
+  },
+  {
+   "text": "Di",
+   "start": 147.21,
+   "end": 147.354
+  },
+  {
+   "text": "luar",
+   "start": 147.354,
+   "end": 147.695
+  },
+  {
+   "text": "persidangan.",
+   "start": 147.695,
+   "end": 148.15
+  },
+  {
+   "text": "Orang-orang",
+   "start": 148.38,
+   "end": 148.683
+  },
+  {
+   "text": "yang",
+   "start": 148.683,
+   "end": 148.94
+  },
+  {
+   "text": "yang",
+   "start": 148.94,
+   "end": 149.16
+  },
+  {
+   "text": "pro",
+   "start": 149.31,
+   "end": 149.64
+  },
+  {
+   "text": "terhadap",
+   "start": 149.71,
+   "end": 150.37
+  },
+  {
+   "text": "keputusan,",
+   "start": 150.5,
+   "end": 151.008
+  },
+  {
+   "text": "bukan",
+   "start": 151.048,
+   "end": 151.189
+  },
+  {
+   "text": "keputusan",
+   "start": 151.189,
+   "end": 151.53
+  },
+  {
+   "text": "ya,",
+   "start": 151.53,
+   "end": 151.71
+  },
+  {
+   "text": "tuntutan",
+   "start": 151.83,
+   "end": 152.146
+  },
+  {
+   "text": "yang",
+   "start": 152.175,
+   "end": 152.376
+  },
+  {
+   "text": "diberikan",
+   "start": 152.591,
+   "end": 153.295
+  },
+  {
+   "text": "sama",
+   "start": 153.295,
+   "end": 153.496
+  },
+  {
+   "text": "Kejaksaan,",
+   "start": 153.496,
+   "end": 154.07
+  },
+  {
+   "text": "akan",
+   "start": 154.2,
+   "end": 154.249
+  },
+  {
+   "text": "bilang,",
+   "start": 154.249,
+   "end": 154.444
+  },
+  {
+   "text": "ya",
+   "start": 154.52,
+   "end": 154.65
+  },
+  {
+   "text": "lo",
+   "start": 154.81,
+   "end": 154.895
+  },
+  {
+   "text": "mau",
+   "start": 155.028,
+   "end": 155.048
+  },
+  {
+   "text": "ngomong",
+   "start": 155.047,
+   "end": 155.293
+  },
+  {
+   "text": "apa",
+   "start": 155.293,
+   "end": 155.407
+  },
+  {
+   "text": "juga",
+   "start": 155.407,
+   "end": 155.616
+  },
+  {
+   "text": "nggak",
+   "start": 155.616,
+   "end": 155.881
+  },
+  {
+   "text": "ngaruh.",
+   "start": 155.881,
+   "end": 156.26
+  },
+  {
+   "text": "Karena",
+   "start": 156.336,
+   "end": 156.5
+  },
+  {
+   "text": "lo",
+   "start": 156.62,
+   "end": 156.819
+  },
+  {
+   "text": "nggak",
+   "start": 156.819,
+   "end": 156.975
+  },
+  {
+   "text": "ngerti,",
+   "start": 156.975,
+   "end": 157.44
+  },
+  {
+   "text": "apa",
+   "start": 157.59,
+   "end": 157.713
+  },
+  {
+   "text": "iya",
+   "start": 157.757,
+   "end": 158.198
+  },
+  {
+   "text": "lo",
+   "start": 158.198,
+   "end": 158.35
+  },
+  {
+   "text": "yang",
+   "start": 158.47,
+   "end": 158.753
+  },
+  {
+   "text": "seorang",
+   "start": 158.753,
+   "end": 159.015
+  },
+  {
+   "text": "pelawak,",
+   "start": 159.015,
+   "end": 159.58
+  },
+  {
+   "text": "lo",
+   "start": 159.73,
+   "end": 159.799
+  },
+  {
+   "text": "yang",
+   "start": 159.799,
+   "end": 160.063
+  },
+  {
+   "text": "seorang",
+   "start": 160.063,
+   "end": 160.366
+  },
+  {
+   "text": "pemusik,",
+   "start": 160.507,
+   "end": 160.97
+  },
+  {
+   "text": "lo",
+   "start": 161.11,
+   "end": 161.173
+  },
+  {
+   "text": "yang",
+   "start": 161.374,
+   "end": 161.5
+  },
+  {
+   "text": "seorang",
+   "start": 161.5,
+   "end": 161.777
+  },
+  {
+   "text": "youtuber,",
+   "start": 161.777,
+   "end": 162.18
+  },
+  {
+   "text": "merasa",
+   "start": 162.25,
+   "end": 162.538
+  },
+  {
+   "text": "lebih",
+   "start": 162.538,
+   "end": 162.714
+  },
+  {
+   "text": "ngerti",
+   "start": 162.714,
+   "end": 163.21
+  },
+  {
+   "text": "para",
+   "start": 163.36,
+   "end": 163.51
+  },
+  {
+   "text": "hakim,",
+   "start": 163.67,
+   "end": 164.07
+  },
+  {
+   "text": "para",
+   "start": 164.15,
+   "end": 164.45
+  },
+  {
+   "text": "jaksa",
+   "start": 164.56,
+   "end": 165.213
+  },
+  {
+   "text": "yang",
+   "start": 165.387,
+   "end": 165.482
+  },
+  {
+   "text": "ada",
+   "start": 165.529,
+   "end": 165.822
+  },
+  {
+   "text": "di",
+   "start": 165.822,
+   "end": 165.975
+  },
+  {
+   "text": "persidangan,",
+   "start": 165.975,
+   "end": 166.41
+  },
+  {
+   "text": "para",
+   "start": 166.49,
+   "end": 166.526
+  },
+  {
+   "text": "pengacara.",
+   "start": 166.691,
+   "end": 167.14
+  },
+  {
+   "text": "Apa",
+   "start": 167.35,
+   "end": 167.403
+  },
+  {
+   "text": "iya?",
+   "start": 167.403,
+   "end": 167.74
+  },
+  {
+   "text": "Apa",
+   "start": 167.93,
+   "end": 168.011
+  },
+  {
+   "text": "iya",
+   "start": 168.011,
+   "end": 168.63
+  },
+  {
+   "text": "lo",
+   "start": 168.77,
+   "end": 168.831
+  },
+  {
+   "text": "bisa",
+   "start": 168.831,
+   "end": 169.6
+  },
+  {
+   "text": "merasa",
+   "start": 169.85,
+   "end": 170.3
+  },
+  {
+   "text": "lo",
+   "start": 170.3,
+   "end": 170.38
+  },
+  {
+   "text": "punya",
+   "start": 170.51,
+   "end": 170.817
+  },
+  {
+   "text": "hak",
+   "start": 170.817,
+   "end": 171.19
+  },
+  {
+   "text": "untuk",
+   "start": 171.29,
+   "end": 171.331
+  },
+  {
+   "text": "lebih",
+   "start": 171.331,
+   "end": 171.62
+  },
+  {
+   "text": "didengar?",
+   "start": 171.71,
+   "end": 172.52
+  },
+  {
+   "text": "Padahal",
+   "start": 172.72,
+   "end": 172.857
+  },
+  {
+   "text": "pendidikan",
+   "start": 172.857,
+   "end": 173.269
+  },
+  {
+   "text": "lo",
+   "start": 173.269,
+   "end": 173.429
+  },
+  {
+   "text": "nggak",
+   "start": 173.429,
+   "end": 173.589
+  },
+  {
+   "text": "ke",
+   "start": 173.589,
+   "end": 173.726
+  },
+  {
+   "text": "arah",
+   "start": 173.726,
+   "end": 173.817
+  },
+  {
+   "text": "sana.",
+   "start": 173.817,
+   "end": 174.0
+  },
+  {
+   "text": "Ya",
+   "start": 174.3,
+   "end": 174.413
+  },
+  {
+   "text": "kan?",
+   "start": 174.413,
+   "end": 174.577
+  },
+  {
+   "text": "Dan",
+   "start": 174.618,
+   "end": 174.721
+  },
+  {
+   "text": "memang",
+   "start": 174.721,
+   "end": 174.906
+  },
+  {
+   "text": "harus",
+   "start": 174.906,
+   "end": 175.09
+  },
+  {
+   "text": "diakuin.",
+   "start": 175.09,
+   "end": 175.46
+  },
+  {
+   "text": "Banyak",
+   "start": 175.58,
+   "end": 175.969
+  },
+  {
+   "text": "sekali",
+   "start": 175.969,
+   "end": 176.176
+  },
+  {
+   "text": "rakyat",
+   "start": 176.176,
+   "end": 176.496
+  },
+  {
+   "text": "di",
+   "start": 176.496,
+   "end": 176.519
+  },
+  {
+   "text": "Indonesia,",
+   "start": 176.519,
+   "end": 176.84
+  },
+  {
+   "text": "ikut",
+   "start": 176.98,
+   "end": 177.21
+  },
+  {
+   "text": "berkomentar",
+   "start": 177.274,
+   "end": 177.704
+  },
+  {
+   "text": "terhadap",
+   "start": 177.704,
+   "end": 178.09
+  },
+  {
+   "text": "sidang",
+   "start": 178.09,
+   "end": 178.327
+  },
+  {
+   "text": "ini,",
+   "start": 178.327,
+   "end": 178.52
+  },
+  {
+   "text": "tanpa",
+   "start": 178.69,
+   "end": 179.036
+  },
+  {
+   "text": "ngerti",
+   "start": 179.036,
+   "end": 179.42
+  },
+  {
+   "text": "hukum",
+   "start": 179.42,
+   "end": 179.785
+  },
+  {
+   "text": "sama",
+   "start": 179.785,
+   "end": 179.919
+  },
+  {
+   "text": "sekali.",
+   "start": 179.919,
+   "end": 180.15
+  },
+  {
+   "text": "Kita",
+   "start": 180.41,
+   "end": 180.469
+  },
+  {
+   "text": "kan",
+   "start": 180.469,
+   "end": 180.586
+  },
+  {
+   "text": "bisa",
+   "start": 180.586,
+   "end": 180.751
+  },
+  {
+   "text": "bilang,",
+   "start": 180.751,
+   "end": 181.01
+  },
+  {
+   "text": "nggak",
+   "start": 181.26,
+   "end": 181.491
+  },
+  {
+   "text": "masuk",
+   "start": 181.491,
+   "end": 181.69
+  },
+  {
+   "text": "akal.",
+   "start": 181.69,
+   "end": 181.987
+  },
+  {
+   "text": "Masa",
+   "start": 181.987,
+   "end": 182.186
+  },
+  {
+   "text": "27",
+   "start": 182.186,
+   "end": 182.417
+  },
+  {
+   "text": "tahun,",
+   "start": 182.417,
+   "end": 182.913
+  },
+  {
+   "text": "ada",
+   "start": 182.995,
+   "end": 183.15
+  },
+  {
+   "text": "banyak",
+   "start": 183.3,
+   "end": 183.612
+  },
+  {
+   "text": "orang",
+   "start": 183.612,
+   "end": 183.925
+  },
+  {
+   "text": "yang",
+   "start": 183.925,
+   "end": 184.237
+  },
+  {
+   "text": "hukumannya",
+   "start": 184.237,
+   "end": 184.79
+  },
+  {
+   "text": "lebih",
+   "start": 184.9,
+   "end": 185.015
+  },
+  {
+   "text": "sedikit,",
+   "start": 185.072,
+   "end": 185.496
+  },
+  {
+   "text": "padahal",
+   "start": 185.542,
+   "end": 186.0
+  },
+  {
+   "text": "kejahatannya",
+   "start": 186.14,
+   "end": 186.76
+  },
+  {
+   "text": "lebih",
+   "start": 186.85,
+   "end": 187.064
+  },
+  {
+   "text": "tinggi",
+   "start": 187.064,
+   "end": 187.706
+  },
+  {
+   "text": "daripada",
+   "start": 187.706,
+   "end": 188.164
+  },
+  {
+   "text": "kita.",
+   "start": 188.164,
+   "end": 188.5
+  },
+  {
+   "text": "Terus",
+   "start": 188.69,
+   "end": 188.811
+  },
+  {
+   "text": "orang",
+   "start": 188.811,
+   "end": 188.991
+  },
+  {
+   "text": "bisa",
+   "start": 188.991,
+   "end": 189.197
+  },
+  {
+   "text": "bilang,",
+   "start": 189.197,
+   "end": 189.48
+  },
+  {
+   "text": "daripada",
+   "start": 189.65,
+   "end": 190.176
+  },
+  {
+   "text": "Nadiem.",
+   "start": 190.176,
+   "end": 190.866
+  },
+  {
+   "text": "Terus",
+   "start": 190.902,
+   "end": 191.011
+  },
+  {
+   "text": "orang",
+   "start": 191.011,
+   "end": 191.084
+  },
+  {
+   "text": "bisa",
+   "start": 191.084,
+   "end": 191.193
+  },
+  {
+   "text": "bilang,",
+   "start": 191.193,
+   "end": 191.32
+  },
+  {
+   "text": "tapi",
+   "start": 191.44,
+   "end": 191.492
+  },
+  {
+   "text": "emang",
+   "start": 191.492,
+   "end": 191.617
+  },
+  {
+   "text": "lo",
+   "start": 191.617,
+   "end": 191.763
+  },
+  {
+   "text": "ngerti?",
+   "start": 191.763,
+   "end": 192.2
+  },
+  {
+   "text": "Emang",
+   "start": 192.37,
+   "end": 192.484
+  },
+  {
+   "text": "lo",
+   "start": 192.484,
+   "end": 192.598
+  },
+  {
+   "text": "ngerti",
+   "start": 192.598,
+   "end": 192.825
+  },
+  {
+   "text": "undang-undang",
+   "start": 192.825,
+   "end": 193.338
+  },
+  {
+   "text": "ini",
+   "start": 193.338,
+   "end": 193.509
+  },
+  {
+   "text": "mengatakan",
+   "start": 193.66,
+   "end": 194.04
+  },
+  {
+   "text": "bahwa",
+   "start": 194.04,
+   "end": 194.249
+  },
+  {
+   "text": "hukumannya",
+   "start": 194.249,
+   "end": 194.59
+  },
+  {
+   "text": "berapa",
+   "start": 194.59,
+   "end": 194.875
+  },
+  {
+   "text": "segala",
+   "start": 194.875,
+   "end": 195.122
+  },
+  {
+   "text": "macam?",
+   "start": 195.122,
+   "end": 195.198
+  },
+  {
+   "text": "Lo",
+   "start": 195.198,
+   "end": 195.311
+  },
+  {
+   "text": "nggak",
+   "start": 195.311,
+   "end": 195.406
+  },
+  {
+   "text": "ngerti",
+   "start": 195.406,
+   "end": 195.71
+  },
+  {
+   "text": "kan?",
+   "start": 195.79,
+   "end": 196.06
+  },
+  {
+   "text": "Kita",
+   "start": 196.29,
+   "end": 196.38
+  },
+  {
+   "text": "emang",
+   "start": 196.38,
+   "end": 196.652
+  },
+  {
+   "text": "nggak",
+   "start": 196.652,
+   "end": 196.748
+  },
+  {
+   "text": "ngerti",
+   "start": 196.748,
+   "end": 196.94
+  },
+  {
+   "text": "itu",
+   "start": 197.02,
+   "end": 197.115
+  },
+  {
+   "text": "semua.",
+   "start": 197.115,
+   "end": 197.306
+  },
+  {
+   "text": "Emang",
+   "start": 197.535,
+   "end": 197.725
+  },
+  {
+   "text": "bener",
+   "start": 197.811,
+   "end": 197.935
+  },
+  {
+   "text": "kita",
+   "start": 198.011,
+   "end": 198.031
+  },
+  {
+   "text": "nggak",
+   "start": 198.212,
+   "end": 198.232
+  },
+  {
+   "text": "ngerti?",
+   "start": 198.221,
+   "end": 198.45
+  },
+  {
+   "text": "Jangankan",
+   "start": 198.53,
+   "end": 199.424
+  },
+  {
+   "text": "itu.",
+   "start": 199.424,
+   "end": 199.79
+  },
+  {
+   "text": "Kemarin",
+   "start": 200.08,
+   "end": 200.85
+  },
+  {
+   "text": "aja,",
+   "start": 200.93,
+   "end": 201.286
+  },
+  {
+   "text": "orang",
+   "start": 201.405,
+   "end": 201.65
+  },
+  {
+   "text": "banyak",
+   "start": 201.8,
+   "end": 202.175
+  },
+  {
+   "text": "yang",
+   "start": 202.175,
+   "end": 202.396
+  },
+  {
+   "text": "ngomong",
+   "start": 202.396,
+   "end": 202.572
+  },
+  {
+   "text": "sama",
+   "start": 202.572,
+   "end": 202.682
+  },
+  {
+   "text": "gue,",
+   "start": 202.793,
+   "end": 202.903
+  },
+  {
+   "text": "gimana",
+   "start": 202.991,
+   "end": 203.366
+  },
+  {
+   "text": "Bang",
+   "start": 203.366,
+   "end": 203.521
+  },
+  {
+   "text": "Panji,",
+   "start": 203.521,
+   "end": 203.94
+  },
+  {
+   "text": "Nadiem",
+   "start": 204.09,
+   "end": 204.74
+  },
+  {
+   "text": "dipenjara",
+   "start": 204.95,
+   "end": 205.78
+  },
+  {
+   "text": "18",
+   "start": 205.93,
+   "end": 206.136
+  },
+  {
+   "text": "tahun",
+   "start": 206.136,
+   "end": 206.747
+  },
+  {
+   "text": "plus",
+   "start": 206.747,
+   "end": 206.98
+  },
+  {
+   "text": "9.",
+   "start": 207.05,
+   "end": 207.71
+  },
+  {
+   "text": "Padahal",
+   "start": 207.82,
+   "end": 208.21
+  },
+  {
+   "text": "kemarin",
+   "start": 208.31,
+   "end": 208.674
+  },
+  {
+   "text": "itu",
+   "start": 208.674,
+   "end": 208.77
+  },
+  {
+   "text": "baru",
+   "start": 208.77,
+   "end": 209.0
+  },
+  {
+   "text": "sidang",
+   "start": 209.09,
+   "end": 209.55
+  },
+  {
+   "text": "tuntutan,",
+   "start": 209.62,
+   "end": 210.03
+  },
+  {
+   "text": "bukan",
+   "start": 210.196,
+   "end": 210.216
+  },
+  {
+   "text": "sidang",
+   "start": 210.206,
+   "end": 210.421
+  },
+  {
+   "text": "faunis",
+   "start": 210.421,
+   "end": 210.753
+  },
+  {
+   "text": "gitu.",
+   "start": 210.753,
+   "end": 210.89
+  },
+  {
+   "text": "Faunisnya",
+   "start": 211.14,
+   "end": 211.357
+  },
+  {
+   "text": "kayaknya",
+   "start": 211.357,
+   "end": 211.563
+  },
+  {
+   "text": "masih",
+   "start": 211.563,
+   "end": 211.749
+  },
+  {
+   "text": "awal",
+   "start": 211.749,
+   "end": 212.12
+  },
+  {
+   "text": "Juni.",
+   "start": 212.12,
+   "end": 212.45
+  },
+  {
+   "text": "Jadi",
+   "start": 212.76,
+   "end": 212.823
+  },
+  {
+   "text": "rakyat",
+   "start": 212.823,
+   "end": 213.094
+  },
+  {
+   "text": "Indonesia",
+   "start": 213.094,
+   "end": 213.261
+  },
+  {
+   "text": "tuh",
+   "start": 213.261,
+   "end": 213.512
+  },
+  {
+   "text": "banyak",
+   "start": 213.512,
+   "end": 213.679
+  },
+  {
+   "text": "yang",
+   "start": 213.679,
+   "end": 213.825
+  },
+  {
+   "text": "nggak",
+   "start": 213.825,
+   "end": 213.93
+  },
+  {
+   "text": "bisa",
+   "start": 213.93,
+   "end": 213.992
+  },
+  {
+   "text": "bedain.",
+   "start": 213.992,
+   "end": 214.222
+  },
+  {
+   "text": "Ya",
+   "start": 214.264,
+   "end": 214.368
+  },
+  {
+   "text": "gimana",
+   "start": 214.368,
+   "end": 214.681
+  },
+  {
+   "text": "Bang",
+   "start": 214.681,
+   "end": 214.828
+  },
+  {
+   "text": "Panji,",
+   "start": 214.828,
+   "end": 215.12
+  },
+  {
+   "text": "Nadiem",
+   "start": 215.27,
+   "end": 215.511
+  },
+  {
+   "text": "dipenjara",
+   "start": 215.511,
+   "end": 215.972
+  },
+  {
+   "text": "18",
+   "start": 215.972,
+   "end": 216.213
+  },
+  {
+   "text": "tahun.",
+   "start": 216.674,
+   "end": 216.74
+  },
+  {
+   "text": "Bang",
+   "start": 216.92,
+   "end": 217.032
+  },
+  {
+   "text": "Panji,",
+   "start": 217.098,
+   "end": 217.398
+  },
+  {
+   "text": "Nadiem",
+   "start": 217.431,
+   "end": 217.648
+  },
+  {
+   "text": "diputuskan",
+   "start": 217.648,
+   "end": 217.914
+  },
+  {
+   "text": "penjara",
+   "start": 217.914,
+   "end": 218.097
+  },
+  {
+   "text": "18",
+   "start": 218.097,
+   "end": 218.23
+  },
+  {
+   "text": "tahun.",
+   "start": 218.23,
+   "end": 218.53
+  },
+  {
+   "text": "Bukan.",
+   "start": 218.6,
+   "end": 219.0
+  },
+  {
+   "text": "Itu",
+   "start": 219.12,
+   "end": 219.43
+  },
+  {
+   "text": "tuh",
+   "start": 219.58,
+   "end": 219.72
+  },
+  {
+   "text": "baru",
+   "start": 219.72,
+   "end": 219.859
+  },
+  {
+   "text": "sidang",
+   "start": 219.859,
+   "end": 220.139
+  },
+  {
+   "text": "tuntutannya.",
+   "start": 220.139,
+   "end": 220.651
+  },
+  {
+   "text": "Jadi",
+   "start": 220.674,
+   "end": 220.93
+  },
+  {
+   "text": "setelah",
+   "start": 221.01,
+   "end": 221.23
+  },
+  {
+   "text": "lewat",
+   "start": 221.23,
+   "end": 221.45
+  },
+  {
+   "text": "proses,",
+   "start": 221.55,
+   "end": 222.066
+  },
+  {
+   "text": "terus",
+   "start": 222.109,
+   "end": 222.259
+  },
+  {
+   "text": "udah",
+   "start": 222.259,
+   "end": 222.345
+  },
+  {
+   "text": "gitu,",
+   "start": 222.42,
+   "end": 222.56
+  },
+  {
+   "text": "jaksai",
+   "start": 222.69,
+   "end": 223.104
+  },
+  {
+   "text": "bilang,",
+   "start": 223.247,
+   "end": 223.39
+  },
+  {
+   "text": "tuntutannya",
+   "start": 223.47,
+   "end": 223.855
+  },
+  {
+   "text": "adalah",
+   "start": 223.855,
+   "end": 224.042
+  },
+  {
+   "text": "18",
+   "start": 224.101,
+   "end": 224.346
+  },
+  {
+   "text": "tahun.",
+   "start": 224.591,
+   "end": 224.79
+  },
+  {
+   "text": "Plus",
+   "start": 225.07,
+   "end": 225.42
+  },
+  {
+   "text": "mengembalikan",
+   "start": 225.57,
+   "end": 226.671
+  },
+  {
+   "text": "kerugian",
+   "start": 226.671,
+   "end": 227.035
+  },
+  {
+   "text": "negara.",
+   "start": 227.035,
+   "end": 227.4
+  },
+  {
+   "text": "Nggak",
+   "start": 227.52,
+   "end": 227.647
+  },
+  {
+   "text": "tau",
+   "start": 227.697,
+   "end": 227.792
+  },
+  {
+   "text": "mengembalikan",
+   "start": 227.792,
+   "end": 228.135
+  },
+  {
+   "text": "kerugian",
+   "start": 228.135,
+   "end": 228.382
+  },
+  {
+   "text": "negara",
+   "start": 228.382,
+   "end": 228.629
+  },
+  {
+   "text": "atau",
+   "start": 228.629,
+   "end": 228.744
+  },
+  {
+   "text": "apa",
+   "start": 228.744,
+   "end": 228.877
+  },
+  {
+   "text": "ya.",
+   "start": 228.877,
+   "end": 229.01
+  },
+  {
+   "text": "Pokoknya",
+   "start": 229.26,
+   "end": 229.396
+  },
+  {
+   "text": "harus",
+   "start": 229.396,
+   "end": 229.551
+  },
+  {
+   "text": "bayar",
+   "start": 229.551,
+   "end": 230.037
+  },
+  {
+   "text": "4,8",
+   "start": 230.037,
+   "end": 231.202
+  },
+  {
+   "text": "triliun",
+   "start": 231.202,
+   "end": 231.785
+  },
+  {
+   "text": "kalau",
+   "start": 231.785,
+   "end": 231.96
+  },
+  {
+   "text": "nggak",
+   "start": 232.03,
+   "end": 232.34
+  },
+  {
+   "text": "bisa",
+   "start": 232.42,
+   "end": 233.13
+  },
+  {
+   "text": "ganti",
+   "start": 233.27,
+   "end": 233.639
+  },
+  {
+   "text": "ke",
+   "start": 233.639,
+   "end": 233.788
+  },
+  {
+   "text": "9",
+   "start": 233.788,
+   "end": 234.001
+  },
+  {
+   "text": "tahun",
+   "start": 234.001,
+   "end": 234.447
+  },
+  {
+   "text": "gitu.",
+   "start": 234.447,
+   "end": 234.66
+  },
+  {
+   "text": "Penjara.",
+   "start": 234.9,
+   "end": 235.3
+  },
+  {
+   "text": "Subsider.",
+   "start": 235.3,
+   "end": 235.75
+  },
+  {
+   "text": "Faunisnya",
+   "start": 235.96,
+   "end": 236.304
+  },
+  {
+   "text": "masih",
+   "start": 236.304,
+   "end": 236.497
+  },
+  {
+   "text": "nanti.",
+   "start": 236.524,
+   "end": 236.91
+  },
+  {
+   "text": "Faunisnya",
+   "start": 237.05,
+   "end": 237.261
+  },
+  {
+   "text": "masih",
+   "start": 237.261,
+   "end": 237.486
+  },
+  {
+   "text": "di",
+   "start": 237.486,
+   "end": 237.629
+  },
+  {
+   "text": "awal",
+   "start": 237.629,
+   "end": 237.854
+  },
+  {
+   "text": "Juni.",
+   "start": 237.854,
+   "end": 238.16
+  },
+  {
+   "text": "Jadi",
+   "start": 238.28,
+   "end": 238.5
+  },
+  {
+   "text": "rakyat",
+   "start": 238.5,
+   "end": 238.68
+  },
+  {
+   "text": "Indonesia",
+   "start": 238.71,
+   "end": 238.92
+  },
+  {
+   "text": "bedain",
+   "start": 238.92,
+   "end": 239.42
+  },
+  {
+   "text": "itu",
+   "start": 239.42,
+   "end": 239.6
+  },
+  {
+   "text": "aja",
+   "start": 239.6,
+   "end": 239.72
+  },
+  {
+   "text": "nggak",
+   "start": 239.72,
+   "end": 239.92
+  },
+  {
+   "text": "bisa.",
+   "start": 240.12,
+   "end": 240.59
+  },
+  {
+   "text": "Jadi",
+   "start": 240.82,
+   "end": 240.92
+  },
+  {
+   "text": "apa",
+   "start": 240.92,
+   "end": 241.119
+  },
+  {
+   "text": "iya?",
+   "start": 241.119,
+   "end": 241.55
+  },
+  {
+   "text": "Kita",
+   "start": 241.65,
+   "end": 241.729
+  },
+  {
+   "text": "kita",
+   "start": 241.729,
+   "end": 242.07
+  },
+  {
+   "text": "bisa",
+   "start": 242.21,
+   "end": 242.83
+  },
+  {
+   "text": "merasa",
+   "start": 242.94,
+   "end": 243.454
+  },
+  {
+   "text": "kita",
+   "start": 243.454,
+   "end": 243.676
+  },
+  {
+   "text": "punya",
+   "start": 243.745,
+   "end": 244.037
+  },
+  {
+   "text": "hak",
+   "start": 244.037,
+   "end": 244.37
+  },
+  {
+   "text": "untuk",
+   "start": 244.45,
+   "end": 244.659
+  },
+  {
+   "text": "didengar",
+   "start": 244.659,
+   "end": 245.058
+  },
+  {
+   "text": "pendapatnya.",
+   "start": 245.058,
+   "end": 245.191
+  },
+  {
+   "text": "Di",
+   "start": 245.258,
+   "end": 245.4
+  },
+  {
+   "text": "saat",
+   "start": 245.4,
+   "end": 245.59
+  },
+  {
+   "text": "ngerti",
+   "start": 245.69,
+   "end": 245.81
+  },
+  {
+   "text": "hukum",
+   "start": 245.88,
+   "end": 246.125
+  },
+  {
+   "text": "aja",
+   "start": 246.125,
+   "end": 246.259
+  },
+  {
+   "text": "nggak.",
+   "start": 246.259,
+   "end": 246.46
+  },
+  {
+   "text": "Atau",
+   "start": 246.79,
+   "end": 246.989
+  },
+  {
+   "text": "gini",
+   "start": 246.989,
+   "end": 247.16
+  },
+  {
+   "text": "deh,",
+   "start": 247.16,
+   "end": 247.292
+  },
+  {
+   "text": "nggak",
+   "start": 247.292,
+   "end": 247.387
+  },
+  {
+   "text": "usah",
+   "start": 247.387,
+   "end": 247.463
+  },
+  {
+   "text": "jauh-jauh",
+   "start": 247.463,
+   "end": 247.785
+  },
+  {
+   "text": "deh.",
+   "start": 247.785,
+   "end": 247.88
+  },
+  {
+   "text": "Orang",
+   "start": 248.27,
+   "end": 248.75
+  },
+  {
+   "text": "Indonesia",
+   "start": 248.75,
+   "end": 248.989
+  },
+  {
+   "text": "aja",
+   "start": 248.989,
+   "end": 249.266
+  },
+  {
+   "text": "banyak",
+   "start": 249.266,
+   "end": 249.488
+  },
+  {
+   "text": "banget",
+   "start": 249.488,
+   "end": 249.746
+  },
+  {
+   "text": "yang",
+   "start": 249.746,
+   "end": 249.875
+  },
+  {
+   "text": "nggak",
+   "start": 249.875,
+   "end": 249.967
+  },
+  {
+   "text": "ngerti",
+   "start": 249.967,
+   "end": 250.152
+  },
+  {
+   "text": "bedanya",
+   "start": 250.152,
+   "end": 250.41
+  },
+  {
+   "text": "nilai",
+   "start": 250.59,
+   "end": 250.971
+  },
+  {
+   "text": "korupsi",
+   "start": 251.227,
+   "end": 251.666
+  },
+  {
+   "text": "sama",
+   "start": 251.819,
+   "end": 251.891
+  },
+  {
+   "text": "nilai",
+   "start": 251.901,
+   "end": 252.32
+  },
+  {
+   "text": "kerugian",
+   "start": 252.41,
+   "end": 252.79
+  },
+  {
+   "text": "negara",
+   "start": 252.87,
+   "end": 253.07
+  },
+  {
+   "text": "yang",
+   "start": 253.23,
+   "end": 253.39
+  },
+  {
+   "text": "dihasilkan.",
+   "start": 254.22,
+   "end": 255.14
+  },
+  {
+   "text": "Karena",
+   "start": 255.83,
+   "end": 255.93
+  },
+  {
+   "text": "itu",
+   "start": 256.0,
+   "end": 256.147
+  },
+  {
+   "text": "dua",
+   "start": 256.147,
+   "end": 256.342
+  },
+  {
+   "text": "hal",
+   "start": 256.342,
+   "end": 256.537
+  },
+  {
+   "text": "yang",
+   "start": 256.537,
+   "end": 256.635
+  },
+  {
+   "text": "berbeda.",
+   "start": 256.635,
+   "end": 257.05
+  },
+  {
+   "text": "Banyak",
+   "start": 257.3,
+   "end": 258.384
+  },
+  {
+   "text": "yang",
+   "start": 258.384,
+   "end": 258.488
+  },
+  {
+   "text": "nggak",
+   "start": 258.488,
+   "end": 258.611
+  },
+  {
+   "text": "ngerti.",
+   "start": 258.611,
+   "end": 258.873
+  },
+  {
+   "text": "Banyak",
+   "start": 259.03,
+   "end": 259.292
+  },
+  {
+   "text": "yang",
+   "start": 259.292,
+   "end": 259.397
+  },
+  {
+   "text": "nggak",
+   "start": 259.397,
+   "end": 259.485
+  },
+  {
+   "text": "bisa",
+   "start": 259.485,
+   "end": 259.537
+  },
+  {
+   "text": "bedain.",
+   "start": 259.537,
+   "end": 259.782
+  },
+  {
+   "text": "Korupsinya",
+   "start": 259.886,
+   "end": 260.97
+  },
+  {
+   "text": "sekian,",
+   "start": 261.07,
+   "end": 261.607
+  },
+  {
+   "text": "kerugian",
+   "start": 261.652,
+   "end": 261.987
+  },
+  {
+   "text": "negaranya",
+   "start": 261.987,
+   "end": 262.457
+  },
+  {
+   "text": "sekian.",
+   "start": 262.457,
+   "end": 262.859
+  },
+  {
+   "text": "Ini",
+   "start": 262.859,
+   "end": 262.994
+  },
+  {
+   "text": "bukan",
+   "start": 262.994,
+   "end": 263.128
+  },
+  {
+   "text": "angka",
+   "start": 263.128,
+   "end": 263.419
+  },
+  {
+   "text": "yang",
+   "start": 263.419,
+   "end": 263.486
+  },
+  {
+   "text": "sama.",
+   "start": 263.486,
+   "end": 263.709
+  },
+  {
+   "text": "Banyak",
+   "start": 263.844,
+   "end": 264.023
+  },
+  {
+   "text": "yang",
+   "start": 264.023,
+   "end": 264.134
+  },
+  {
+   "text": "nggak",
+   "start": 264.134,
+   "end": 264.224
+  },
+  {
+   "text": "bisa",
+   "start": 264.224,
+   "end": 264.313
+  },
+  {
+   "text": "bedain.",
+   "start": 264.313,
+   "end": 264.626
+  },
+  {
+   "text": "Jadi",
+   "start": 265.331,
+   "end": 266.595
+  },
+  {
+   "text": "orang-orang",
+   "start": 266.595,
+   "end": 267.109
+  },
+  {
+   "text": "yang",
+   "start": 267.109,
+   "end": 267.4
+  },
+  {
+   "text": "merasa",
+   "start": 267.49,
+   "end": 267.904
+  },
+  {
+   "text": "tuntutan",
+   "start": 267.904,
+   "end": 270.187
+  },
+  {
+   "text": "yang",
+   "start": 270.344,
+   "end": 270.473
+  },
+  {
+   "text": "dijatuhkan",
+   "start": 270.473,
+   "end": 271.3
+  },
+  {
+   "text": "kepada",
+   "start": 271.643,
+   "end": 271.7
+  },
+  {
+   "text": "Nadiem",
+   "start": 272.02,
+   "end": 272.07
+  },
+  {
+   "text": "itu",
+   "start": 272.13,
+   "end": 272.353
+  },
+  {
+   "text": "benar,",
+   "start": 272.353,
+   "end": 273.02
+  },
+  {
+   "text": "itu",
+   "start": 273.12,
+   "end": 273.247
+  },
+  {
+   "text": "bisa",
+   "start": 273.318,
+   "end": 273.82
+  },
+  {
+   "text": "bilang,\"Tapi",
+   "start": 273.91,
+   "end": 273.96
+  },
+  {
+   "text": "lu",
+   "start": 274.15,
+   "end": 274.361
+  },
+  {
+   "text": "nggak",
+   "start": 274.361,
+   "end": 274.537
+  },
+  {
+   "text": "ngerti",
+   "start": 274.537,
+   "end": 275.03
+  },
+  {
+   "text": "apa-apa.\"\"Lu",
+   "start": 275.12,
+   "end": 275.24
+  },
+  {
+   "text": "ngerti",
+   "start": 275.46,
+   "end": 275.779
+  },
+  {
+   "text": "hukum",
+   "start": 275.779,
+   "end": 276.001
+  },
+  {
+   "text": "aja",
+   "start": 276.001,
+   "end": 276.197
+  },
+  {
+   "text": "nggak.\"\"Lu",
+   "start": 276.197,
+   "end": 276.68
+  },
+  {
+   "text": "ngerti",
+   "start": 276.8,
+   "end": 276.827
+  },
+  {
+   "text": "hukum",
+   "start": 276.8,
+   "end": 276.827
+  },
+  {
+   "text": "aja",
+   "start": 276.8,
+   "end": 276.827
+  },
+  {
+   "text": "nggak.\"",
+   "start": 276.8,
+   "end": 276.827
+  },
+  {
+   "text": "Gitu",
+   "start": 276.827,
+   "end": 276.96
+  },
+  {
+   "text": "kan.",
+   "start": 276.96,
+   "end": 277.2
+  },
+  {
+   "text": "Dan",
+   "start": 277.3,
+   "end": 277.418
+  },
+  {
+   "text": "kita",
+   "start": 277.519,
+   "end": 277.82
+  },
+  {
+   "text": "frustrasi",
+   "start": 277.96,
+   "end": 278.332
+  },
+  {
+   "text": "karena",
+   "start": 278.332,
+   "end": 278.46
+  },
+  {
+   "text": "dari",
+   "start": 278.642,
+   "end": 278.679
+  },
+  {
+   "text": "kacamata",
+   "start": 278.679,
+   "end": 278.989
+  },
+  {
+   "text": "kita,\"Aduh,",
+   "start": 278.989,
+   "end": 279.36
+  },
+  {
+   "text": "itu",
+   "start": 279.5,
+   "end": 279.562
+  },
+  {
+   "text": "nggak",
+   "start": 279.562,
+   "end": 279.664
+  },
+  {
+   "text": "masuk",
+   "start": 279.664,
+   "end": 279.89
+  },
+  {
+   "text": "akal",
+   "start": 279.89,
+   "end": 280.218
+  },
+  {
+   "text": "banget",
+   "start": 280.218,
+   "end": 280.484
+  },
+  {
+   "text": "itu.\"",
+   "start": 280.484,
+   "end": 280.73
+  },
+  {
+   "text": "Sama",
+   "start": 280.833,
+   "end": 281.058
+  },
+  {
+   "text": "kayak",
+   "start": 281.058,
+   "end": 281.161
+  },
+  {
+   "text": "kalau",
+   "start": 281.161,
+   "end": 281.509
+  },
+  {
+   "text": "misalnya",
+   "start": 281.509,
+   "end": 281.735
+  },
+  {
+   "text": "kita",
+   "start": 281.735,
+   "end": 281.899
+  },
+  {
+   "text": "ngeliat,\"Gila,",
+   "start": 281.899,
+   "end": 282.22
+  },
+  {
+   "text": "masa",
+   "start": 282.34,
+   "end": 282.397
+  },
+  {
+   "text": "nggak",
+   "start": 282.581,
+   "end": 282.649
+  },
+  {
+   "text": "handsball?",
+   "start": 282.901,
+   "end": 283.245
+  },
+  {
+   "text": "Itu",
+   "start": 283.291,
+   "end": 283.474
+  },
+  {
+   "text": "handsball",
+   "start": 283.474,
+   "end": 284.07
+  },
+  {
+   "text": "itu.",
+   "start": 284.15,
+   "end": 284.392
+  },
+  {
+   "text": "Itu",
+   "start": 284.505,
+   "end": 284.64
+  },
+  {
+   "text": "kelihatan",
+   "start": 284.84,
+   "end": 285.326
+  },
+  {
+   "text": "banget",
+   "start": 285.326,
+   "end": 285.462
+  },
+  {
+   "text": "handsball.",
+   "start": 285.462,
+   "end": 285.89
+  },
+  {
+   "text": "Di",
+   "start": 285.96,
+   "end": 286.043
+  },
+  {
+   "text": "VAR",
+   "start": 286.043,
+   "end": 286.352
+  },
+  {
+   "text": "juga",
+   "start": 286.352,
+   "end": 286.476
+  },
+  {
+   "text": "kelihatan",
+   "start": 286.476,
+   "end": 286.889
+  },
+  {
+   "text": "handsball",
+   "start": 286.889,
+   "end": 287.26
+  },
+  {
+   "text": "gitu",
+   "start": 287.34,
+   "end": 287.641
+  },
+  {
+   "text": "kan.\"",
+   "start": 287.641,
+   "end": 287.86
+  },
+  {
+   "text": "Tapi",
+   "start": 288.08,
+   "end": 288.48
+  },
+  {
+   "text": "kan",
+   "start": 288.48,
+   "end": 288.594
+  },
+  {
+   "text": "abis",
+   "start": 288.594,
+   "end": 288.8
+  },
+  {
+   "text": "itu,",
+   "start": 288.8,
+   "end": 288.96
+  },
+  {
+   "text": "orang",
+   "start": 289.05,
+   "end": 289.095
+  },
+  {
+   "text": "yang",
+   "start": 289.095,
+   "end": 289.296
+  },
+  {
+   "text": "di",
+   "start": 289.308,
+   "end": 289.364
+  },
+  {
+   "text": "lapangan",
+   "start": 289.364,
+   "end": 289.744
+  },
+  {
+   "text": "atau",
+   "start": 289.744,
+   "end": 289.991
+  },
+  {
+   "text": "wasit",
+   "start": 289.991,
+   "end": 290.416
+  },
+  {
+   "text": "atau",
+   "start": 290.416,
+   "end": 290.64
+  },
+  {
+   "text": "penyelenggara",
+   "start": 290.76,
+   "end": 291.047
+  },
+  {
+   "text": "pertandingan",
+   "start": 291.123,
+   "end": 291.468
+  },
+  {
+   "text": "akan",
+   "start": 291.468,
+   "end": 291.582
+  },
+  {
+   "text": "bilang,\"Kerja",
+   "start": 291.582,
+   "end": 292.01
+  },
+  {
+   "text": "lu",
+   "start": 292.12,
+   "end": 292.355
+  },
+  {
+   "text": "apa",
+   "start": 292.355,
+   "end": 292.63
+  },
+  {
+   "text": "sebenarnya?\"\"Kerja",
+   "start": 292.71,
+   "end": 293.019
+  },
+  {
+   "text": "lu",
+   "start": 293.019,
+   "end": 293.04
+  },
+  {
+   "text": "apa",
+   "start": 293.019,
+   "end": 293.04
+  },
+  {
+   "text": "sebenarnya?\"",
+   "start": 293.019,
+   "end": 293.37
+  },
+  {
+   "text": "Kalau",
+   "start": 293.54,
+   "end": 293.664
+  },
+  {
+   "text": "ini",
+   "start": 293.664,
+   "end": 293.887
+  },
+  {
+   "text": "emang",
+   "start": 293.887,
+   "end": 294.39
+  },
+  {
+   "text": "kerjanya",
+   "start": 294.61,
+   "end": 295.611
+  },
+  {
+   "text": "di",
+   "start": 295.611,
+   "end": 296.06
+  },
+  {
+   "text": "bidang",
+   "start": 296.125,
+   "end": 296.546
+  },
+  {
+   "text": "ini.",
+   "start": 296.546,
+   "end": 296.77
+  },
+  {
+   "text": "Emang",
+   "start": 296.88,
+   "end": 297.47
+  },
+  {
+   "text": "emang",
+   "start": 297.63,
+   "end": 297.917
+  },
+  {
+   "text": "sekolahnya",
+   "start": 297.917,
+   "end": 298.357
+  },
+  {
+   "text": "di",
+   "start": 298.357,
+   "end": 298.61
+  },
+  {
+   "text": "bidang",
+   "start": 298.7,
+   "end": 299.045
+  },
+  {
+   "text": "ini.",
+   "start": 299.045,
+   "end": 299.31
+  },
+  {
+   "text": "Dia",
+   "start": 299.52,
+   "end": 299.639
+  },
+  {
+   "text": "kompeten.",
+   "start": 299.639,
+   "end": 300.33
+  },
+  {
+   "text": "Lu",
+   "start": 300.43,
+   "end": 300.507
+  },
+  {
+   "text": "kompetensinya",
+   "start": 300.507,
+   "end": 301.064
+  },
+  {
+   "text": "apa?",
+   "start": 301.1,
+   "end": 301.28
+  },
+  {
+   "text": "Kan",
+   "start": 301.35,
+   "end": 301.533
+  },
+  {
+   "text": "gitu.",
+   "start": 301.533,
+   "end": 301.79
+  },
+  {
+   "text": "Karena",
+   "start": 302.03,
+   "end": 302.087
+  },
+  {
+   "text": "kan",
+   "start": 302.087,
+   "end": 302.201
+  },
+  {
+   "text": "kita",
+   "start": 302.201,
+   "end": 302.41
+  },
+  {
+   "text": "tahu",
+   "start": 302.41,
+   "end": 302.865
+  },
+  {
+   "text": "kan",
+   "start": 302.865,
+   "end": 303.017
+  },
+  {
+   "text": "di",
+   "start": 303.017,
+   "end": 303.15
+  },
+  {
+   "text": "internet",
+   "start": 303.15,
+   "end": 303.321
+  },
+  {
+   "text": "memang",
+   "start": 303.321,
+   "end": 303.529
+  },
+  {
+   "text": "ada",
+   "start": 303.529,
+   "end": 303.662
+  },
+  {
+   "text": "masalah",
+   "start": 303.662,
+   "end": 303.985
+  },
+  {
+   "text": "the",
+   "start": 303.985,
+   "end": 304.15
+  },
+  {
+   "text": "death",
+   "start": 304.3,
+   "end": 304.63
+  },
+  {
+   "text": "of",
+   "start": 304.63,
+   "end": 304.84
+  },
+  {
+   "text": "expertise.",
+   "start": 304.84,
+   "end": 305.32
+  },
+  {
+   "text": "Orang-orang",
+   "start": 305.51,
+   "end": 305.873
+  },
+  {
+   "text": "yang",
+   "start": 305.873,
+   "end": 306.17
+  },
+  {
+   "text": "punya",
+   "start": 306.3,
+   "end": 306.5
+  },
+  {
+   "text": "kemampuan",
+   "start": 306.58,
+   "end": 307.48
+  },
+  {
+   "text": "tapi",
+   "start": 307.59,
+   "end": 307.634
+  },
+  {
+   "text": "nggak",
+   "start": 307.634,
+   "end": 307.83
+  },
+  {
+   "text": "terkenal,",
+   "start": 307.83,
+   "end": 308.42
+  },
+  {
+   "text": "kalah",
+   "start": 308.6,
+   "end": 309.06
+  },
+  {
+   "text": "sama",
+   "start": 309.06,
+   "end": 309.155
+  },
+  {
+   "text": "yang",
+   "start": 309.155,
+   "end": 309.289
+  },
+  {
+   "text": "terkenal",
+   "start": 309.289,
+   "end": 309.653
+  },
+  {
+   "text": "tapi",
+   "start": 309.739,
+   "end": 309.759
+  },
+  {
+   "text": "nggak",
+   "start": 309.854,
+   "end": 309.902
+  },
+  {
+   "text": "punya",
+   "start": 309.902,
+   "end": 309.998
+  },
+  {
+   "text": "kemampuan.",
+   "start": 309.998,
+   "end": 310.4
+  },
+  {
+   "text": "Itu",
+   "start": 310.57,
+   "end": 310.638
+  },
+  {
+   "text": "masalah",
+   "start": 310.718,
+   "end": 311.024
+  },
+  {
+   "text": "juga",
+   "start": 311.058,
+   "end": 311.228
+  },
+  {
+   "text": "loh.",
+   "start": 311.251,
+   "end": 311.41
+  },
+  {
+   "text": "Kan",
+   "start": 311.69,
+   "end": 311.97
+  },
+  {
+   "text": "bukan",
+   "start": 312.07,
+   "end": 312.133
+  },
+  {
+   "text": "berarti",
+   "start": 312.133,
+   "end": 312.62
+  },
+  {
+   "text": "dia",
+   "start": 312.69,
+   "end": 312.846
+  },
+  {
+   "text": "terkenal",
+   "start": 312.846,
+   "end": 313.276
+  },
+  {
+   "text": "kebenaran",
+   "start": 313.276,
+   "end": 313.568
+  },
+  {
+   "text": "opini",
+   "start": 313.568,
+   "end": 313.744
+  },
+  {
+   "text": "nya",
+   "start": 313.744,
+   "end": 313.881
+  },
+  {
+   "text": "benar.",
+   "start": 313.881,
+   "end": 314.135
+  },
+  {
+   "text": "Bukan",
+   "start": 314.154,
+   "end": 314.31
+  },
+  {
+   "text": "berarti",
+   "start": 314.31,
+   "end": 314.544
+  },
+  {
+   "text": "karena",
+   "start": 314.544,
+   "end": 314.74
+  },
+  {
+   "text": "dia",
+   "start": 314.74,
+   "end": 314.935
+  },
+  {
+   "text": "panji",
+   "start": 314.935,
+   "end": 315.169
+  },
+  {
+   "text": "pergi",
+   "start": 315.169,
+   "end": 315.286
+  },
+  {
+   "text": "waksono,",
+   "start": 315.286,
+   "end": 315.774
+  },
+  {
+   "text": "terus",
+   "start": 315.833,
+   "end": 315.95
+  },
+  {
+   "text": "orang",
+   "start": 316.09,
+   "end": 316.28
+  },
+  {
+   "text": "yang",
+   "start": 316.28,
+   "end": 316.407
+  },
+  {
+   "text": "terkenal",
+   "start": 316.407,
+   "end": 316.66
+  },
+  {
+   "text": "banget",
+   "start": 316.66,
+   "end": 316.872
+  },
+  {
+   "text": "kalau",
+   "start": 316.872,
+   "end": 317.062
+  },
+  {
+   "text": "dia",
+   "start": 317.062,
+   "end": 317.209
+  },
+  {
+   "text": "ngomong",
+   "start": 317.209,
+   "end": 317.463
+  },
+  {
+   "text": "benar.",
+   "start": 317.463,
+   "end": 317.759
+  },
+  {
+   "text": "Kan",
+   "start": 317.759,
+   "end": 317.885
+  },
+  {
+   "text": "nggak",
+   "start": 317.885,
+   "end": 317.949
+  },
+  {
+   "text": "juga.",
+   "start": 317.949,
+   "end": 318.16
+  },
+  {
+   "text": "Dan",
+   "start": 318.42,
+   "end": 318.474
+  },
+  {
+   "text": "bukan",
+   "start": 318.49,
+   "end": 318.652
+  },
+  {
+   "text": "berarti",
+   "start": 318.652,
+   "end": 319.041
+  },
+  {
+   "text": "orang",
+   "start": 319.041,
+   "end": 319.23
+  },
+  {
+   "text": "yang",
+   "start": 319.39,
+   "end": 319.648
+  },
+  {
+   "text": "nggak",
+   "start": 319.8,
+   "end": 319.835
+  },
+  {
+   "text": "terkenal,",
+   "start": 319.835,
+   "end": 320.42
+  },
+  {
+   "text": "kemudian",
+   "start": 320.49,
+   "end": 320.772
+  },
+  {
+   "text": "omongannya",
+   "start": 320.772,
+   "end": 321.075
+  },
+  {
+   "text": "nggak",
+   "start": 321.075,
+   "end": 321.216
+  },
+  {
+   "text": "perlu",
+   "start": 321.216,
+   "end": 321.337
+  },
+  {
+   "text": "di",
+   "start": 321.337,
+   "end": 321.458
+  },
+  {
+   "text": "dengerin.",
+   "start": 321.458,
+   "end": 321.74
+  },
+  {
+   "text": "Kalau",
+   "start": 322.07,
+   "end": 322.327
+  },
+  {
+   "text": "misalnya",
+   "start": 322.327,
+   "end": 322.547
+  },
+  {
+   "text": "dia",
+   "start": 322.547,
+   "end": 322.694
+  },
+  {
+   "text": "kompeten,",
+   "start": 322.694,
+   "end": 323.097
+  },
+  {
+   "text": "harusnya",
+   "start": 323.097,
+   "end": 323.483
+  },
+  {
+   "text": "dia",
+   "start": 323.483,
+   "end": 323.574
+  },
+  {
+   "text": "di",
+   "start": 323.574,
+   "end": 323.648
+  },
+  {
+   "text": "dengerin.",
+   "start": 323.648,
+   "end": 323.941
+  },
+  {
+   "text": "Kan",
+   "start": 323.996,
+   "end": 324.07
+  },
+  {
+   "text": "gitu",
+   "start": 324.07,
+   "end": 324.216
+  },
+  {
+   "text": "kan",
+   "start": 324.216,
+   "end": 324.381
+  },
+  {
+   "text": "poinnya",
+   "start": 324.381,
+   "end": 324.602
+  },
+  {
+   "text": "kan.",
+   "start": 324.602,
+   "end": 324.73
+  },
+  {
+   "text": "Akhirnya,",
+   "start": 324.98,
+   "end": 325.36
+  },
+  {
+   "text": "apapun",
+   "start": 325.58,
+   "end": 326.27
+  },
+  {
+   "text": "aktivisme",
+   "start": 326.39,
+   "end": 326.754
+  },
+  {
+   "text": "yang",
+   "start": 326.754,
+   "end": 326.87
+  },
+  {
+   "text": "kita",
+   "start": 326.87,
+   "end": 326.986
+  },
+  {
+   "text": "lakukan,",
+   "start": 327.019,
+   "end": 327.3
+  },
+  {
+   "text": "apapun",
+   "start": 327.4,
+   "end": 327.808
+  },
+  {
+   "text": "perjuangan",
+   "start": 327.808,
+   "end": 328.334
+  },
+  {
+   "text": "kita,",
+   "start": 328.334,
+   "end": 328.65
+  },
+  {
+   "text": "apapun",
+   "start": 328.74,
+   "end": 329.041
+  },
+  {
+   "text": "kekritisan",
+   "start": 329.041,
+   "end": 329.471
+  },
+  {
+   "text": "kita,",
+   "start": 329.471,
+   "end": 329.643
+  },
+  {
+   "text": "nggak",
+   "start": 329.772,
+   "end": 329.88
+  },
+  {
+   "text": "bisa",
+   "start": 329.88,
+   "end": 330.009
+  },
+  {
+   "text": "mengubah",
+   "start": 330.009,
+   "end": 330.353
+  },
+  {
+   "text": "apa-apa.",
+   "start": 330.353,
+   "end": 330.74
+  },
+  {
+   "text": "Karena",
+   "start": 331.08,
+   "end": 331.169
+  },
+  {
+   "text": "kita",
+   "start": 331.169,
+   "end": 331.326
+  },
+  {
+   "text": "di",
+   "start": 331.326,
+   "end": 331.405
+  },
+  {
+   "text": "luar",
+   "start": 331.405,
+   "end": 331.704
+  },
+  {
+   "text": "dan",
+   "start": 331.712,
+   "end": 331.83
+  },
+  {
+   "text": "mereka",
+   "start": 332.0,
+   "end": 332.149
+  },
+  {
+   "text": "di",
+   "start": 332.149,
+   "end": 332.298
+  },
+  {
+   "text": "dalam.",
+   "start": 332.298,
+   "end": 332.469
+  },
+  {
+   "text": "Tentu,",
+   "start": 332.554,
+   "end": 332.98
+  },
+  {
+   "text": "tentu.",
+   "start": 333.12,
+   "end": 333.37
+  },
+  {
+   "text": "Seperti",
+   "start": 333.56,
+   "end": 333.891
+  },
+  {
+   "text": "halnya",
+   "start": 333.974,
+   "end": 334.151
+  },
+  {
+   "text": "sepak",
+   "start": 334.151,
+   "end": 334.364
+  },
+  {
+   "text": "bola,",
+   "start": 334.364,
+   "end": 334.6
+  },
+  {
+   "text": "ada",
+   "start": 334.76,
+   "end": 334.93
+  },
+  {
+   "text": "aja",
+   "start": 334.93,
+   "end": 335.326
+  },
+  {
+   "text": "yang",
+   "start": 335.326,
+   "end": 335.524
+  },
+  {
+   "text": "dibayar.",
+   "start": 335.524,
+   "end": 336.09
+  },
+  {
+   "text": "Ada",
+   "start": 336.74,
+   "end": 337.144
+  },
+  {
+   "text": "aja",
+   "start": 337.144,
+   "end": 337.494
+  },
+  {
+   "text": "yang",
+   "start": 337.494,
+   "end": 337.683
+  },
+  {
+   "text": "disogok.",
+   "start": 337.683,
+   "end": 339.46
+  },
+  {
+   "text": "Tentu.",
+   "start": 339.65,
+   "end": 340.139
+  },
+  {
+   "text": "Tapi",
+   "start": 340.139,
+   "end": 340.401
+  },
+  {
+   "text": "itu",
+   "start": 340.401,
+   "end": 340.505
+  },
+  {
+   "text": "kan",
+   "start": 340.505,
+   "end": 340.61
+  },
+  {
+   "text": "hal",
+   "start": 340.7,
+   "end": 340.803
+  },
+  {
+   "text": "yang",
+   "start": 340.891,
+   "end": 340.979
+  },
+  {
+   "text": "berbeda.",
+   "start": 340.979,
+   "end": 341.42
+  },
+  {
+   "text": "Itu",
+   "start": 341.53,
+   "end": 341.755
+  },
+  {
+   "text": "akan",
+   "start": 341.755,
+   "end": 341.898
+  },
+  {
+   "text": "ketahuan",
+   "start": 341.898,
+   "end": 342.265
+  },
+  {
+   "text": "kemudian",
+   "start": 342.265,
+   "end": 342.776
+  },
+  {
+   "text": "hari.",
+   "start": 342.776,
+   "end": 342.98
+  },
+  {
+   "text": "Lo",
+   "start": 343.08,
+   "end": 344.25
+  },
+  {
+   "text": "nggak",
+   "start": 344.25,
+   "end": 344.424
+  },
+  {
+   "text": "bisa",
+   "start": 344.814,
+   "end": 344.857
+  },
+  {
+   "text": "hanya",
+   "start": 344.879,
+   "end": 345.529
+  },
+  {
+   "text": "karena",
+   "start": 345.529,
+   "end": 345.941
+  },
+  {
+   "text": "lo",
+   "start": 345.941,
+   "end": 346.223
+  },
+  {
+   "text": "nggak",
+   "start": 346.223,
+   "end": 346.374
+  },
+  {
+   "text": "suka",
+   "start": 346.559,
+   "end": 346.699
+  },
+  {
+   "text": "dengan",
+   "start": 346.699,
+   "end": 347.003
+  },
+  {
+   "text": "keputusannya",
+   "start": 347.003,
+   "end": 347.956
+  },
+  {
+   "text": "atau",
+   "start": 347.956,
+   "end": 348.347
+  },
+  {
+   "text": "dengan",
+   "start": 348.347,
+   "end": 348.65
+  },
+  {
+   "text": "tuntutan",
+   "start": 348.78,
+   "end": 349.179
+  },
+  {
+   "text": "yang",
+   "start": 349.179,
+   "end": 349.302
+  },
+  {
+   "text": "dijatuhkan,",
+   "start": 349.302,
+   "end": 349.712
+  },
+  {
+   "text": "terus",
+   "start": 349.773,
+   "end": 350.183
+  },
+  {
+   "text": "lo",
+   "start": 350.183,
+   "end": 350.306
+  },
+  {
+   "text": "nggak",
+   "start": 350.306,
+   "end": 350.429
+  },
+  {
+   "text": "suka",
+   "start": 350.429,
+   "end": 350.654
+  },
+  {
+   "text": "terus",
+   "start": 350.838,
+   "end": 350.879
+  },
+  {
+   "text": "lo",
+   "start": 350.879,
+   "end": 350.981
+  },
+  {
+   "text": "duduk,",
+   "start": 350.981,
+   "end": 351.186
+  },
+  {
+   "text": "pasti",
+   "start": 351.227,
+   "end": 351.555
+  },
+  {
+   "text": "dibayar.",
+   "start": 351.555,
+   "end": 351.964
+  },
+  {
+   "text": "Nggak",
+   "start": 352.005,
+   "end": 352.19
+  },
+  {
+   "text": "bisa",
+   "start": 352.19,
+   "end": 352.415
+  },
+  {
+   "text": "juga.",
+   "start": 352.415,
+   "end": 352.681
+  },
+  {
+   "text": "Kita",
+   "start": 353.255,
+   "end": 354.053
+  },
+  {
+   "text": "nggak",
+   "start": 354.053,
+   "end": 354.34
+  },
+  {
+   "text": "akan",
+   "start": 354.34,
+   "end": 354.565
+  },
+  {
+   "text": "jadi",
+   "start": 354.565,
+   "end": 354.75
+  },
+  {
+   "text": "rakyat",
+   "start": 354.75,
+   "end": 355.2
+  },
+  {
+   "text": "yang",
+   "start": 355.2,
+   "end": 355.425
+  },
+  {
+   "text": "benar",
+   "start": 355.425,
+   "end": 357.33
+  },
+  {
+   "text": "dan",
+   "start": 357.42,
+   "end": 357.54
+  },
+  {
+   "text": "nggak",
+   "start": 357.68,
+   "end": 358.33
+  },
+  {
+   "text": "punya",
+   "start": 358.33,
+   "end": 359.5
+  },
+  {
+   "text": "nggak",
+   "start": 359.63,
+   "end": 360.653
+  },
+  {
+   "text": "punya...",
+   "start": 360.653,
+   "end": 361.39
+  },
+  {
+   "text": "apa",
+   "start": 361.48,
+   "end": 361.87
+  },
+  {
+   "text": "ya,",
+   "start": 362.05,
+   "end": 362.106
+  },
+  {
+   "text": "keadilan",
+   "start": 362.217,
+   "end": 362.619
+  },
+  {
+   "text": "sejak",
+   "start": 362.619,
+   "end": 362.932
+  },
+  {
+   "text": "dalam",
+   "start": 362.932,
+   "end": 363.133
+  },
+  {
+   "text": "pikiran",
+   "start": 363.133,
+   "end": 363.534
+  },
+  {
+   "text": "gitu.",
+   "start": 363.579,
+   "end": 363.78
+  },
+  {
+   "text": "Kita",
+   "start": 363.89,
+   "end": 364.006
+  },
+  {
+   "text": "mesti",
+   "start": 364.006,
+   "end": 364.239
+  },
+  {
+   "text": "punya",
+   "start": 364.374,
+   "end": 364.452
+  },
+  {
+   "text": "kemampuan",
+   "start": 364.452,
+   "end": 364.762
+  },
+  {
+   "text": "untuk",
+   "start": 364.762,
+   "end": 364.917
+  },
+  {
+   "text": "objektif,",
+   "start": 364.917,
+   "end": 365.44
+  },
+  {
+   "text": "kita",
+   "start": 365.55,
+   "end": 365.616
+  },
+  {
+   "text": "mesti",
+   "start": 365.616,
+   "end": 365.727
+  },
+  {
+   "text": "punya",
+   "start": 365.727,
+   "end": 365.87
+  },
+  {
+   "text": "kemampuan",
+   "start": 365.96,
+   "end": 366.477
+  },
+  {
+   "text": "untuk",
+   "start": 366.477,
+   "end": 366.722
+  },
+  {
+   "text": "adil",
+   "start": 366.722,
+   "end": 367.239
+  },
+  {
+   "text": "gitu.",
+   "start": 367.348,
+   "end": 367.43
+  },
+  {
+   "text": "Kita",
+   "start": 367.62,
+   "end": 367.67
+  },
+  {
+   "text": "nggak",
+   "start": 367.76,
+   "end": 367.997
+  },
+  {
+   "text": "bisa",
+   "start": 368.41,
+   "end": 368.44
+  },
+  {
+   "text": "langsung\"Oh",
+   "start": 368.61,
+   "end": 369.344
+  },
+  {
+   "text": "ini",
+   "start": 369.45,
+   "end": 369.634
+  },
+  {
+   "text": "pasti",
+   "start": 369.798,
+   "end": 369.885
+  },
+  {
+   "text": "dibayar",
+   "start": 369.885,
+   "end": 370.522
+  },
+  {
+   "text": "nih\"",
+   "start": 370.522,
+   "end": 370.619
+  },
+  {
+   "text": "atau\"Wasit",
+   "start": 370.619,
+   "end": 371.101
+  },
+  {
+   "text": "dibayar",
+   "start": 371.101,
+   "end": 371.603
+  },
+  {
+   "text": "nih,",
+   "start": 371.603,
+   "end": 371.7
+  },
+  {
+   "text": "parah",
+   "start": 371.85,
+   "end": 372.2
+  },
+  {
+   "text": "nih,",
+   "start": 372.35,
+   "end": 372.543
+  },
+  {
+   "text": "kacau.\"",
+   "start": 372.543,
+   "end": 372.96
+  },
+  {
+   "text": "Nggak",
+   "start": 373.06,
+   "end": 373.131
+  },
+  {
+   "text": "bisa",
+   "start": 373.131,
+   "end": 373.298
+  },
+  {
+   "text": "kayak",
+   "start": 373.37,
+   "end": 373.465
+  },
+  {
+   "text": "gitu",
+   "start": 373.465,
+   "end": 373.632
+  },
+  {
+   "text": "juga.",
+   "start": 373.632,
+   "end": 373.87
+  },
+  {
+   "text": "Ada",
+   "start": 374.07,
+   "end": 374.209
+  },
+  {
+   "text": "lagi",
+   "start": 374.274,
+   "end": 374.703
+  },
+  {
+   "text": "pembuktiannya",
+   "start": 374.703,
+   "end": 375.368
+  },
+  {
+   "text": "nanti,",
+   "start": 375.368,
+   "end": 375.69
+  },
+  {
+   "text": "tapi",
+   "start": 375.76,
+   "end": 375.831
+  },
+  {
+   "text": "untuk",
+   "start": 375.831,
+   "end": 376.01
+  },
+  {
+   "text": "saat",
+   "start": 376.3,
+   "end": 376.553
+  },
+  {
+   "text": "ini,",
+   "start": 376.553,
+   "end": 376.87
+  },
+  {
+   "text": "tanpa",
+   "start": 376.96,
+   "end": 377.132
+  },
+  {
+   "text": "bukti,",
+   "start": 377.132,
+   "end": 377.44
+  },
+  {
+   "text": "tanpa",
+   "start": 377.56,
+   "end": 377.957
+  },
+  {
+   "text": "kepastian,",
+   "start": 377.957,
+   "end": 378.54
+  },
+  {
+   "text": "lo",
+   "start": 378.63,
+   "end": 378.99
+  },
+  {
+   "text": "nggak",
+   "start": 379.09,
+   "end": 379.267
+  },
+  {
+   "text": "bisa",
+   "start": 379.267,
+   "end": 379.68
+  },
+  {
+   "text": "menuduh",
+   "start": 379.79,
+   "end": 380.267
+  },
+  {
+   "text": "itu.",
+   "start": 380.276,
+   "end": 380.4
+  },
+  {
+   "text": "Peluangnya",
+   "start": 380.57,
+   "end": 380.909
+  },
+  {
+   "text": "ada,",
+   "start": 380.909,
+   "end": 381.16
+  },
+  {
+   "text": "tapi",
+   "start": 381.3,
+   "end": 381.42
+  },
+  {
+   "text": "belum",
+   "start": 381.42,
+   "end": 381.551
+  },
+  {
+   "text": "tentu.",
+   "start": 381.551,
+   "end": 381.89
+  },
+  {
+   "text": "Dan",
+   "start": 382.12,
+   "end": 382.32
+  },
+  {
+   "text": "akhirnya",
+   "start": 382.32,
+   "end": 382.42
+  },
+  {
+   "text": "kita",
+   "start": 382.42,
+   "end": 382.52
+  },
+  {
+   "text": "frustrasi.",
+   "start": 382.52,
+   "end": 383.08
+  },
+  {
+   "text": "Mungkin",
+   "start": 383.32,
+   "end": 383.461
+  },
+  {
+   "text": "kita",
+   "start": 383.461,
+   "end": 383.649
+  },
+  {
+   "text": "bisa",
+   "start": 383.819,
+   "end": 383.839
+  },
+  {
+   "text": "bilang,\"Ya",
+   "start": 383.837,
+   "end": 384.27
+  },
+  {
+   "text": "udah",
+   "start": 384.39,
+   "end": 384.488
+  },
+  {
+   "text": "deh,",
+   "start": 384.488,
+   "end": 384.664
+  },
+  {
+   "text": "kalau",
+   "start": 384.683,
+   "end": 384.859
+  },
+  {
+   "text": "misalnya",
+   "start": 384.859,
+   "end": 385.074
+  },
+  {
+   "text": "nggak",
+   "start": 385.074,
+   "end": 385.211
+  },
+  {
+   "text": "percaya",
+   "start": 385.211,
+   "end": 385.445
+  },
+  {
+   "text": "sama",
+   "start": 385.445,
+   "end": 385.543
+  },
+  {
+   "text": "Panji,",
+   "start": 385.543,
+   "end": 385.875
+  },
+  {
+   "text": "nggak",
+   "start": 385.973,
+   "end": 386.109
+  },
+  {
+   "text": "percaya",
+   "start": 386.109,
+   "end": 386.344
+  },
+  {
+   "text": "sama",
+   "start": 386.344,
+   "end": 386.461
+  },
+  {
+   "text": "Ferry",
+   "start": 386.461,
+   "end": 386.617
+  },
+  {
+   "text": "Ruwandi,",
+   "start": 386.617,
+   "end": 387.028
+  },
+  {
+   "text": "nggak",
+   "start": 387.086,
+   "end": 387.204
+  },
+  {
+   "text": "percaya",
+   "start": 387.204,
+   "end": 387.477
+  },
+  {
+   "text": "sama",
+   "start": 387.477,
+   "end": 387.731
+  },
+  {
+   "text": "orang-orang",
+   "start": 387.731,
+   "end": 388.2
+  },
+  {
+   "text": "lain",
+   "start": 388.35,
+   "end": 388.914
+  },
+  {
+   "text": "gitu",
+   "start": 388.914,
+   "end": 389.378
+  },
+  {
+   "text": "ya,",
+   "start": 389.378,
+   "end": 389.61
+  },
+  {
+   "text": "ya",
+   "start": 389.8,
+   "end": 389.867
+  },
+  {
+   "text": "udah",
+   "start": 389.975,
+   "end": 390.056
+  },
+  {
+   "text": "kalau",
+   "start": 390.056,
+   "end": 390.244
+  },
+  {
+   "text": "gitu.\"",
+   "start": 390.244,
+   "end": 390.46
+  },
+  {
+   "text": "Kita",
+   "start": 390.62,
+   "end": 390.85
+  },
+  {
+   "text": "dengerin",
+   "start": 390.85,
+   "end": 391.169
+  },
+  {
+   "text": "pendapat",
+   "start": 391.169,
+   "end": 391.382
+  },
+  {
+   "text": "orang-orang",
+   "start": 391.382,
+   "end": 391.7
+  },
+  {
+   "text": "yang",
+   "start": 391.7,
+   "end": 391.771
+  },
+  {
+   "text": "kompeten,",
+   "start": 391.771,
+   "end": 392.055
+  },
+  {
+   "text": "karena",
+   "start": 392.108,
+   "end": 392.232
+  },
+  {
+   "text": "ada",
+   "start": 392.232,
+   "end": 392.444
+  },
+  {
+   "text": "di",
+   "start": 392.444,
+   "end": 392.568
+  },
+  {
+   "text": "luar",
+   "start": 392.568,
+   "end": 392.675
+  },
+  {
+   "text": "sana",
+   "start": 392.675,
+   "end": 392.799
+  },
+  {
+   "text": "yang",
+   "start": 392.799,
+   "end": 392.94
+  },
+  {
+   "text": "kompeten",
+   "start": 392.94,
+   "end": 393.33
+  },
+  {
+   "text": "dan",
+   "start": 393.4,
+   "end": 393.425
+  },
+  {
+   "text": "bilang",
+   "start": 393.413,
+   "end": 393.766
+  },
+  {
+   "text": "bahwa",
+   "start": 393.766,
+   "end": 393.968
+  },
+  {
+   "text": "sidang",
+   "start": 393.968,
+   "end": 394.245
+  },
+  {
+   "text": "Nadiem",
+   "start": 394.245,
+   "end": 394.573
+  },
+  {
+   "text": "itu",
+   "start": 394.573,
+   "end": 394.8
+  },
+  {
+   "text": "nggak",
+   "start": 394.98,
+   "end": 395.09
+  },
+  {
+   "text": "bener",
+   "start": 395.09,
+   "end": 395.419
+  },
+  {
+   "text": "gitu",
+   "start": 395.419,
+   "end": 395.572
+  },
+  {
+   "text": "ya.",
+   "start": 395.572,
+   "end": 395.77
+  },
+  {
+   "text": "Kayak",
+   "start": 395.84,
+   "end": 396.21
+  },
+  {
+   "text": "misalkan",
+   "start": 396.34,
+   "end": 396.882
+  },
+  {
+   "text": "kalau",
+   "start": 396.882,
+   "end": 397.04
+  },
+  {
+   "text": "Mahfud",
+   "start": 397.18,
+   "end": 397.446
+  },
+  {
+   "text": "MD,",
+   "start": 397.446,
+   "end": 397.693
+  },
+  {
+   "text": "Mahfud",
+   "start": 397.808,
+   "end": 397.998
+  },
+  {
+   "text": "MD",
+   "start": 397.998,
+   "end": 398.15
+  },
+  {
+   "text": "pro",
+   "start": 398.15,
+   "end": 398.34
+  },
+  {
+   "text": "bahkan.",
+   "start": 398.41,
+   "end": 398.91
+  },
+  {
+   "text": "Mahfud",
+   "start": 398.99,
+   "end": 399.293
+  },
+  {
+   "text": "MD",
+   "start": 399.293,
+   "end": 399.47
+  },
+  {
+   "text": "kompeten",
+   "start": 399.75,
+   "end": 400.309
+  },
+  {
+   "text": "dan",
+   "start": 400.309,
+   "end": 400.392
+  },
+  {
+   "text": "pro.",
+   "start": 400.392,
+   "end": 400.56
+  },
+  {
+   "text": "Misalnya",
+   "start": 400.77,
+   "end": 401.55
+  },
+  {
+   "text": "Proferenel",
+   "start": 401.69,
+   "end": 402.107
+  },
+  {
+   "text": "Kasali",
+   "start": 402.107,
+   "end": 402.525
+  },
+  {
+   "text": "yang",
+   "start": 402.525,
+   "end": 403.016
+  },
+  {
+   "text": "merasa",
+   "start": 403.016,
+   "end": 403.311
+  },
+  {
+   "text": "sidangnya",
+   "start": 403.311,
+   "end": 403.851
+  },
+  {
+   "text": "aneh.",
+   "start": 403.851,
+   "end": 404.17
+  },
+  {
+   "text": "Misalnya",
+   "start": 404.44,
+   "end": 404.829
+  },
+  {
+   "text": "Hotman,",
+   "start": 404.829,
+   "end": 405.25
+  },
+  {
+   "text": "Hotman",
+   "start": 405.38,
+   "end": 405.945
+  },
+  {
+   "text": "Paris",
+   "start": 405.945,
+   "end": 406.322
+  },
+  {
+   "text": "juga",
+   "start": 406.432,
+   "end": 406.51
+  },
+  {
+   "text": "bilang",
+   "start": 406.51,
+   "end": 406.95
+  },
+  {
+   "text": "Nadiem",
+   "start": 407.1,
+   "end": 407.328
+  },
+  {
+   "text": "nggak",
+   "start": 407.328,
+   "end": 407.415
+  },
+  {
+   "text": "bersalah.",
+   "start": 407.415,
+   "end": 407.74
+  },
+  {
+   "text": "Cuma",
+   "start": 407.827,
+   "end": 407.936
+  },
+  {
+   "text": "kalau",
+   "start": 407.936,
+   "end": 408.11
+  },
+  {
+   "text": "Hotman",
+   "start": 408.11,
+   "end": 408.305
+  },
+  {
+   "text": "Paris",
+   "start": 408.305,
+   "end": 408.587
+  },
+  {
+   "text": "bawa",
+   "start": 408.587,
+   "end": 409.13
+  },
+  {
+   "text": "apa",
+   "start": 409.28,
+   "end": 409.362
+  },
+  {
+   "text": "ya,",
+   "start": 409.44,
+   "end": 409.63
+  },
+  {
+   "text": "bawa",
+   "start": 409.77,
+   "end": 410.003
+  },
+  {
+   "text": "bingkisan",
+   "start": 410.003,
+   "end": 410.875
+  },
+  {
+   "text": "sendiri",
+   "start": 410.875,
+   "end": 411.185
+  },
+  {
+   "text": "dia",
+   "start": 411.301,
+   "end": 411.476
+  },
+  {
+   "text": "bilang",
+   "start": 411.476,
+   "end": 411.825
+  },
+  {
+   "text": "bahwa,\"Makanya",
+   "start": 411.825,
+   "end": 412.29
+  },
+  {
+   "text": "bayar",
+   "start": 412.39,
+   "end": 412.713
+  },
+  {
+   "text": "gue",
+   "start": 412.713,
+   "end": 412.808
+  },
+  {
+   "text": "yang",
+   "start": 412.808,
+   "end": 412.922
+  },
+  {
+   "text": "bener.",
+   "start": 412.922,
+   "end": 413.302
+  },
+  {
+   "text": "Kalau",
+   "start": 413.321,
+   "end": 413.435
+  },
+  {
+   "text": "lo",
+   "start": 413.435,
+   "end": 413.607
+  },
+  {
+   "text": "bayar",
+   "start": 413.607,
+   "end": 413.816
+  },
+  {
+   "text": "gue",
+   "start": 413.816,
+   "end": 413.93
+  },
+  {
+   "text": "yang",
+   "start": 413.93,
+   "end": 414.044
+  },
+  {
+   "text": "bener,",
+   "start": 414.044,
+   "end": 414.31
+  },
+  {
+   "text": "lo",
+   "start": 414.329,
+   "end": 414.69
+  },
+  {
+   "text": "bisa",
+   "start": 415.0,
+   "end": 415.139
+  },
+  {
+   "text": "selamat.\"",
+   "start": 415.139,
+   "end": 415.511
+  },
+  {
+   "text": "Tapi",
+   "start": 415.641,
+   "end": 415.976
+  },
+  {
+   "text": "dia",
+   "start": 415.976,
+   "end": 416.255
+  },
+  {
+   "text": "bilang",
+   "start": 416.255,
+   "end": 416.49
+  },
+  {
+   "text": "bahwa,\"Saya",
+   "start": 416.62,
+   "end": 417.15
+  },
+  {
+   "text": "bisa",
+   "start": 417.26,
+   "end": 417.448
+  },
+  {
+   "text": "membuktikan",
+   "start": 417.577,
+   "end": 417.894
+  },
+  {
+   "text": "bahwa",
+   "start": 417.894,
+   "end": 418.176
+  },
+  {
+   "text": "Nadiem",
+   "start": 418.176,
+   "end": 418.505
+  },
+  {
+   "text": "itu",
+   "start": 418.634,
+   "end": 418.669
+  },
+  {
+   "text": "tidak",
+   "start": 418.669,
+   "end": 418.857
+  },
+  {
+   "text": "bersalah.\"",
+   "start": 418.857,
+   "end": 419.28
+  },
+  {
+   "text": "Nah",
+   "start": 419.49,
+   "end": 419.63
+  },
+  {
+   "text": "jadi",
+   "start": 419.647,
+   "end": 419.815
+  },
+  {
+   "text": "kan,",
+   "start": 419.815,
+   "end": 420.0
+  },
+  {
+   "text": "lo",
+   "start": 420.15,
+   "end": 420.171
+  },
+  {
+   "text": "bisa",
+   "start": 420.171,
+   "end": 420.304
+  },
+  {
+   "text": "bilang,\"Ya",
+   "start": 420.304,
+   "end": 420.653
+  },
+  {
+   "text": "udah",
+   "start": 420.653,
+   "end": 420.756
+  },
+  {
+   "text": "kalau",
+   "start": 420.756,
+   "end": 420.92
+  },
+  {
+   "text": "gitu.",
+   "start": 420.92,
+   "end": 421.105
+  },
+  {
+   "text": "Kita",
+   "start": 421.187,
+   "end": 421.29
+  },
+  {
+   "text": "dengerin",
+   "start": 421.29,
+   "end": 421.598
+  },
+  {
+   "text": "aja",
+   "start": 421.598,
+   "end": 421.701
+  },
+  {
+   "text": "opini",
+   "start": 421.701,
+   "end": 421.988
+  },
+  {
+   "text": "orang-orang",
+   "start": 421.988,
+   "end": 422.543
+  },
+  {
+   "text": "yang",
+   "start": 422.543,
+   "end": 422.81
+  },
+  {
+   "text": "kompeten",
+   "start": 423.0,
+   "end": 423.38
+  },
+  {
+   "text": "dan",
+   "start": 423.45,
+   "end": 423.501
+  },
+  {
+   "text": "orang-orang",
+   "start": 423.501,
+   "end": 423.984
+  },
+  {
+   "text": "yang",
+   "start": 423.984,
+   "end": 424.162
+  },
+  {
+   "text": "terkenal.",
+   "start": 424.162,
+   "end": 424.697
+  },
+  {
+   "text": "Kita",
+   "start": 424.697,
+   "end": 424.849
+  },
+  {
+   "text": "percaya",
+   "start": 424.849,
+   "end": 425.257
+  },
+  {
+   "text": "sama",
+   "start": 425.269,
+   "end": 425.486
+  },
+  {
+   "text": "dia.\"",
+   "start": 425.536,
+   "end": 425.74
+  },
+  {
+   "text": "Tapi",
+   "start": 425.81,
+   "end": 425.951
+  },
+  {
+   "text": "itu",
+   "start": 426.072,
+   "end": 426.193
+  },
+  {
+   "text": "kan",
+   "start": 426.274,
+   "end": 426.334
+  },
+  {
+   "text": "sama",
+   "start": 426.475,
+   "end": 426.495
+  },
+  {
+   "text": "kayak",
+   "start": 426.495,
+   "end": 426.636
+  },
+  {
+   "text": "sepak",
+   "start": 426.636,
+   "end": 426.818
+  },
+  {
+   "text": "bola",
+   "start": 426.818,
+   "end": 426.939
+  },
+  {
+   "text": "juga.",
+   "start": 427.1,
+   "end": 427.12
+  },
+  {
+   "text": "Kadang-kadang,",
+   "start": 427.36,
+   "end": 427.786
+  },
+  {
+   "text": "karena",
+   "start": 427.838,
+   "end": 428.0
+  },
+  {
+   "text": "kita",
+   "start": 428.16,
+   "end": 428.429
+  },
+  {
+   "text": "nggak",
+   "start": 428.429,
+   "end": 428.564
+  },
+  {
+   "text": "percaya",
+   "start": 428.564,
+   "end": 428.856
+  },
+  {
+   "text": "pendapatnya",
+   "start": 428.856,
+   "end": 429.328
+  },
+  {
+   "text": "Panji,",
+   "start": 429.328,
+   "end": 429.62
+  },
+  {
+   "text": "nggak",
+   "start": 429.822,
+   "end": 429.844
+  },
+  {
+   "text": "percaya",
+   "start": 429.844,
+   "end": 430.114
+  },
+  {
+   "text": "pendapatnya",
+   "start": 430.114,
+   "end": 430.72
+  },
+  {
+   "text": "orang-orang",
+   "start": 430.83,
+   "end": 431.093
+  },
+  {
+   "text": "lain",
+   "start": 431.093,
+   "end": 431.422
+  },
+  {
+   "text": "di",
+   "start": 431.422,
+   "end": 431.553
+  },
+  {
+   "text": "dunia",
+   "start": 431.553,
+   "end": 431.816
+  },
+  {
+   "text": "sepak",
+   "start": 431.816,
+   "end": 432.057
+  },
+  {
+   "text": "bola",
+   "start": 432.057,
+   "end": 432.298
+  },
+  {
+   "text": "karena",
+   "start": 432.298,
+   "end": 432.517
+  },
+  {
+   "text": "nggak",
+   "start": 432.517,
+   "end": 432.736
+  },
+  {
+   "text": "tau",
+   "start": 432.736,
+   "end": 432.912
+  },
+  {
+   "text": "sepak",
+   "start": 433.01,
+   "end": 433.109
+  },
+  {
+   "text": "bola,",
+   "start": 433.24,
+   "end": 433.35
+  },
+  {
+   "text": "kita",
+   "start": 433.65,
+   "end": 433.906
+  },
+  {
+   "text": "percaya",
+   "start": 433.906,
+   "end": 434.248
+  },
+  {
+   "text": "sama",
+   "start": 434.248,
+   "end": 434.381
+  },
+  {
+   "text": "orang-orang",
+   "start": 434.381,
+   "end": 434.722
+  },
+  {
+   "text": "kayak",
+   "start": 434.722,
+   "end": 434.95
+  },
+  {
+   "text": "Gary",
+   "start": 435.07,
+   "end": 435.7
+  },
+  {
+   "text": "Neville,",
+   "start": 435.86,
+   "end": 436.64
+  },
+  {
+   "text": "Michael",
+   "start": 436.76,
+   "end": 437.119
+  },
+  {
+   "text": "Richards,",
+   "start": 437.947,
+   "end": 438.03
+  },
+  {
+   "text": "atau",
+   "start": 438.15,
+   "end": 438.33
+  },
+  {
+   "text": "Thierry",
+   "start": 438.4,
+   "end": 438.971
+  },
+  {
+   "text": "Henry,",
+   "start": 438.971,
+   "end": 439.24
+  },
+  {
+   "text": "atau",
+   "start": 439.37,
+   "end": 440.36
+  },
+  {
+   "text": "Ger.",
+   "start": 440.49,
+   "end": 441.33
+  },
+  {
+   "text": "Kita",
+   "start": 441.6,
+   "end": 441.621
+  },
+  {
+   "text": "dengerin",
+   "start": 441.632,
+   "end": 442.013
+  },
+  {
+   "text": "nih,",
+   "start": 442.013,
+   "end": 442.14
+  },
+  {
+   "text": "pundit-pundit",
+   "start": 442.23,
+   "end": 442.9
+  },
+  {
+   "text": "yang",
+   "start": 442.9,
+   "end": 443.068
+  },
+  {
+   "text": "terkenal",
+   "start": 443.068,
+   "end": 443.55
+  },
+  {
+   "text": "ini.",
+   "start": 443.738,
+   "end": 443.78
+  },
+  {
+   "text": "Kita",
+   "start": 443.93,
+   "end": 444.022
+  },
+  {
+   "text": "dengerin",
+   "start": 444.106,
+   "end": 444.507
+  },
+  {
+   "text": "pendapatnya",
+   "start": 444.507,
+   "end": 444.928
+  },
+  {
+   "text": "mereka.",
+   "start": 445.034,
+   "end": 445.16
+  },
+  {
+   "text": "Itu",
+   "start": 445.36,
+   "end": 445.5
+  },
+  {
+   "text": "pun",
+   "start": 445.5,
+   "end": 445.73
+  },
+  {
+   "text": "mereka",
+   "start": 445.82,
+   "end": 445.96
+  },
+  {
+   "text": "bersebrangan.",
+   "start": 445.96,
+   "end": 446.65
+  },
+  {
+   "text": "Ya",
+   "start": 447.67,
+   "end": 448.23
+  },
+  {
+   "text": "nggak,",
+   "start": 448.23,
+   "end": 448.318
+  },
+  {
+   "text": "mereka",
+   "start": 448.318,
+   "end": 448.449
+  },
+  {
+   "text": "bersebrangan.",
+   "start": 448.449,
+   "end": 448.798
+  },
+  {
+   "text": "Kadang-kadang",
+   "start": 448.871,
+   "end": 449.089
+  },
+  {
+   "text": "mereka",
+   "start": 449.14,
+   "end": 449.191
+  },
+  {
+   "text": "nebat",
+   "start": 449.191,
+   "end": 449.409
+  },
+  {
+   "text": "ya,",
+   "start": 449.409,
+   "end": 449.54
+  },
+  {
+   "text": "Kara",
+   "start": 449.62,
+   "end": 449.95
+  },
+  {
+   "text": "sama",
+   "start": 449.95,
+   "end": 450.28
+  },
+  {
+   "text": "Gary",
+   "start": 450.37,
+   "end": 450.83
+  },
+  {
+   "text": "bersebrangan.",
+   "start": 451.0,
+   "end": 451.527
+  },
+  {
+   "text": "Sama",
+   "start": 451.623,
+   "end": 451.862
+  },
+  {
+   "text": "kayak",
+   "start": 451.862,
+   "end": 452.15
+  },
+  {
+   "text": "pendapatnya",
+   "start": 452.43,
+   "end": 453.148
+  },
+  {
+   "text": "Mahfud",
+   "start": 453.148,
+   "end": 453.48
+  },
+  {
+   "text": "MD",
+   "start": 453.48,
+   "end": 453.701
+  },
+  {
+   "text": "sama",
+   "start": 453.701,
+   "end": 453.977
+  },
+  {
+   "text": "pendapatnya",
+   "start": 453.977,
+   "end": 454.345
+  },
+  {
+   "text": "misalkan",
+   "start": 454.345,
+   "end": 454.64
+  },
+  {
+   "text": "Prof.",
+   "start": 454.92,
+   "end": 454.988
+  },
+  {
+   "text": "Reynald",
+   "start": 455.057,
+   "end": 455.284
+  },
+  {
+   "text": "atau",
+   "start": 455.284,
+   "end": 455.558
+  },
+  {
+   "text": "misalnya",
+   "start": 455.558,
+   "end": 456.15
+  },
+  {
+   "text": "Hotman,",
+   "start": 456.26,
+   "end": 456.63
+  },
+  {
+   "text": "Hotman",
+   "start": 456.87,
+   "end": 457.025
+  },
+  {
+   "text": "bersebrangan.",
+   "start": 457.025,
+   "end": 457.25
+  },
+  {
+   "text": "Terus",
+   "start": 457.38,
+   "end": 457.509
+  },
+  {
+   "text": "kita",
+   "start": 457.509,
+   "end": 457.671
+  },
+  {
+   "text": "mau",
+   "start": 457.671,
+   "end": 457.865
+  },
+  {
+   "text": "percaya",
+   "start": 457.865,
+   "end": 458.22
+  },
+  {
+   "text": "sama",
+   "start": 458.22,
+   "end": 458.414
+  },
+  {
+   "text": "siapa?",
+   "start": 458.414,
+   "end": 458.77
+  },
+  {
+   "text": "Dan",
+   "start": 458.96,
+   "end": 459.024
+  },
+  {
+   "text": "lagi",
+   "start": 459.024,
+   "end": 459.205
+  },
+  {
+   "text": "pula,",
+   "start": 459.269,
+   "end": 459.54
+  },
+  {
+   "text": "nggak",
+   "start": 459.69,
+   "end": 459.777
+  },
+  {
+   "text": "harus",
+   "start": 459.777,
+   "end": 460.018
+  },
+  {
+   "text": "juga",
+   "start": 460.237,
+   "end": 460.259
+  },
+  {
+   "text": "mau",
+   "start": 460.259,
+   "end": 460.521
+  },
+  {
+   "text": "percaya",
+   "start": 460.521,
+   "end": 460.827
+  },
+  {
+   "text": "sama",
+   "start": 460.827,
+   "end": 460.98
+  },
+  {
+   "text": "yang",
+   "start": 460.98,
+   "end": 461.133
+  },
+  {
+   "text": "ini,",
+   "start": 461.133,
+   "end": 461.265
+  },
+  {
+   "text": "mau",
+   "start": 461.286,
+   "end": 461.418
+  },
+  {
+   "text": "percaya",
+   "start": 461.418,
+   "end": 461.702
+  },
+  {
+   "text": "sama",
+   "start": 461.702,
+   "end": 461.833
+  },
+  {
+   "text": "itu.",
+   "start": 461.833,
+   "end": 462.03
+  },
+  {
+   "text": "Ujung-ujungnya",
+   "start": 462.1,
+   "end": 462.802
+  },
+  {
+   "text": "di",
+   "start": 462.802,
+   "end": 462.923
+  },
+  {
+   "text": "persidangan.",
+   "start": 462.923,
+   "end": 463.31
+  },
+  {
+   "text": "Dan",
+   "start": 463.55,
+   "end": 463.83
+  },
+  {
+   "text": "lagi-lagi",
+   "start": 464.02,
+   "end": 464.531
+  },
+  {
+   "text": "itu",
+   "start": 464.531,
+   "end": 464.607
+  },
+  {
+   "text": "membuat",
+   "start": 464.607,
+   "end": 464.79
+  },
+  {
+   "text": "kita",
+   "start": 464.79,
+   "end": 464.897
+  },
+  {
+   "text": "frustrasi",
+   "start": 464.897,
+   "end": 465.293
+  },
+  {
+   "text": "karena",
+   "start": 465.293,
+   "end": 465.4
+  },
+  {
+   "text": "kita",
+   "start": 465.5,
+   "end": 465.678
+  },
+  {
+   "text": "takut",
+   "start": 465.678,
+   "end": 466.146
+  },
+  {
+   "text": "kan.",
+   "start": 466.146,
+   "end": 466.28
+  },
+  {
+   "text": "Kayak",
+   "start": 466.45,
+   "end": 466.555
+  },
+  {
+   "text": "kalau",
+   "start": 466.636,
+   "end": 466.725
+  },
+  {
+   "text": "kayak",
+   "start": 466.725,
+   "end": 466.97
+  },
+  {
+   "text": "begini",
+   "start": 466.97,
+   "end": 467.75
+  },
+  {
+   "text": "kayak",
+   "start": 467.86,
+   "end": 467.897
+  },
+  {
+   "text": "apa",
+   "start": 467.897,
+   "end": 468.285
+  },
+  {
+   "text": "tuh",
+   "start": 468.285,
+   "end": 468.5
+  },
+  {
+   "text": "putusannya",
+   "start": 468.65,
+   "end": 468.987
+  },
+  {
+   "text": "nanti?",
+   "start": 468.987,
+   "end": 469.43
+  },
+  {
+   "text": "Itu",
+   "start": 469.55,
+   "end": 469.601
+  },
+  {
+   "text": "yang",
+   "start": 469.65,
+   "end": 469.698
+  },
+  {
+   "text": "jadi",
+   "start": 469.698,
+   "end": 469.833
+  },
+  {
+   "text": "pinggiran.",
+   "start": 469.833,
+   "end": 470.22
+  },
+  {
+   "text": "Kayak",
+   "start": 470.337,
+   "end": 470.53
+  },
+  {
+   "text": "contohnya",
+   "start": 470.89,
+   "end": 471.382
+  },
+  {
+   "text": "Ibham",
+   "start": 471.382,
+   "end": 471.628
+  },
+  {
+   "text": "ya,",
+   "start": 471.628,
+   "end": 471.743
+  },
+  {
+   "text": "Ibham",
+   "start": 471.743,
+   "end": 471.89
+  },
+  {
+   "text": "itu",
+   "start": 471.89,
+   "end": 472.022
+  },
+  {
+   "text": "kan",
+   "start": 472.022,
+   "end": 472.12
+  },
+  {
+   "text": "ketika",
+   "start": 472.26,
+   "end": 472.508
+  },
+  {
+   "text": "tuntutan",
+   "start": 472.508,
+   "end": 472.909
+  },
+  {
+   "text": "22",
+   "start": 473.074,
+   "end": 473.168
+  },
+  {
+   "text": "tahun.",
+   "start": 473.168,
+   "end": 473.64
+  },
+  {
+   "text": "Tapi",
+   "start": 473.93,
+   "end": 474.293
+  },
+  {
+   "text": "ketika",
+   "start": 474.422,
+   "end": 474.517
+  },
+  {
+   "text": "vonis",
+   "start": 474.517,
+   "end": 474.725
+  },
+  {
+   "text": "4.",
+   "start": 474.725,
+   "end": 474.88
+  },
+  {
+   "text": "Ini",
+   "start": 475.11,
+   "end": 475.13
+  },
+  {
+   "text": "juga",
+   "start": 475.12,
+   "end": 475.293
+  },
+  {
+   "text": "nih,",
+   "start": 475.293,
+   "end": 475.466
+  },
+  {
+   "text": "tuntutannya",
+   "start": 475.485,
+   "end": 476.004
+  },
+  {
+   "text": "18+",
+   "start": 476.004,
+   "end": 476.26
+  },
+  {
+   "text": "9=",
+   "start": 476.41,
+   "end": 476.749
+  },
+  {
+   "text": "27",
+   "start": 476.918,
+   "end": 477.257
+  },
+  {
+   "text": "tahun.",
+   "start": 477.257,
+   "end": 477.9
+  },
+  {
+   "text": "Tapi",
+   "start": 478.28,
+   "end": 478.468
+  },
+  {
+   "text": "kita",
+   "start": 478.468,
+   "end": 478.63
+  },
+  {
+   "text": "nggak",
+   "start": 478.63,
+   "end": 478.737
+  },
+  {
+   "text": "tau",
+   "start": 478.881,
+   "end": 478.901
+  },
+  {
+   "text": "nih,",
+   "start": 479.033,
+   "end": 479.06
+  },
+  {
+   "text": "vonisnya",
+   "start": 479.28,
+   "end": 479.638
+  },
+  {
+   "text": "berapa.",
+   "start": 479.757,
+   "end": 480.21
+  },
+  {
+   "text": "Tapi",
+   "start": 480.46,
+   "end": 480.8
+  },
+  {
+   "text": "apapun",
+   "start": 480.92,
+   "end": 481.317
+  },
+  {
+   "text": "komentar",
+   "start": 481.317,
+   "end": 481.785
+  },
+  {
+   "text": "kita,",
+   "start": 481.887,
+   "end": 482.05
+  },
+  {
+   "text": "apapun",
+   "start": 482.14,
+   "end": 482.674
+  },
+  {
+   "text": "yang",
+   "start": 482.674,
+   "end": 482.92
+  },
+  {
+   "text": "nonton",
+   "start": 483.04,
+   "end": 483.991
+  },
+  {
+   "text": "video",
+   "start": 483.991,
+   "end": 484.283
+  },
+  {
+   "text": "ini,",
+   "start": 484.283,
+   "end": 484.6
+  },
+  {
+   "text": "18",
+   "start": 484.75,
+   "end": 485.145
+  },
+  {
+   "text": "juta",
+   "start": 485.145,
+   "end": 485.666
+  },
+  {
+   "text": "juga",
+   "start": 485.666,
+   "end": 485.881
+  },
+  {
+   "text": "nggak",
+   "start": 485.881,
+   "end": 486.169
+  },
+  {
+   "text": "ngaruh.",
+   "start": 486.169,
+   "end": 486.51
+  },
+  {
+   "text": "Karena",
+   "start": 486.77,
+   "end": 486.814
+  },
+  {
+   "text": "ujung-ujungnya",
+   "start": 486.934,
+   "end": 487.428
+  },
+  {
+   "text": "apa",
+   "start": 487.428,
+   "end": 487.581
+  },
+  {
+   "text": "yang",
+   "start": 487.581,
+   "end": 487.713
+  },
+  {
+   "text": "terjadi",
+   "start": 487.713,
+   "end": 488.02
+  },
+  {
+   "text": "di",
+   "start": 488.02,
+   "end": 488.107
+  },
+  {
+   "text": "persidangan.",
+   "start": 488.107,
+   "end": 488.48
+  },
+  {
+   "text": "Terus",
+   "start": 489.08,
+   "end": 489.297
+  },
+  {
+   "text": "kita",
+   "start": 489.297,
+   "end": 489.396
+  },
+  {
+   "text": "bertanya-tanya.",
+   "start": 489.396,
+   "end": 489.81
+  },
+  {
+   "text": "Suram",
+   "start": 490.0,
+   "end": 490.325
+  },
+  {
+   "text": "banget",
+   "start": 490.325,
+   "end": 490.65
+  },
+  {
+   "text": "dong",
+   "start": 490.65,
+   "end": 490.916
+  },
+  {
+   "text": "Indonesia.",
+   "start": 490.975,
+   "end": 491.27
+  },
+  {
+   "text": "Sekilas",
+   "start": 491.5,
+   "end": 491.782
+  },
+  {
+   "text": "kelihatannya",
+   "start": 491.782,
+   "end": 492.275
+  },
+  {
+   "text": "iya.",
+   "start": 492.275,
+   "end": 492.51
+  },
+  {
+   "text": "Tapi",
+   "start": 492.71,
+   "end": 492.766
+  },
+  {
+   "text": "sebenarnya",
+   "start": 492.766,
+   "end": 493.21
+  },
+  {
+   "text": "nggak.",
+   "start": 493.391,
+   "end": 493.46
+  }
+ ]
+}

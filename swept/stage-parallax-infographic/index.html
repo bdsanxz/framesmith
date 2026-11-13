@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main", the root composition)
+  WHAT: The root of an 8 s, 1920x1080 infographic film. It mounts one sub-composition,
+    compositions/stage.html, at 0 s for 8 s. That scene is a bar chart titled "Installs per year"
+    (2019 to 2024) shot by a parallax camera: depth planes move while the camera trucks right and
+    pushes in, and the bars rise while their values count up. The shot is silent.
+  STRUCTURE: one track (data-track-index 1, kind graphics) with one slot, #stage-slot, which loads
+    compositions/stage.html. The root #root (composition id "main", 1920x1080, 8 s) holds only
+    that slot. It declares the variable parallax (a number, default 1); the stage reads it as a
+    CSS custom property of that name, not through script. The root timeline is empty and paused
+    and is registered as window.__timelines["main"].
+  CUSTOMIZE: the strength default in data-composition-variables ("default":1; 0 is one flat plane,
+    1 is full depth, 0.5 is half depth). Set it per render through the variables option, for
+    example parallax 0 for the flat version. The length is data-duration="8" on #root and on
+    #stage-slot, and DUR is 8 in stage.html; keep all three equal. The canvas is 1920x1080
+    (data-width, data-height and the meta viewport). The page color #0b1622 is set in the html,
+    body and #root rules.
+  MEDIA: No media file is bundled. This file has no slots of its own: it loads only the GSAP 3.14.2 script
+    from cdn.jsdelivr.net, which is a script, not media. The stage names the fonts "Space Mono" and Inter,
+    both bundled with HyperFrames, so no font file is needed, and nothing is to be plugged in here.
+  WHEN TO USE: a single data infographic that should feel filmed, with depth and a camera move, and
+    no narration. Pick a flat layout when the figures must hold still for reading, since the
+    camera moves for the whole 8 s.
+-->
+<!-- One infographic scene shot through a parallax camera. `parallax` is a declared variable, the
+     parallax strength: render with the variables option set to {"parallax":0} to get the same scene moved
+     as one flat plane, or to 0.5 for half the depth separation. -->
+<html lang="en" data-composition-variables='[
+  {"id":"parallax","type":"number","label":"Parallax strength (0 = flat move, 1 = full)","default":1}
+]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Parallax infographic</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and fix the 1920 by 1080 canvas; the navy color is the page background. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0b1622; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0b1622; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8" data-width="1920" data-height="1080">
+      <!-- Host slot: the only layer, mounting compositions/stage.html from 0 s for 8 s. -->
+      <div id="stage-slot" data-composition-id="stage" data-composition-src="compositions/stage.html"
+        data-start="0" data-duration="8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Root timeline: empty and paused here; the camera and chart live in compositions/stage.html. */
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+{
+ "size": [
+  1920,
+  1080
+ ],
+ "pins": {
+  "Krakatau": [
+   1370.3,
+   293.2
+  ],
+  "Batavia": [
+   1396.3,
+   294.5
+  ],
+  "Perth": [
+   1563.8,
+   805.6
+  ],
+  "Rodrigues": [
+   591.5,
+   552.9
+  ]
+ },
+ "focus_box": [
+  24,
+  0,
+  1896,
+  1080
+ ],
+ "highlights": {},
+ "scale_px_per_unit": 1062.52,
+ "projection": "mercator"
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-06-poem.html (composition id "c2-06-poem")
+  WHAT: The sixth beat of chapter 2, 11.86 s, from 233.3 s in index.html, narrated by segment s24
+    (opening "Sebuah syair dalam kronik", a poem in a chronicle). A page picture, hecker-note, shows
+    from 0 to 4.63 s. Then a printed poem, hecker-poem, is shown from 4.63 s to the end, and four
+    yellow bars wipe across its lines at 4.63, 5.11, 6.39 and 10.24 s, marking the lines as they are
+    read. A two-line caption appears at 4.63 s: "Syair dari kronik Strasbourg, dikutip Justus Hecker"
+    (verse from a Strasbourg chronicle, quoted by Justus Hecker) and "Die Tanzwuth, 1832, hlm. 7"
+    (page 7 of that source).
+  STRUCTURE: #root holds shot #c206poem-a (hecker-note) and shot #c206poem-b (hecker-poem), plus the
+    caption #c206poem-b-cap. The four marker bars #c206poem-b-m1 to -m4 are children of shot b, so
+    they move with its push. Each bar is a .dr-mark: a multiply-blended yellow, rgba(255, 214, 64,
+    0.55), that scales from scaleX 0 to 1 over 0.55 s from its left edge. Timeline: a pushes 0 to 4.63 s;
+    b is cut in at 4.63 s with its caption and pushes over 7.23 s; the bars start at 4.63, 5.11, 6.39
+    and 10.24 s.
+  CUSTOMIZE: each picture's file is named by data-media on its img (hecker-note.jpg, hecker-poem.jpg); set
+    the src to swap in your own (see MEDIA). Each bar's
+    position and length are its inline style: left 196 px for all four; tops 246, 324, 402 and 482 px;
+    widths 1130, 1140, 1080 and 1040 px; height 62 px. Move a bar to follow another printed line, and
+    move its start time to the word that is read. The CSS rule .dr-mark says height 40 px, but the inline
+    62 px overrides it. The caption text is in #c206poem-b-cap. The grade is lighter than the other
+    beats: contrast 0.06, saturation -0.3, vignette 0.25.
+  MEDIA: no media file is bundled. This file has two photo slots and one font slot. It has no sound, no
+    video and no CSS image. The four yellow bars (#c206poem-b-m1 to #c206poem-b-m4) are plain boxes, not files.
+    1. The page picture, img #c206poem-a-img (inside #c206poem-a, shown 0 to 4.63 s). It showed a picture
+       shown before the poem (hecker-note.jpg). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/hecker-note.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/hecker-note.jpg). The data-media attribute only names the expected path; it
+       loads nothing. The img's data-color-grading still grades your picture.
+    2. The printed poem, img #c206poem-b-img (inside #c206poem-b, cut in at 4.63 s, with the four bars and
+       the caption #c206poem-b-cap). It showed the printed poem that the bars sit on (hecker-poem.jpg). It now
+       shows a stand-in labeled "PHOTO: assets/generated/hecker-poem.jpg". To plug in your print, set the img's
+       src to your file. The bars only mark the right lines if your print has its lines at the places given
+       in CUSTOMIZE; otherwise move the bars to the lines of your print.
+    3. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap. It was a bundled font file.
+       It now reads local("Arimo"): the face is used if it is installed, otherwise the sans-serif fallback of
+       the font stack. To plug in your font, add url("your-font.woff2") format("woff2") to the src list of that
+       @font-face.
+  WHEN TO USE: reading a quoted text line by line with a marker, when the film must show the words come
+    from a printed source. Pick another pattern when the text is not a printed picture.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo") for the caption; no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The marker: one yellow bar per text line, in frame pixels, multiplied onto the page. */
+        .dr-mark { position: absolute; height: 40px; background: rgba(255, 214, 64, 0.55); mix-blend-mode: multiply; transform-origin: 0 50%; }
+      </style>
+      <!-- "Sebuah syair dalam kronik ..." (233.30 s): hecker-note from the start; hecker-poem + caption on "ratusan" (237.93 s). -->
+      <div id="root" data-composition-id="c2-06-poem" data-width="1920" data-height="1080">
+        <!-- Picture a: the page picture, shown from 0 s. -->
+        <div class="dr-shot" id="c206poem-a" data-layout-allow-overflow><img id="c206poem-a-img" src="data:image/svg+xml,%3C!--hecker-note.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hecker-note.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hecker-note.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.12,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /></div>
+        <!-- Picture b: the printed poem, with its four line markers and its caption, from 4.63 s. -->
+        <div class="dr-shot" id="c206poem-b" data-layout-allow-overflow><img id="c206poem-b-img" src="data:image/svg+xml,%3C!--hecker-poem.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hecker-poem.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hecker-poem.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.25,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /><div class="dr-mark" id="c206poem-b-m1" style="left: 196px; top: 246px; width: 1130px; height: 62px;"></div><div class="dr-mark" id="c206poem-b-m2" style="left: 196px; top: 324px; width: 1140px; height: 62px;"></div><div class="dr-mark" id="c206poem-b-m3" style="left: 196px; top: 402px; width: 1080px; height: 62px;"></div><div class="dr-mark" id="c206poem-b-m4" style="left: 196px; top: 482px; width: 1040px; height: 62px;"></div></div>
+        <div class="dr-cap" id="c206poem-b-cap">Syair dari kronik Strasbourg, dikutip Justus Hecker<br />Die Tanzwuth, 1832, hlm. 7</div>
+      </div>
+      <script>
+        /* Timeline: a pushes, the four bars wipe in at their times, and b is cut in at 4.63 s and pushes to the end. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c206poem-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.090, x: 6, y: -2, duration: 4.63, ease: "none" }, 0.0);
+        tl.fromTo("#c206poem-b-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 4.63);
+        tl.fromTo("#c206poem-b-m2", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 5.11);
+        tl.fromTo("#c206poem-b-m3", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 6.39);
+        tl.fromTo("#c206poem-b-m4", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 10.24);
+        tl.fromTo("#c206poem-b", { scale: 1.0, x: 5, y: -3 }, { scale: 1.060, x: -5, y: 3, duration: 7.23, ease: "none" }, 4.63);
+        gsap.set("#c206poem-b", { opacity: 0 });
+        tl.to("#c206poem-b", { opacity: 1, duration: 0.001 }, 4.63);
+        gsap.set("#c206poem-b-cap", { opacity: 0 });
+        tl.to("#c206poem-b-cap", { opacity: 1, duration: 0.001 }, 4.63);
+        window.__timelines["c2-06-poem"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

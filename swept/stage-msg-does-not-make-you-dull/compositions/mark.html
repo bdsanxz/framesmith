@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/mark.html (composition id "mark"), written by scripts/paper-flash-build.py
+  WHAT: the channel mark: two short words, bottom right, for the whole film, above the paper. Here it reads MASA in
+    white and SIH?! in yellow, tilted, on screen for all 40.24 s.
+  STRUCTURE: mounted over the whole film (z-index 9, the mark-slot in index.html); one #mark block holding #mark-a (MASA)
+    and #mark-b (SIH?!), with no motion: the tl has no tweens, so the mark stays on from 0 to 40.24 s.
+  CUSTOMIZE: the words are cut.json "mark", the face fonts.mark. change the manifests (shots.json, cut.json, captions.txt) and build again, never this file:
+    it is rewritten on every build. The seam timings are RISE, HOLD, FALL, TEAR, ZOOM_IN, ZOOM_OUT
+    at the head of scripts/paper-flash-build.py. The layout numbers here (left 760px, top 1650px, width 290px, font-size
+    92px, the 7px outline, the -7deg tilt, the 26px indent and the yellow colour of #mark-b) are written by the build too,
+    so change them only to test a layout. Keep width and font-size in proportion, or the words will not fit the box.
+  MEDIA: no media file is bundled. The one slot is the mark font. The @font-face at the top of the style block declares
+    "Bangers" with src local("Bangers"), so the mark is set in Bangers when it is installed, and in the sans-serif of the
+    font stack when it is not. No picture or sound is in this file. To plug in your own font, add a url source before
+    the local one in that @font-face: src: url("fonts/your-mark-font.woff2") format("woff2"), local("Bangers"); with the
+    path of your file.
+  WHEN TO USE: a vertical Short (1080x1920) cut fast on the spoken words, in the paper flash transitions style
+    (references/paper-flash-transitions.md). For a calm or long-form film use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Styles: the frame and the channel mark (Bangers, white with a dark outline). */
+        @font-face { font-family: "Bangers"; font-style: normal; font-weight: 400; font-display: block; src: local("Bangers"); }
+        /* The channel mark, bottom right for the whole film, above the paper. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #mark { position: absolute; left: 760px; top: 1650px; width: 290px; transform: rotate(-7deg); font-family: "Bangers", sans-serif; font-size: 92px; line-height: 0.9; letter-spacing: 0.03em; color: #ffffff; text-align: left;
+          -webkit-text-stroke: 7px #101010; paint-order: stroke fill; filter: drop-shadow(0 5px 0 #101010) drop-shadow(0 8px 10px rgba(0, 0, 0, 0.4)); }
+        #mark-a, #mark-b { display: block; }
+        #mark-b { margin-left: 26px; color: #ffd21f; }
+      </style>
+      <!-- The mark block: two words, bottom right. -->
+      <div id="root" data-composition-id="mark" data-width="1080" data-height="1920">
+        <div id="mark" data-layout-allow-overflow>
+          <span id="mark-a" data-layout-allow-overlap>MASA</span><span id="mark-b" data-layout-allow-overlap>SIH?!</span>
+        </div>
+      </div>
+      <script>
+        /* No tweens: the mark stays on for the whole film. */
+        const tl = gsap.timeline({ paused: true });
+
+        window.__timelines["mark"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

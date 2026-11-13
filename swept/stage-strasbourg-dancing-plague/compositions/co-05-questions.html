@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/co-05-questions.html (composition id "co-05-questions")
+  WHAT: A 13.46 s beat of the cold open, mounted by index.html at 43.04 s, under the narration line that
+    begins "Kota seperti apa yang". It is the question part of the cold open: four still pictures follow
+    one another with a slow push. stras-gate.jpg shows from the start, hon-bridge.jpg is cut in at 3.36 s
+    (46.40 s in the film), musicians.jpg at 5.76 s (48.80 s) and paracelsus2.jpg at 10.18 s (53.22 s). The
+    cuts land on the question words named in the comment at the top of the file (Bagaimana, Mengapa, Dan).
+    No words are drawn on screen, and the file has no sound. None of the four pictures is bundled, so
+    each shows as a faint hatched stand-in with a label naming its file until you add it (see MEDIA).
+  STRUCTURE: Four .dr-shot layers in document order: #co05questions-a (stras-gate), -b (hon-bridge), -c
+    (musicians) and -d (paracelsus2). Each later layer is hidden by gsap.set until its cut. Timeline
+    (gsap, paused): from 0 s for 3.36 s, -a scales 1.014 to 1.070 with x -6 to 6 and y 2 to -2. From
+    3.36 s for 2.4 s, -b scales 1.014 to 1.055 with x 5 to -5 and y -3 to 3. From 5.76 s for 4.42 s, -c
+    scales 1.014 to 1.087 with x -4 to 4 and y -3 to 3. From 10.18 s for 3.28 s, -d scales 1.014 to 1.069
+    with x 6 to -6 and y 3 to -3. Each cut is a 0.001 s opacity tween to 1.
+  CUSTOMIZE: The pictures: the src of img#co05questions-a-img (stras-gate.jpg), img#co05questions-b-img
+    (hon-bridge.jpg), img#co05questions-c-img (musicians.jpg) and img#co05questions-d-img
+    (paracelsus2.jpg). Cut times 3.36, 5.76 and 10.18 are written in each shot's push tween and its
+    opacity tween, so change them together. The push amounts are the scale, x and y values of each tween.
+    The total length 13.46 s (10.18 + 3.28) must match data-duration of co-05-questions-slot in index.html.
+    Grade: data-color-grading on each img (contrast 0.1, saturation -0.32, blacks -0.22, temperature -0.05,
+    vignette 0.2, grain 0.08).
+  MEDIA: No media file is bundled in this composition. It has four photo slots and one font slot, and
+    no sound, video or CSS image slot. Each photo is a graded still picture.
+    1. Photo, first shot: the img #co05questions-a-img inside #co05questions-a (the gate picture, from
+       the start). It showed assets/generated/stras-gate.jpg. Now it shows the hatched stand-in naming
+       that path (data-media), with its grade kept. To plug in: set src="assets/generated/stras-gate.jpg"
+       on that img.
+    2. Photo, second shot: the img #co05questions-b-img inside #co05questions-b (the bridge picture,
+       cut in at 3.36 seconds). It showed assets/generated/hon-bridge.jpg. Now it shows the stand-in
+       naming that path. To plug in: set src="assets/generated/hon-bridge.jpg" on that img.
+    3. Photo, third shot: the img #co05questions-c-img inside #co05questions-c (the musicians picture,
+       cut in at 5.76 seconds). It showed assets/generated/musicians.jpg. Now it shows the stand-in
+       naming that path. To plug in: set src="assets/generated/musicians.jpg" on that img.
+    4. Photo, fourth shot: the img #co05questions-d-img inside #co05questions-d (the Paracelsus
+       picture, cut in at 10.18 seconds). It showed assets/generated/paracelsus2.jpg. Now it shows the
+       stand-in naming that path. To plug in: set src="assets/generated/paracelsus2.jpg" on that img.
+    If a picture is missing, use a solid #0f1518 ground (the #root colour) under the same push, or a
+    free licensed old engraving of the same subject from Wikimedia Commons.
+    5. Font: Arimo, in the @font-face rule at the top of the style block. It was a bundled file. Now
+       the rule reads src: local("Arimo"), and this file draws no text, so the font is unused here.
+       To plug in (only if you add text): add url("assets/fonts/arimo-latin.woff2") format("woff2")
+       to the src list of that rule.
+  WHEN TO USE: A passage of narrated questions that moves through several old pictures in turn with no
+    text on screen. Pick a file with captions or red names when each picture has to be named, or a
+    single-picture file for a plain closing question.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts and stage: the Arimo face is local only, and the root fills the frame with the shots. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Kota seperti apa yang ..." (43.04 s): stras-gate from the start; hon-bridge on "Bagaimana" (46.40 s); musicians on "Mengapa" (48.80 s); paracelsus2 on "Dan" (53.22 s). -->
+      <div id="root" data-composition-id="co-05-questions" data-width="1920" data-height="1080">
+        <!-- The four pictures, stacked in order; each later one is hidden until its cut. -->
+        <div class="dr-shot" id="co05questions-a" data-layout-allow-overflow><img id="co05questions-a-img" src="data:image/svg+xml,%3C!--stras-gate.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/stras-gate.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/stras-gate.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="co05questions-b" data-layout-allow-overflow><img id="co05questions-b-img" src="data:image/svg+xml,%3C!--hon-bridge.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-bridge.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-bridge.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="co05questions-c" data-layout-allow-overflow><img id="co05questions-c-img" src="data:image/svg+xml,%3C!--musicians.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/musicians.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/musicians.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="co05questions-d" data-layout-allow-overflow><img id="co05questions-d-img" src="data:image/svg+xml,%3C!--paracelsus2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paracelsus2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/paracelsus2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1 (0 to 3.36 s): the stras-gate picture pushes in from the start. */
+        tl.fromTo("#co05questions-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.070, x: 6, y: -2, duration: 3.36, ease: "none" }, 0.0);
+        /* Phase 2 (3.36 s to 5.76 s): the hon-bridge picture is cut in on "Bagaimana" and pushes in. */
+        tl.fromTo("#co05questions-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.055, x: -5, y: 3, duration: 2.4, ease: "none" }, 3.36);
+        gsap.set("#co05questions-b", { opacity: 0 });
+        tl.to("#co05questions-b", { opacity: 1, duration: 0.001 }, 3.36);
+        /* Phase 3 (5.76 s to 10.18 s): the musicians picture is cut in on "Mengapa" and pushes in. */
+        tl.fromTo("#co05questions-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.087, x: 4, y: 3, duration: 4.42, ease: "none" }, 5.76);
+        gsap.set("#co05questions-c", { opacity: 0 });
+        tl.to("#co05questions-c", { opacity: 1, duration: 0.001 }, 5.76);
+        /* Phase 4 (from 10.18 s): the paracelsus2 picture is cut in on "Dan" and holds to the end. */
+        tl.fromTo("#co05questions-d", { scale: 1.014, x: 6, y: 3 }, { scale: 1.069, x: -6, y: -3, duration: 3.28, ease: "none" }, 10.18);
+        gsap.set("#co05questions-d", { opacity: 0 });
+        tl.to("#co05questions-d", { opacity: 1, duration: 0.001 }, 10.18);
+        /* Registration: the host finds this timeline by the id co-05-questions. */
+        window.__timelines["co-05-questions"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

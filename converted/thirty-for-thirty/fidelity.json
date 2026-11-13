@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 156,
-    "refused": 34,
-    "translated": 4
+    "refused": 7,
+    "translated": 31
   },
   "duration": 32.0,
   "entries": [
@@ -225,178 +225,178 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #v01 references remote asset \"data:image/svg+xml,%3C!--day01.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day01.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v01 data: URI decoded to assets/data-v01.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 65,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v02 references remote asset \"data:image/svg+xml,%3C!--day02.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day02.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v02 data: URI decoded to assets/data-v02.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v03 references remote asset \"data:image/svg+xml,%3C!--day03.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day03.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v03 data: URI decoded to assets/data-v03.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v04 references remote asset \"data:image/svg+xml,%3C!--day04.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day04.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v04 data: URI decoded to assets/data-v04.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v05 references remote asset \"data:image/svg+xml,%3C!--day05.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day05.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v05 data: URI decoded to assets/data-v05.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 69,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v06 references remote asset \"data:image/svg+xml,%3C!--day06.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day06.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v06 data: URI decoded to assets/data-v06.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 70,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v07 references remote asset \"data:image/svg+xml,%3C!--day07.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day07.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v07 data: URI decoded to assets/data-v07.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 71,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v08 references remote asset \"data:image/svg+xml,%3C!--day08.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day08.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v08 data: URI decoded to assets/data-v08.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 72,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v10 references remote asset \"data:image/svg+xml,%3C!--day10.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day10.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v10 data: URI decoded to assets/data-v10.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 73,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v11 references remote asset \"data:image/svg+xml,%3C!--day11.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day11.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v11 data: URI decoded to assets/data-v11.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v12 references remote asset \"data:image/svg+xml,%3C!--day12.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day12.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v12 data: URI decoded to assets/data-v12.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 75,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v14 references remote asset \"data:image/svg+xml,%3C!--day14.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day14.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v14 data: URI decoded to assets/data-v14.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 76,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v15 references remote asset \"data:image/svg+xml,%3C!--day15.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day15.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v15 data: URI decoded to assets/data-v15.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 77,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v16 references remote asset \"data:image/svg+xml,%3C!--day16.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day16.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v16 data: URI decoded to assets/data-v16.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 78,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v18 references remote asset \"data:image/svg+xml,%3C!--day18.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day18.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v18 data: URI decoded to assets/data-v18.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 79,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v19 references remote asset \"data:image/svg+xml,%3C!--day19.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day19.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v19 data: URI decoded to assets/data-v19.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 80,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v20 references remote asset \"data:image/svg+xml,%3C!--day20.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day20.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v20 data: URI decoded to assets/data-v20.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 81,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v21 references remote asset \"data:image/svg+xml,%3C!--day21.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day21.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v21 data: URI decoded to assets/data-v21.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v22 references remote asset \"data:image/svg+xml,%3C!--day22.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day22.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v22 data: URI decoded to assets/data-v22.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 83,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v23 references remote asset \"data:image/svg+xml,%3C!--day23.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day23.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v23 data: URI decoded to assets/data-v23.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 84,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v24 references remote asset \"data:image/svg+xml,%3C!--day24.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day24.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v24 data: URI decoded to assets/data-v24.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 85,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v25 references remote asset \"data:image/svg+xml,%3C!--day25.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day25.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v25 data: URI decoded to assets/data-v25.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 86,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v26 references remote asset \"data:image/svg+xml,%3C!--day26.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day26.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v26 data: URI decoded to assets/data-v26.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 87,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v28 references remote asset \"data:image/svg+xml,%3C!--day28.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day28.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v28 data: URI decoded to assets/data-v28.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 88,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "asset img",
-      "detail": "element #v29 references remote asset \"data:image/svg+xml,%3C!--day29.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/day29.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #v29 data: URI decoded to assets/data-v29.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 89,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -1431,7 +1431,7 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"a\" is an expression; refusing the call site",
+      "detail": "position \"a\" is outside the numeric grammar (unbound identifier \"a\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rail.html",
       "line": 142,
       "verdict": "refused"
@@ -1445,35 +1445,35 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"b\" is an expression; refusing the call site",
+      "detail": "position \"b\" is outside the numeric grammar (unbound identifier \"b\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rail.html",
       "line": 143,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"a\" is an expression; refusing the call site",
+      "detail": "position \"a\" is outside the numeric grammar (unbound identifier \"a\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rail.html",
       "line": 145,
       "verdict": "refused"
     },
     {
       "construct": "tl.from",
-      "detail": "position \"a\" is an expression; refusing the call site",
+      "detail": "position \"a\" is outside the numeric grammar (unbound identifier \"a\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rail.html",
       "line": 146,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"b\" is an expression; refusing the call site",
+      "detail": "position \"b\" is outside the numeric grammar (unbound identifier \"b\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rail.html",
       "line": 147,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "position \"a\" is an expression; refusing the call site",
+      "detail": "position \"a\" is outside the numeric grammar (unbound identifier \"a\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rail.html",
       "line": 150,
       "verdict": "refused"
@@ -1487,17 +1487,17 @@
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#end .big\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#end .big\" at start=29.0333 duration=0.5000",
       "file": "compositions/rail.html",
       "line": 154,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.from",
-      "detail": "selector \"#end .sub\" is compound; only `#id` and `.class` land",
+      "detail": "tl.from on \"#end .sub\" at start=29.3333 duration=0.5000",
       "file": "compositions/rail.html",
       "line": 155,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",

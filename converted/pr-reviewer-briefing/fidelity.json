@@ -1,8 +1,8 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 31,
-    "refused": 8,
+    "approximated": 32,
+    "refused": 7,
     "translated": 12
   },
   "duration": 14.0,
@@ -242,7 +242,7 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "position \"atDel + k * 0.08\" is outside the numeric grammar (unbound identifier \"atDel\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/code-diff.html",
       "line": 871,
       "verdict": "refused"
@@ -256,7 +256,7 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "position \"atAdd + k * 0.12\" is outside the numeric grammar (unbound identifier \"atAdd\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/code-diff.html",
       "line": 881,
       "verdict": "refused"
@@ -284,7 +284,7 @@
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"dur\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"dur\" is outside the numeric grammar (unbound identifier \"dur\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/code-diff.html",
       "line": 914,
       "verdict": "refused"
@@ -361,10 +361,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"[\\\"#pr-handoff-name\\\", \\\"#pr-handoff-role\\\"]\" is not a DOM selector (\"[\\\"#pr-handoff-name\\\", \\\"#pr-handoff-role\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "delta": "selector matched 2 clips; stagger 0.1200s expanded to per-element start offsets",
+      "detail": "tl.fromTo on [\"#pr-handoff-name\", \"#pr-handoff-role\"] at start=10.5000 duration=0.6000",
       "file": "compositions/frames/08-handoff.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",

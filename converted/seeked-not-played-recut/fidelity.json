@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 94,
-    "refused": 7,
-    "translated": 23
+    "approximated": 95,
+    "refused": 4,
+    "translated": 25
   },
   "duration": 17.96,
   "entries": [
@@ -25,10 +25,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #aroll references remote asset \"data:image/svg+xml,%3C!--aroll.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/aroll.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #aroll data: URI decoded to assets/data-aroll.svg (539 bytes, percent-encoded)",
       "file": "index.html",
       "line": 71,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -274,10 +274,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"[\\\"#seek-arrow\\\", \\\"#seek-video\\\"]\" is not a DOM selector (\"[\\\"#seek-arrow\\\", \\\"#seek-video\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.fromTo on [\"#seek-arrow\", \"#seek-video\"] at start=13.7500 duration=0.3000",
       "file": "compositions/cards/seek.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -914,14 +914,14 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"start\" is an expression; refusing the call site",
+      "detail": "position \"start\" is outside the numeric grammar (unbound identifier \"start\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/captions.html",
       "line": 69,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"end\" is an expression; refusing the call site",
+      "detail": "position \"end\" is outside the numeric grammar (unbound identifier \"end\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/captions.html",
       "line": 70,
       "verdict": "refused"
@@ -935,10 +935,11 @@
     },
     {
       "construct": "tl.set",
-      "detail": "property \"transformOrigin\" (value \"\\\"50% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"50% 50%\\\"\" snapped to clip origin \"center\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.set on \"#video-wrap\" at start=0.0000 duration=0.5000",
       "file": "index.html",
       "line": 92,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.to",

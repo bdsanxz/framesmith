@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition)
+  WHAT: A 16-second beat-synced title sizzle on a sage ground with lime accents. Four full-screen
+    cards recap course lessons with hard cuts, a DAY counter rolls from 05 to 30, and a lime banner
+    closes the film. A music bed (assets/bgm.wav) runs under all 16 seconds, and every cut lands on
+    a beat from audiomap.json. This file is only the timeline host; the frames live in
+    compositions/frames/.
+  STRUCTURE: Root #root (data-composition-id="main", 16 s, 1920x1080) with four frame hosts in
+    order: #frame-01 (cold-open) at 0 s for 2.02 s; #frame-02 (cards) at 2.02 s for 8.011 s;
+    #frame-03 (roll-counter) at 10.031 s for 3.969 s; #frame-04 (banner) at 14 s for 2 s. Each host
+    loads its file through data-composition-src. The music bed is the sound slot #bgm, which would play from 0 s
+    for 16 s on track 11; it is not bundled (see MEDIA).
+    The root GSAP timeline "main" has no tweens; each frame runs its own timeline.
+  CUSTOMIZE: Frame timing: data-start and data-duration on the four hosts. They must tile 0 to 16
+    with no gap, and their start times match the audiomap anchors (2.02, 10.031, 14). If the music
+    changes, rerun the analyzer and update these values and the matching numbers in each frame.
+    Background: the sage #C9D6C2 on html, body and #root. Frame colors and text live in the frame
+    files. Size: 1920x1080 is fixed in data-width, data-height and the html and body rules.
+    Audio level: data-volume="1" on the #bgm audio element (see MEDIA).
+  MEDIA: No media file is bundled. This file has no picture, video or font slot of its own: the four frames it
+    mounts have their own MEDIA notes, and each names only faces that HyperFrames bundles. Its one slot is the
+    music bed, a sound slot.
+    Sound slot #bgm (assets/bgm.wav, a 16-second music bed of synthesized 120 BPM drums; the README says
+    ../../scripts/synth-drum-track.py regenerates it): it now plays nothing, so the film is silent until you add
+    it. The cuts still run on the timeline. To plug in your own track, add inside #root
+    an audio element with id="bgm", src set to your file, data-start="0", data-duration="16", data-track-index="11" and data-volume="1".
+    Any replacement track needs its beats re-measured, because the frame starts are set to the anchors in
+    audiomap.json. The page does not read audiomap.json; it only documents the anchors the start times were taken
+    from. The gsap 3.14.2 script from cdn.jsdelivr.net is required because the timelines use it.
+  WHEN TO USE: A short typographic recap or sizzle that must hit a music track's beats exactly,
+    with hard cuts, heavy type, and one lime accent. Pick something else for a slower narrated
+    film, footage-based edits, or cuts that cannot follow a beat grid.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>This week in HyperFrames — beat-synced sizzle</title>
+    <!-- GSAP engine, loaded from a CDN; every timeline in this film is built with it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset spacing and fix the page to the 1920 by 1080 frame. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #C9D6C2; }
+      /* The root fills the frame and clips anything that leaves it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #C9D6C2; }
+    </style>
+  </head>
+  <body>
+    <!-- Every data-start below is an audiomap.json anchor, verbatim. Frames tile 0 → 16.0 with hard cuts. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1920" data-height="1080">
+      <!-- The four frame hosts, back to back: each one mounts a frame file at its beat anchor. -->
+      <div id="frame-01" data-composition-id="cold-open" data-composition-src="compositions/frames/01-cold-open.html"
+        data-start="0" data-duration="2.02" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <div id="frame-02" data-composition-id="cards" data-composition-src="compositions/frames/02-cards.html"
+        data-start="2.02" data-duration="8.011" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <div id="frame-03" data-composition-id="roll-counter" data-composition-src="compositions/frames/03-roll-counter.html"
+        data-start="10.031" data-duration="3.969" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <div id="frame-04" data-composition-id="banner" data-composition-src="compositions/frames/04-banner.html"
+        data-start="14" data-duration="2" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <!-- The music bed, running under all four frames for the full 16 seconds. -->
+      <!-- SOUND SLOT (id "bgm", from 0 s, for 16 s, volume 1, track 11): an audio element played assets/bgm.wav here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+    </div>
+    <script>
+      /* Root timeline: created paused and registered as "main"; it has no tweens of its own. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

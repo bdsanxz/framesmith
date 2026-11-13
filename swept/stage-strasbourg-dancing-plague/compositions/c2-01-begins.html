@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-01-begins.html (composition id "c2-01-begins")
+  WHAT: The first beat of chapter 2, 8.74 s, from 184.96 s in index.html, narrated by segment s19
+    (opening "Menurut John Waller"). Three pictures follow one another: a wide city picture from 0
+    to 2.75 s; a second picture from 2.75 to 4.82 s with the red figure "sekitar 14 Juli 1518"
+    (about 14 July 1518) set over it; and a third picture from 4.82 s to the end, with a two-line
+    caption that gives its source: a plan of Strasbourg by Conrad Morant, 1548.
+  STRUCTURE: #root holds three .dr-shot wrappers (#c201begins-a, -b, -c), each a full-frame img with
+    its grade in data-color-grading, plus the red figure #c201begins-b-fig (.dr-figure, top 150 px)
+    and the caption #c201begins-c-cap (.dr-cap, top 800 px). The timeline pushes each picture slowly
+    (scale about 1.014 up to 1.05 or 1.08) and makes the cuts by opacity: picture b and the figure
+    appear at 2.75 s and the figure leaves at 4.82 s; picture c and its caption appear at 4.82 s.
+  CUSTOMIZE: each picture's file is named by data-media on its img tag (civ-wide3.jpg, ill2.jpg,
+    pfalz.jpg); set the src to swap in your own (see MEDIA). The cut times 2.75 and 4.82 appear in several tweens, so change them together, and
+    keep the last tween end at the composition duration (8.74 in index.html). The figure text is
+    its two lines (br); its height is the inline top 150 px; its colour is in .dr-figure. The caption
+    text and position are in #c201begins-c-cap and .dr-cap (left 207 px, top 800 px). The grade
+    numbers sit in each img data-color-grading; picture c adds an exposure of -0.25.
+  MEDIA: no media file is bundled. This file has three photo slots and one font slot. It has no sound,
+    no video and no CSS image.
+    1. The wide city picture, img #c201begins-a-img (inside #c201begins-a, shown 0 to 2.75 s). It showed a
+       wide picture of a city (civ-wide3.jpg). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/civ-wide3.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/civ-wide3.jpg). The data-media attribute only names the expected path; it
+       loads nothing. The img's data-color-grading still grades your picture.
+    2. The second picture, img #c201begins-b-img (inside #c201begins-b, shown from 2.75 s to 4.82 s under
+       the red figure #c201begins-b-fig, which is plain text). It showed ill2.jpg. It now shows a stand-in
+       labeled "PHOTO: assets/generated/ill2.jpg". To plug in your picture, set the img's src to your file.
+    3. The plan, img #c201begins-c-img (inside #c201begins-c, shown from 4.82 s to the end, with the caption
+       #c201begins-c-cap). It showed a plan of Strasbourg by Conrad Morant (1548), a copy from the city
+       archive (pfalz.jpg). It now shows a stand-in labeled "PHOTO: assets/generated/pfalz.jpg". To plug in
+       your plan, set the img's src to your file. Its grade adds exposure -0.25 so the caption reads.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-figure and .dr-cap. It was a
+       bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a narrated sequence of stills, each with its own source, where a red date or number
+    sits over one picture. Pick something else when the pictures need real motion or one long shot.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The red figure: number on one line, unit on the next, bold italic, tracked. */
+        .dr-figure { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-style: italic; font-size: 64px; line-height: 1.28; letter-spacing: 0.12em; color: rgba(214, 62, 38, 0.96); text-shadow: 0 0 18px rgba(198, 58, 36, 0.45); white-space: nowrap; }
+      </style>
+      <!-- "Menurut John Waller, semuanya ..." (184.96 s): civ-wide3 from the start; ill2 + red figure sekitar 14 Juli 1518 on "sekitar" (187.71 s); pfalz + caption on "Frau" (189.78 s). -->
+      <div id="root" data-composition-id="c2-01-begins" data-width="1920" data-height="1080">
+        <!-- Picture a: the wide city picture, shown from 0 s. -->
+        <div class="dr-shot" id="c201begins-a" data-layout-allow-overflow><img id="c201begins-a-img" src="data:image/svg+xml,%3C!--civ-wide3.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/civ-wide3.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/civ-wide3.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Picture b, shown from 2.75 s, with the red figure over it. -->
+        <div class="dr-shot" id="c201begins-b" data-layout-allow-overflow><img id="c201begins-b-img" src="data:image/svg+xml,%3C!--ill2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'668' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ill2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/ill2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-figure" id="c201begins-b-fig" style="top: 150px;">sekitar 14 Juli<br />1518</div>
+        <!-- Picture c with its source caption, shown from 4.82 s. -->
+        <div class="dr-shot" id="c201begins-c" data-layout-allow-overflow><img id="c201begins-c-img" src="data:image/svg+xml,%3C!--pfalz.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pfalz.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/pfalz.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c201begins-c-cap">Strasbourg dalam denah Conrad Morant, 1548<br />Salinan, Arsip Kota Strasbourg</div>
+      </div>
+      <script>
+        /* Timeline: a, b and c each push slowly; b and c are cut in by opacity at 2.75 s and 4.82 s. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c201begins-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.061, x: 6, y: -2, duration: 2.75, ease: "none" }, 0.0);
+        tl.fromTo("#c201begins-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.050, x: -5, y: 3, duration: 2.07, ease: "none" }, 2.75);
+        gsap.set("#c201begins-b", { opacity: 0 });
+        tl.to("#c201begins-b", { opacity: 1, duration: 0.001 }, 2.75);
+        gsap.set("#c201begins-b-fig", { opacity: 0 });
+        tl.to("#c201begins-b-fig", { opacity: 1, duration: 0.001 }, 2.75);
+        tl.to("#c201begins-b-fig", { opacity: 0, duration: 0.001 }, 4.82);
+        tl.fromTo("#c201begins-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.079, x: 4, y: 3, duration: 3.92, ease: "none" }, 4.82);
+        gsap.set("#c201begins-c", { opacity: 0 });
+        tl.to("#c201begins-c", { opacity: 1, duration: 0.001 }, 4.82);
+        gsap.set("#c201begins-c-cap", { opacity: 0 });
+        tl.to("#c201begins-c-cap", { opacity: 1, duration: 0.001 }, 4.82);
+        window.__timelines["c2-01-begins"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

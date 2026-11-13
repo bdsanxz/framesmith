@@ -1,67 +1,33 @@
 # Fidelity report: sarajevo-wrong-turn-indonesian → main
 
-- translated: 31
-- approximated (with deltas): 105
-- refused: 42
+- translated: 61
+- approximated (with deltas): 102
+- refused: 7
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/map.html`:93 [tl.fromTo] position "t + i / cps" is an expression; refusing the call site
-- `compositions/map.html`:97 [tl.set] property "filter" (value "\"blur(8px)\"") has no KDL motion property; refusing the call site
-- `compositions/map.html`:99 [tl.to] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
-- `compositions/map.html`:100 [tl.to] property "keyframes" (value "[{ scale: 1, duration: 1.6, ease: \"power2.out\" }, { scale: 1.05, duration: 2.84, ease: \"sine.inOut\" }]") has no KDL motion property; refusing the call site
-- `compositions/map.html`:103 [tl.fromTo] selector "#mp-pin svg" is compound; only `#id` and `.class` land
-- `compositions/map.html`:85 [typeOn] typeOn selector "sel" is not a string literal; refusing the call site
-- `compositions/title.html`:89 [asset img] element #tt-sea references remote asset "data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `compositions/title.html`:124 [tl.set] position "t + i / cps" is an expression; refusing the call site
-- `compositions/title.html`:130 [tl.fromTo] selector "#tt-title .tt-mark" is compound; only `#id` and `.class` land
 - `compositions/title.html`:132 [tl.to] property "strokeDashoffset" (value "0") has no KDL motion property; refusing the call site
-- `compositions/title.html`:133 [tl.fromTo] property "transformOrigin" (value "\"50% 100%\"") has no KDL motion property; refusing the call site
-- `compositions/title.html`:115 [typeOn] typeOn selector "sel" is not a string literal; refusing the call site
-- `compositions/archduke.html`:93 [asset img] element #ad-sea references remote asset "data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `compositions/archduke.html`:96 [asset img] element #? references remote asset "data:image/svg+xml,%3C!--ff.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'630' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ff.png%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `compositions/archduke.html`:124 [tl.set] position "t + i / cps" is an expression; refusing the call site
-- `compositions/archduke.html`:129 [tl.fromTo] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
 - `compositions/archduke.html`:130 [tl.to] property "strokeDashoffset" (value "0") has no KDL motion property; refusing the call site
-- `compositions/archduke.html`:133 [tl.fromTo] ease "back.out(2)" has no Framesmith curve; refusing the call site
-- `compositions/archduke.html`:134 [tl.fromTo] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
-- `compositions/archduke.html`:135 [tl.fromTo] selector "#ad-name .ad-mark" is compound; only `#id` and `.class` land
-- `compositions/archduke.html`:115 [typeOn] typeOn selector "sel" is not a string literal; refusing the call site
-- `compositions/assassins.html`:82 [asset img] element #? references remote asset "data:image/svg+xml,%3C!--trial.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/trial.png%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `compositions/assassins.html`:110 [tl.set] position "t + i / cps" is an expression; refusing the call site
-- `compositions/assassins.html`:119 [tl.fromTo] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
-- `compositions/assassins.html`:101 [typeOn] typeOn selector "sel" is not a string literal; refusing the call site
-- `compositions/street.html`:125 [asset img] element #? references remote asset "data:image/svg+xml,%3C!--princip.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/princip.png%3C/text%3E%3C/svg%3E"; only project-local files are copied
 - `compositions/street.html`:133 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
-- `compositions/street.html`:147 [tl.fromTo] property "keyframes" (value "path") has no KDL motion property; refusing the call site
-- `compositions/street.html`:148 [tl.fromTo] property "keyframes" (value "path") has no KDL motion property; refusing the call site
-- `compositions/street.html`:149 [tl.fromTo] property "immediateRender" (value "false") has no KDL motion property; refusing the call site
+- `compositions/street.html`:147 [tl.fromTo] keyframes value "path" is not an array literal; refusing the call site
+- `compositions/street.html`:148 [tl.fromTo] keyframes value "path" is not an array literal; refusing the call site
 - `compositions/street.html`:153 [tl.fromTo] property "strokeDasharray" (value "\"1000 0\"") has no KDL motion property; refusing the call site
-- `compositions/street.html`:157 [tl.fromTo] property "transformOrigin" (value "\"0 50%\"") has no KDL motion property; refusing the call site
-- `compositions/shots.html`:82 [asset img] element #? references remote asset "data:image/svg+xml,%3C!--pistol.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pistol.png%3C/text%3E%3C/svg%3E"; only project-local files are copied
-- `compositions/shots.html`:108 [tl.set] position "t + i / cps" is an expression; refusing the call site
-- `compositions/shots.html`:112 [tl.fromTo] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
-- `compositions/shots.html`:118 [tl.fromTo] property "keyframes" (value "[{ scale: 1.15, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }]") has no KDL motion property; refusing the call site
-- `compositions/shots.html`:119 [tl.fromTo] property "keyframes" (value "[{ scale: 1.25, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }]") has no KDL motion property; refusing the call site
-- `compositions/shots.html`:120 [tl.fromTo] property "keyframes" (value "[{ x: -14, y: 8, duration: 0.04 }, { x: 9, y: -6, duration: 0.05 }, { x: 0, y: 0, duration: 0.08 }]") has no KDL motion property; refusing the call site
-- `compositions/shots.html`:122 [tl.fromTo] property "keyframes" (value "[{ opacity: 1, duration: 0.03 }, { opacity: 1, duration: 0.08 }, { opacity: 0, duration: 0.3, ease: \"power2.in\" }]") has no KDL motion property; refusing the call site
 - `compositions/shots.html`:124 [tl.set] property "autoAlpha" (value "0") has no KDL motion property; refusing the call site
-- `compositions/shots.html`:99 [typeOn] typeOn selector "sel" is not a string literal; refusing the call site
-- `compositions/paper.html`:47 [asset img] element #pp-sheet references remote asset "data:image/svg+xml,%3C!--paper.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paper.jpg%3C/text%3E%3C/svg%3E"; only project-local files are copied
 
 ## Approximated (measured deltas)
 
 - `compositions/map.html`:64 [placement] element #mp-cam has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/map.html`:65 [placement] element #mp-map has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
-- `compositions/map.html`:66 [placement] element #mp-hl has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/map.html`:76 [placement] element #mp-city has no own left/top; placed by flow approximation at (140, 436) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/map.html`:77 [placement] element #mp-sub has no own left/top; placed by flow approximation at (140, 436) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/map.html`:64 [container element] element #mp-cam is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/map.html`:70 [container element] element #mp-pin is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/map.html`:71 [container element] element #mp-pin-shadow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/map.html`:75 [container element] element #mp-label is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/map.html`:106 [typeOn] typeOn "#mp-city" at 2.7300 for 8 chars at 12.0000 chars/s lands as split="chars" typewriter on the text clip (authored reveal 0.6667s) delta: reveal paced over the clip window 4.4400s gives 1.8018 chars/s instead of 12.0000 chars/s
-- `compositions/map.html`:108 [typeOn] typeOn "#mp-sub" at 3.1000 for 31 chars at 45.0000 chars/s lands as split="chars" typewriter on the text clip (authored reveal 0.6889s) delta: reveal paced over the clip window 4.4400s gives 6.9820 chars/s instead of 45.0000 chars/s
+- `compositions/map.html`:98 [tl.to] tl.to on "#mp-cam" at start=0.0000 duration=0.6000 delta: a set on opacity at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value
+- `compositions/map.html`:99 [tl.to] tl.to on "#mp-cam" at start=0.0000 duration=1.2000 delta: a set on blur at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value
+- `compositions/map.html`:100 [tl.to] tl.to on "#mp-cam" at start=0.0000 duration=4.4400 delta: a set on scale at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value
+- `compositions/map.html`:106 [typeOn] typeOn "#mp-city" at 2.7300 for 8 chars at 12.0000 chars/s (authored reveal 0.6667s) expanded to 8 per-glyph from-to opacity tweens at t + i / cps plus split="chars" typewriter on the text clip delta: reveal paced over the clip window 4.4400s gives 1.8018 chars/s instead of 12.0000 chars/s; per-glyph duration 0.001s below the 1/60s clip minimum; clamped to 0.0167s
+- `compositions/map.html`:108 [typeOn] typeOn "#mp-sub" at 3.1000 for 31 chars at 45.0000 chars/s (authored reveal 0.6889s) expanded to 31 per-glyph from-to opacity tweens at t + i / cps plus split="chars" typewriter on the text clip delta: reveal paced over the clip window 4.4400s gives 6.9820 chars/s instead of 45.0000 chars/s; per-glyph duration 0.001s below the 1/60s clip minimum; clamped to 0.0167s
 - `compositions/title.html`:83 [placement] element #tt-tear has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/title.html`:84 [placement] element #tt-route-mask has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/title.html`:85 [placement] element #tt-route-reveal has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -78,12 +44,12 @@
 - `compositions/title.html`:90 [container element] element #tt-land-top is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/title.html`:91 [container element] element #tt-land-bottom is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/title.html`:93 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/title.html`:94 [container element] element #tt-route is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/title.html`:96 [container element] element #tt-arrow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/title.html`:99 [container element] element #tt-title is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/title.html`:101 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/title.html`:104 [container element] element #tt-sub is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/title.html`:135 [typeOn] typeOn "#tt-sub-text" at 1.0000 for 24 chars at 22.0000 chars/s lands as split="chars" typewriter on the text clip (authored reveal 1.0909s) delta: reveal paced over the clip window 0.0167s gives 1440.0000 chars/s instead of 22.0000 chars/s
+- `compositions/title.html`:133 [tl.fromTo] tl.fromTo on "#tt-arrow" at start=6.7200 duration=0.1800 delta: transformOrigin "\"50% 100%\"" snapped to clip origin "center bottom" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
+- `compositions/title.html`:135 [typeOn] typeOn "#tt-sub-text" at 1.0000 for 24 chars at 22.0000 chars/s (authored reveal 1.0909s) expanded to 24 per-glyph opacity sets at t + i / cps plus split="chars" typewriter on the text clip delta: set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1440.0000 chars/s instead of 22.0000 chars/s
 - `compositions/archduke.html`:90 [placement] element #ad-tear has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/archduke.html`:92 [placement] element #ad-cam has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/archduke.html`:101 [placement] element #ad-name-bg has no own left/top; placed by flow approximation at (960, 380) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -93,19 +59,16 @@
 - `compositions/archduke.html`:90 [container element] element #ad-tear is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/archduke.html`:92 [container element] element #ad-cam is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/archduke.html`:96 [container element] element #ad-person is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/archduke.html`:97 [container element] element #ad-stroke is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/archduke.html`:100 [container element] element #ad-name is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/archduke.html`:102 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/archduke.html`:105 [container element] element #ad-role is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/archduke.html`:138 [typeOn] typeOn "#ad-role-text" at 3.1300 for 31 chars at 22.0000 chars/s lands as split="chars" typewriter on the text clip (authored reveal 1.4091s) delta: reveal paced over the clip window 0.0167s gives 1860.0000 chars/s instead of 22.0000 chars/s
+- `compositions/archduke.html`:138 [typeOn] typeOn "#ad-role-text" at 3.1300 for 31 chars at 22.0000 chars/s (authored reveal 1.4091s) expanded to 31 per-glyph opacity sets at t + i / cps plus split="chars" typewriter on the text clip delta: set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1860.0000 chars/s instead of 22.0000 chars/s
 - `compositions/assassins.html`:74 [placement] element #as-tear has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/assassins.html`:76 [placement] element #as-cam has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/assassins.html`:91 [placement] element #as-card-bg has no own left/top; placed by flow approximation at (190, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/assassins.html`:93 [placement] element #as-label-text has no own left/top; placed by flow approximation at (40, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/assassins.html`:74 [container element] element #as-tear is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/assassins.html`:76 [container element] element #as-cam is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/assassins.html`:78 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/assassins.html`:79 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/assassins.html`:81 [container element] element #as-print is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/assassins.html`:83 [container element] element #as-bar-1 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/assassins.html`:84 [container element] element #as-bar-2 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -114,7 +77,7 @@
 - `compositions/assassins.html`:87 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/assassins.html`:90 [container element] element #as-card is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/assassins.html`:120 [tl.fromTo] tl.fromTo on ".as-bar" at start=14.1200 duration=0.1200 delta: selector matched 3 clips; stagger 0.1000s expanded to per-element start offsets
-- `compositions/assassins.html`:116 [typeOn] typeOn "#as-label-text" at 1.5400 for 13 chars at 26.0000 chars/s lands as split="chars" typewriter on the text clip (authored reveal 0.5000s) delta: reveal paced over the clip window 0.0167s gives 780.0000 chars/s instead of 26.0000 chars/s
+- `compositions/assassins.html`:116 [typeOn] typeOn "#as-label-text" at 1.5400 for 13 chars at 26.0000 chars/s (authored reveal 0.5000s) expanded to 13 per-glyph opacity sets at t + i / cps plus split="chars" typewriter on the text clip delta: set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 780.0000 chars/s instead of 26.0000 chars/s
 - `compositions/street.html`:86 [placement] element #st-ink has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/street.html`:88 [placement] element #st-cam has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/street.html`:92 [placement] element #st-hatch has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -126,7 +89,6 @@
 - `compositions/street.html`:119 [placement] element #st-car-rear has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/street.html`:86 [container element] element #st-ink is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/street.html`:88 [container element] element #st-cam is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/street.html`:90 [container element] element #st-plan is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/street.html`:92 [container element] element #st-hatch is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/street.html`:93 [container element] element #st-waves is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/street.html`:113 [container element] element #st-route is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
@@ -134,6 +96,8 @@
 - `compositions/street.html`:117 [container element] element #st-car-lead is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/street.html`:119 [container element] element #st-car-rear is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/street.html`:125 [container element] element #st-princip is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/street.html`:149 [tl.fromTo] tl.fromTo on "#st-car-ad" at start=17.5400 duration=0.3000 delta: immediateRender false not expressible in KDL (no carryback flag); the from-state starts at its position 17.5400s, so evaluation before the start differs from GSAP
+- `compositions/street.html`:157 [tl.fromTo] tl.fromTo on "#st-princip-name" at start=23.3600 duration=0.2000 delta: transformOrigin "\"0 50%\"" snapped to clip origin "left center" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
 - `compositions/shots.html`:76 [placement] element #sh-tear has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/shots.html`:78 [placement] element #sh-cam has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/shots.html`:83 [placement] element #sh-burst-1 has no own left/top; placed by flow approximation at (250, 230) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -147,36 +111,54 @@
 - `compositions/shots.html`:80 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/shots.html`:81 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/shots.html`:82 [container element] element #sh-gun is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/shots.html`:83 [container element] element #sh-burst-1 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
-- `compositions/shots.html`:84 [container element] element #sh-burst-2 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/shots.html`:85 [container element] element #sh-card is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/shots.html`:93 [container element] element #sh-flash is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/shots.html`:123 [tl.fromTo] tl.fromTo on "#sh-black" at start=25.8800 duration=0.0100 delta: duration 0.0100s below the 1/60s clip minimum; clamped to 0.0167s
-- `compositions/shots.html`:116 [typeOn] typeOn "#sh-label-text" at 0.7000 for 8 chars at 20.0000 chars/s lands as split="chars" typewriter on the text clip (authored reveal 0.4000s) delta: reveal paced over the clip window 0.0167s gives 480.0000 chars/s instead of 20.0000 chars/s
+- `compositions/shots.html`:116 [typeOn] typeOn "#sh-label-text" at 0.7000 for 8 chars at 20.0000 chars/s (authored reveal 0.4000s) expanded to 8 per-glyph opacity sets at t + i / cps plus split="chars" typewriter on the text clip delta: set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 480.0000 chars/s instead of 20.0000 chars/s
 - `compositions/paper.html`:48 [placement] element #pp-vig has no own left/top; placed by flow approximation at (-96, -54) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/paper.html`:48 [container element] element #pp-vig is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `index.html`:85 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
 
 ## Translated
 
+- `compositions/map.html`:72 [asset svg] inline <svg> extracted to assets/data-map-72.svg (236 bytes; xmlns added: true)
 - `compositions/map.html`:82 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
-- `compositions/map.html`:98 [tl.to] tl.to on "#mp-cam" at start=0.0000 duration=0.6000
+- `compositions/map.html`:97 [tl.set] tl.set on "#mp-cam" at start=0.0000 duration=0.5000
 - `compositions/map.html`:102 [tl.fromTo] tl.fromTo on "#mp-hl" at start=1.6000 duration=0.4000
+- `compositions/map.html`:103 [tl.fromTo] tl.fromTo on "#mp-pin svg" at start=2.5500 duration=0.3000
 - `compositions/map.html`:104 [tl.fromTo] tl.fromTo on "#mp-pin-shadow" at start=2.5500 duration=0.3000
 - `compositions/map.html`:107 [tl.fromTo] tl.fromTo on "#mp-lead" at start=3.1500 duration=0.3500
+- `compositions/title.html`:82 [asset svg] inline <svg> extracted to assets/data-title-82.svg (592 bytes; xmlns added: true)
+- `compositions/title.html`:89 [asset img] element #tt-sea data: URI decoded to assets/data-tt-sea.svg (544 bytes, percent-encoded)
+- `compositions/title.html`:94 [asset svg] inline <svg> extracted to assets/data-tt-route.svg (426 bytes; xmlns added: true)
 - `compositions/title.html`:112 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/title.html`:128 [tl.fromTo] tl.fromTo on "#tt-title" at start=4.4600 duration=0.2000
+- `compositions/title.html`:130 [tl.fromTo] tl.fromTo on "#tt-title .tt-mark" at start=5.2400 duration=0.3000
 - `compositions/title.html`:134 [tl.fromTo] tl.fromTo on "#tt-sub" at start=5.3900 duration=0.0500
 - `compositions/title.html`:137 [tl.fromTo] tl.fromTo on "#tt-cam" at start=4.4400 duration=2.7800
+- `compositions/archduke.html`:89 [asset svg] inline <svg> extracted to assets/data-archduke-89.svg (276 bytes; xmlns added: true)
+- `compositions/archduke.html`:93 [asset img] element #ad-sea data: URI decoded to assets/data-ad-sea.svg (544 bytes, percent-encoded)
+- `compositions/archduke.html`:96 [asset img] element #? data: URI decoded to assets/data-archduke-96.svg (542 bytes, percent-encoded)
+- `compositions/archduke.html`:97 [asset svg] inline <svg> extracted to assets/data-ad-stroke.svg (256 bytes; xmlns added: true)
 - `compositions/archduke.html`:113 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/archduke.html`:128 [tl.fromTo] tl.fromTo on "#ad-person" at start=7.2200 duration=0.4000
+- `compositions/archduke.html`:129 [tl.fromTo] tl.fromTo on "#ad-person img" at start=7.2200 duration=0.4000
+- `compositions/archduke.html`:133 [tl.fromTo] tl.fromTo on "#ad-tape" at start=8.3900 duration=0.1500
+- `compositions/archduke.html`:134 [tl.fromTo] tl.fromTo on "#ad-name" at start=8.4700 duration=0.3000
+- `compositions/archduke.html`:135 [tl.fromTo] tl.fromTo on "#ad-name .ad-mark" at start=9.5100 duration=0.3000
 - `compositions/archduke.html`:137 [tl.fromTo] tl.fromTo on "#ad-role" at start=10.3000 duration=0.0500
 - `compositions/archduke.html`:139 [tl.fromTo] tl.fromTo on "#ad-cam" at start=7.2200 duration=5.0500
+- `compositions/assassins.html`:73 [asset svg] inline <svg> extracted to assets/data-assassins-73.svg (275 bytes; xmlns added: true)
+- `compositions/assassins.html`:82 [asset img] element #? data: URI decoded to assets/data-assassins-82.svg (548 bytes, percent-encoded)
 - `compositions/assassins.html`:99 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/assassins.html`:114 [tl.fromTo] tl.fromTo on "#as-card" at start=12.2900 duration=0.1800
 - `compositions/assassins.html`:115 [tl.fromTo] tl.fromTo on "#as-num" at start=13.6300 duration=0.1200
 - `compositions/assassins.html`:118 [tl.fromTo] tl.fromTo on "#as-print" at start=12.5700 duration=0.3800
+- `compositions/assassins.html`:119 [tl.fromTo] tl.fromTo on "#as-print img" at start=12.5700 duration=0.3800
 - `compositions/assassins.html`:121 [tl.fromTo] tl.fromTo on "#as-cam" at start=12.2700 duration=3.2900
+- `compositions/street.html`:85 [asset svg] inline <svg> extracted to assets/data-street-85.svg (395 bytes; xmlns added: true)
+- `compositions/street.html`:90 [asset svg] inline <svg> extracted to assets/data-st-plan.svg (2405 bytes; xmlns added: true)
+- `compositions/street.html`:125 [asset img] element #? data: URI decoded to assets/data-street-125.svg (552 bytes, percent-encoded)
 - `compositions/street.html`:131 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/street.html`:134 [tl.fromTo] tl.fromTo on "#st-car-lead" at start=15.5600 duration=3.6000
 - `compositions/street.html`:135 [tl.fromTo] tl.fromTo on "#st-car-rear" at start=15.5600 duration=2.3000
@@ -184,9 +166,19 @@
 - `compositions/street.html`:154 [tl.fromTo] tl.fromTo on "#st-stall" at start=22.2900 duration=0.1400
 - `compositions/street.html`:156 [tl.fromTo] tl.fromTo on "#st-princip" at start=23.1600 duration=0.2200
 - `compositions/street.html`:158 [tl.fromTo] tl.fromTo on "#st-cam" at start=15.5600 duration=8.7600
+- `compositions/shots.html`:75 [asset svg] inline <svg> extracted to assets/data-shots-75.svg (275 bytes; xmlns added: true)
+- `compositions/shots.html`:82 [asset img] element #? data: URI decoded to assets/data-shots-82.svg (550 bytes, percent-encoded)
+- `compositions/shots.html`:83 [asset svg] inline <svg> extracted to assets/data-sh-burst-1.svg (375 bytes; xmlns added: true)
+- `compositions/shots.html`:84 [asset svg] inline <svg> extracted to assets/data-sh-burst-2.svg (398 bytes; xmlns added: true)
 - `compositions/shots.html`:97 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/shots.html`:111 [tl.fromTo] tl.fromTo on "#sh-gun" at start=24.3200 duration=0.3800
+- `compositions/shots.html`:112 [tl.fromTo] tl.fromTo on "#sh-gun img" at start=24.3200 duration=0.3800
 - `compositions/shots.html`:114 [tl.fromTo] tl.fromTo on "#sh-card" at start=24.7200 duration=0.1800
 - `compositions/shots.html`:115 [tl.fromTo] tl.fromTo on "#sh-num" at start=24.8200 duration=0.1200
+- `compositions/shots.html`:118 [tl.fromTo] tl.fromTo on "#sh-burst-1" at start=25.4300 duration=0.3600
+- `compositions/shots.html`:119 [tl.fromTo] tl.fromTo on "#sh-burst-2" at start=25.8300 duration=0.3600
+- `compositions/shots.html`:120 [tl.fromTo] tl.fromTo on "#sh-cam" at start=25.4300 duration=0.1700
+- `compositions/shots.html`:122 [tl.fromTo] tl.fromTo on "#sh-flash" at start=25.8300 duration=0.4100
+- `compositions/paper.html`:47 [asset img] element #pp-sheet data: URI decoded to assets/data-pp-sheet.svg (548 bytes, percent-encoded)
 - `compositions/paper.html`:52 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `index.html`:129 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek

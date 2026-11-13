@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, composition id "main")
+  WHAT: A 6 s, 1920x1080 frame on a near black ground, with one station-style split-flap board of 16 columns
+    by 4 rows that spells SAMPLE THE, CRAFT, NOT THE and PROPERTY. Each tile flips through a few random
+    letters before it lands on its letter, so the board settles at about 2.5 s, and then the grid pushes in
+    slowly until the end. No sound. The whole film is this board, mounted at 0 s for 6 s.
+  STRUCTURE: #root is a 6 s stage with one child, #slot-board, which mounts compositions/board.html on track 0
+    (graphics) from 0 s for 6 s. The root timeline has no tweens of its own; the tiles and their flips are
+    built inside board.html. The root timeline is registered under the key main.
+  CUSTOMIZE: The message and the flip timing live in compositions/board.html (the ROWS array and the STEP
+    constant). Length: data-duration 6 on #root and on #slot-board must stay equal to the 6 s push in
+    board.html. The page ground is #0c0c0e, set on html, body and #root.
+  MEDIA: No media file is bundled with this composition, and this host file has no picture, video, sound
+    or font slot. It loads only the GSAP 3.14.2 library from cdn.jsdelivr.net, which is a script. The glyphs
+    use JetBrains Mono (named in board.html with no @font-face rule), which HyperFrames bundles, so no font
+    file is added.
+  WHEN TO USE: A clattering letter reveal for a station or departures board, or any title that must render
+    the same on every run. Pick something else when a live feed is needed, since this is a seeded rebuild
+    of the idea, not a copy of a live widget.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Split-flap board — a live widget rebuilt as a function of time</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Resets margins and padding, and fixes the page at 1920x1080 on the near black ground #0c0c0e. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0c0c0e; }
+      /* The root stage: the same near black ground, clipped to the frame. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0c0c0e; }
+    </style>
+  </head>
+  <body>
+    <!-- The root composition: a 6 s, 1920x1080 stage that holds one child, the board slot. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1920" data-height="1080">
+      <!-- Mount point for compositions/board.html: 0 to 6 s on track 0 (graphics). -->
+      <div id="slot-board" data-composition-id="board" data-composition-src="compositions/board.html"
+        data-start="0" data-duration="6" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Creates the root timeline, paused; it has no tweens, since the flips and the push live in board.html. */
+      const tl = gsap.timeline({ paused: true });
+      /* Registers the root timeline under the key main. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

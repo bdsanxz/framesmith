@@ -1,0 +1,77 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition)
+  WHAT: The root of a 10 s, 1920x1080 film that places one card file eight times. The headline "One
+    card, many videos" fades and scales in over the first 1.8 s. Then four full-size cards play one
+    after another from 1.8 s to 7.9 s, about 1.5 s each, with their own label, title, detail and
+    accent color; the first uses only the declared defaults. From 7.9 s to 10 s a closing grid of
+    four quarter-size copies of the same card sits on screen. There is no audio and no media file.
+  STRUCTURE: track 0 holds #intro, a root-level text clip (0 s for 1.8 s). Track 1 holds the four
+    full-size hosts #inst-default, #inst-flap, #inst-arcade and #inst-recut, each loading
+    compositions/card.html. Tracks 2 to 5 hold the grid hosts #grid-1 to #grid-4, starting at 7.9 s
+    for 2.1 s; each has an inline scale of .5, and #grid-2 to #grid-4 are also moved by translate so
+    that the four quarters fill the frame. The root #root (composition id "main", 10 s) has a paused
+    timeline tl that fades and scales #intro from 0.1 s (0.5 s, expo.out); it is registered as
+    window.__timelines["main"]. Each card runs its own timeline.
+  CUSTOMIZE: the headline text, which defaults to "One card, many videos" in
+    data-composition-variables; batch rows in rows.json can override it. Each card's text and color
+    are the JSON in its host's data-variable-values (label, title, detail, accent); "{}" keeps the
+    declared defaults. Timing: data-start and data-duration on each host. The intro lasts 1.8 s
+    (its data-duration and the card hosts' starts must agree), and the grid starts at 7.9 s. Grid
+    position and size are the inline transform on each grid host. The background #0b0c10 is set in
+    the html, body and #root rules.
+  MEDIA: No media file is bundled. None is needed: this page has no photo, video, sound, font file or CSS image
+    slot. It loads only the GSAP 3.14.2 script from cdn.jsdelivr.net. The headline uses "Inter", which HyperFrames
+    bundles, so no font file is needed.
+  WHEN TO USE: the same card, label or stat tile repeated for many items, where only the text and
+    accent change. Pick separate compositions when the items need different layouts or motion.
+-->
+<!-- The master declares one top-level variable (the intro headline): the value batch rows change. -->
+<html lang="en" data-composition-variables='[{"id":"headline","type":"string","label":"Headline","default":"One card, many videos"}]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>One card, many videos — a template instanced with data</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and fix the 1920 by 1080 canvas; the page background is set on html and body. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0b0c10; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0b0c10; }
+      /* A root-level clip only gets a full-frame box when it has no size of its own: give it one. */
+      #intro { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: "Inter", sans-serif; font-size: 120px; font-weight: 900; letter-spacing: -0.04em; color: #f3f4f8; }
+      /* Grid cells scale about their top-left corner, so each inline transform places its quarter. */
+      .grid-cell { transform-origin: 0 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="10" data-width="1920" data-height="1080">
+      <div id="intro" class="clip" data-start="0" data-duration="1.8" data-track-index="0" data-var-text="headline">One card, many videos</div>
+      <!-- Full-size cards on track 1, one after another; the first passes {} and shows the declared defaults. -->
+      <div id="inst-default" data-composition-id="card" data-composition-src="compositions/card.html" data-start="1.8" data-duration="1.6" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{}'></div>
+      <div id="inst-flap" data-composition-id="card" data-composition-src="compositions/card.html" data-start="3.4" data-duration="1.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"EXAMPLE · DAY 15","title":"Split-flap board","detail":"A live web widget rebuilt so every flip is a pure function of time.","accent":"#f2efe6"}'></div>
+      <div id="inst-arcade" data-composition-id="card" data-composition-src="compositions/card.html" data-start="4.9" data-duration="1.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"EXAMPLE · DAY 18","title":"Arcade cabinet","detail":"A six-sentence style paragraph turned into frame.md, then into motion.","accent":"#00E5FF"}'></div>
+      <div id="inst-recut" data-composition-id="card" data-composition-src="compositions/card.html" data-start="6.4" data-duration="1.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"EXAMPLE · DAY 6","title":"Seeked, not played","detail":"Designed cards synced to a talking head that plays untouched.","accent":"#0a84ff"}'></div>
+      <!-- The closing grid: four more instances of the same file, each scaled to a quarter of the frame. -->
+      <div id="grid-1" data-composition-id="card" data-composition-src="compositions/card.html" data-start="7.9" data-duration="2.1" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"DAY 15","title":"Split-flap","detail":"one template","accent":"#f2efe6"}' class="grid-cell" style="transform:scale(.5)"></div>
+      <div id="grid-2" data-composition-id="card" data-composition-src="compositions/card.html" data-start="7.9" data-duration="2.1" data-track-index="3" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"DAY 18","title":"Arcade","detail":"one template","accent":"#00E5FF"}' class="grid-cell" style="transform:translateX(960px) scale(.5)"></div>
+      <div id="grid-3" data-composition-id="card" data-composition-src="compositions/card.html" data-start="7.9" data-duration="2.1" data-track-index="4" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"DAY 6","title":"Recut","detail":"one template","accent":"#0a84ff"}' class="grid-cell" style="transform:translateY(540px) scale(.5)"></div>
+      <div id="grid-4" data-composition-id="card" data-composition-src="compositions/card.html" data-start="7.9" data-duration="2.1" data-track-index="5" data-track-kind="graphics" data-width="1920" data-height="1080"
+        data-variable-values='{"label":"DAY 23","title":"Templates","detail":"one template","accent":"#ff7a45"}' class="grid-cell" style="transform:translate(960px,540px) scale(.5)"></div>
+    </div>
+    <script>
+      /* Root timeline: fades and scales the headline in from 0.1 s; each card runs its own timeline. */
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#intro", { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 0.1);
+      /* Register the root timeline so the renderer can seek the whole film. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/board.html (composition id "board")
+  WHAT: A dark split-flap board, 16 columns by 4 rows of tiles, on a radial near black gradient. Each tile
+    that has a letter to show flips through 5 to 12 flip steps, the last of which lands on its letter; the
+    earlier steps show random capital letters. The tiles are staggered left to right and top to bottom, so
+    the board has settled by about 2.5 s. Then the grid pushes in from scale 1 to 1.03 until 6 s. Blank tiles
+    never flip. Mounted by index.html at 0 s for 6 s on track 0. No sound.
+  STRUCTURE: #root centers #board-grid (16 columns of 96 px, 10 px gap, 36 px padding). Each .board-tile
+    (96 by 132 px, perspective 600 px) has four .board-half panels: .board-top and .board-bot are the static
+    halves showing the current letter, and .board-ftop and .board-fbot are the two flaps, which rest edge-on
+    at rotationX 90. One flip at time t: the top flap goes from rotationX 0 to -90 over STEP/2 (power1.in),
+    the static top changes to the new letter, the bottom flap turns from 90 to 0 over the next half step
+    (power1.out) carrying the new letter, and the static bottom changes at the end of the flip. The script
+    builds every flip from a seeded generator, adds the scale tween on #board-grid, and registers the
+    timeline under the key board.
+  CUSTOMIZE: The message is the ROWS array: four strings, each padded and cut to 16 columns. The random
+    letters come from the CHARSET string. Speed: STEP (0.09 s per flip step). Stagger: a tile starts at
+    0.4 s, plus 0.05 s per column, 0.12 s per row, and a random 0 to 0.15 s. The seed 15 in mulberry32(15)
+    gives the same board on every render; change it for another sequence. Tile look: .board-tile width 96px
+    and height 132px, .board-half font-size 96px, tile fill #1b1b20, flap fill #232329, glyph color #f2efe6,
+    grid panel #050506. COLS (16) must match the 16 columns in #board-grid.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its only font is JetBrains Mono, named in the font stack of #root with no @font-face rule.
+    HyperFrames bundles it, so no font file is added here. If it is not available where you render, the
+    monospace fallback is used and the flips still land on the same letters.
+  WHEN TO USE: A station or departures board, or any title that spells itself out in flipping tiles when the
+    result must be identical on every render. Pick something else when real live data must show, since this
+    rebuild copies only the craft of the widget.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The stage: centers the grid on a dark radial gradient, with the mono font for the glyphs. */
+        #root { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+          background: radial-gradient(circle at 50% 45%, #1d1d22 0%, #0c0c0e 70%); font-family: "JetBrains Mono", monospace; }
+        /* The tile grid: 16 columns of 96 px with a 10 px gap, on a near black panel. */
+        #board-grid { display: grid; grid-template-columns: repeat(16, 96px); gap: 10px; padding: 36px; border-radius: 18px; background: #050506; }
+        /* One tile = four half-panels: the static top and bottom, and two flaps that fold over them. */
+        .board-tile { position: relative; width: 96px; height: 132px; perspective: 600px; }
+        /* Half-panel styles: the static halves and the flaps share the dark fill and the 96 px glyph type. */
+        .board-half { position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden; background: #1b1b20; color: #f2efe6;
+          font-size: 96px; font-weight: 700; text-align: center; backface-visibility: hidden; }
+        .board-half span { display: block; height: 132px; line-height: 132px; }
+        /* Hinges: the top halves turn about their bottom edge, and the bottom halves about their top edge. */
+        .board-top, .board-ftop { top: 0; border-radius: 8px 8px 0 0; transform-origin: 50% 100%; }
+        .board-bot, .board-fbot { top: 50%; border-radius: 0 0 8px 8px; transform-origin: 50% 0%; }
+        /* Moves the bottom glyph up by 66 px so it lines up with the top half. */
+        .board-bot span, .board-fbot span { margin-top: -66px; }
+        .board-top, .board-ftop { border-bottom: 1px solid #050506; }
+        .board-ftop, .board-fbot { background: #232329; }
+      </style>
+      <div id="root" data-composition-id="board" data-width="1920" data-height="1080">
+        <div id="board-grid" data-layout-allow-overflow></div>
+      </div>
+      <script>
+        // Rebuilt from the idea of a live split-flap web component. The original runs on a live clock;
+        // here every flip is a pure function of time: tile i flips at start_i + k * STEP, always.
+        const ROWS = ["  SAMPLE THE    ", "     CRAFT,     ", "  NOT THE       ", "   PROPERTY.    "];
+        const COLS = 16, STEP = 0.09, CHARSET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ.,";
+        /* A seeded random generator (mulberry32): the same seed always gives the same sequence of flips. */
+        function mulberry32(a) { return function () { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+        /* Seed 15 drives every random pick below, so the board is identical on each render. */
+        const rand = mulberry32(15);
+        const grid = document.getElementById("board-grid");
+        const tl = gsap.timeline({ paused: true });
+
+        /* Builds the 64 tiles row by row and schedules each non-blank tile's flips; blank targets never flip. */
+        ROWS.forEach((row, r) => {
+          [...row.padEnd(COLS).slice(0, COLS)].forEach((target, c) => {
+            const i = r * COLS + c;
+            const tile = document.createElement("div");
+            tile.className = "board-tile";
+            // Each half clips half a glyph (allow-overflow on the tile) and the flaps cover the static halves
+            // (allow-occlusion on each glyph span: occlusion allowances must sit on the text itself).
+            tile.setAttribute("data-layout-allow-overflow", "");
+            const half = (cls, ch) => { const d = document.createElement("div"); d.className = "board-half " + cls; d.id = "board-" + cls.slice(6) + "-" + i;
+              const s = document.createElement("span"); s.textContent = ch; s.setAttribute("data-layout-allow-occlusion", ""); d.appendChild(s); tile.appendChild(d); return d; };
+            const top = half("board-top", " "), bot = half("board-bot", " "), ftop = half("board-ftop", " "), fbot = half("board-fbot", " ");
+            grid.appendChild(tile);
+            // Flaps rest edge-on (invisible) until a flip uses them.
+            tl.set([ftop, fbot], { rotationX: 90 }, 0);
+            if (target === " ") return;
+            // A seeded number of intermediate letters, ending on the target, staggered left to right.
+            const flips = 5 + Math.floor(rand() * 8);
+            const start = 0.4 + c * 0.05 + r * 0.12 + rand() * 0.15;
+            let prev = " ";
+            for (let k = 0; k < flips; k++) {
+              const next = k === flips - 1 ? target : CHARSET[1 + Math.floor(rand() * 26)];
+              const t = start + k * STEP;
+              tl.set(top.firstChild, { textContent: next }, t);                                       // revealed behind the falling flap
+              tl.set(ftop.firstChild, { textContent: prev }, t);
+              tl.set(ftop, { rotationX: 0 }, t);
+              tl.to(ftop, { rotationX: -90, duration: STEP / 2, ease: "power1.in" }, t);              // old top folds down
+              tl.set(fbot.firstChild, { textContent: next }, t + STEP / 2);
+              tl.set(fbot, { rotationX: 90 }, t + STEP / 2);
+              tl.to(fbot, { rotationX: 0, duration: STEP / 2, ease: "power1.out" }, t + STEP / 2);    // new bottom lands
+              tl.set(bot.firstChild, { textContent: next }, t + STEP);
+              prev = next;
+            }
+          });
+        });
+        // The board settles by ~2.5s; a slow push keeps the long hold alive.
+        tl.fromTo("#board-grid", { scale: 1 }, { scale: 1.03, duration: 6, ease: "none" }, 0);
+        /* Registers the board timeline under the key board, matching this composition's data-composition-id. */
+        window.__timelines["board"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

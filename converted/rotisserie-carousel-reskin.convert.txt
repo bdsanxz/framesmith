@@ -1,4 +1,3 @@
-framesmith convert refused for rotisserie-carousel-reskin: 3 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/rotisserie-carousel-reskin/fidelity.json.
-  compositions/rotary.html:107 [tl.fromTo] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
-  compositions/rotary.html:110 [tl.to] position "t" is an expression; refusing the call site
-  compositions/rotary.html:111 [tl.to] position "t" is an expression; refusing the call site
+framesmith convert refused for rotisserie-carousel-reskin: 2 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/rotisserie-carousel-reskin/fidelity.json.
+  compositions/rotary.html:110 [tl.to] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/rotary.html:111 [tl.to] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site

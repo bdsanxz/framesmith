@@ -1,0 +1,120 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/hydrogen.html (composition id "hydrogen")
+  WHAT: On a cream collage ground, the airship arrives as a printed cut-out that whips in from the left with motion
+    blur, with a strip reading D-LZ 129, 245 metres long. Then a red card slaps down with the number 7,000,000
+    stamped on it, and a cream strip reading CUBIC FEET OF HYDROGEN types under the number. The camera drifts in
+    scale for 5.18 s. index.html mounts it at 39.99 s, the third scene of the collage block. The file plays no sound
+    of its own.
+  STRUCTURE: Inside #hy-cam (slow scale 1 to 1.05), back to front: the ruled newsprint #hy-news, a grey scrap
+    #hy-scrap, the airship cut-out #hy-ship (img assets/generated/ship.png, a 1520 by 324 px box, rotated -2 degrees,
+    with a paper drop shadow), the ID strip #hy-id (text #hy-id-text), the red number card #hy-card (background
+    #hy-card-bg, number #hy-num, label strip #hy-label with #hy-label-text) and the tape #hy-tape. Timeline: the ship
+    slides from x -1900 at 0.2 s over 0.42 s, with its blur clearing; the ID strip shows at 0.72 s and types from
+    0.76 s at 28 characters per second; the card slaps from scale 1.3 at 1.3 s over 0.18 s; the tape appears at
+    1.46 s; the number scales in from 1.6 at 1.76 s; the label types from 2.45 s at 20 characters per second.
+  CUSTOMIZE: The number is the text of #hy-num ("7,000,000"), the label is #hy-label-text, and the ID strip is
+    #hy-id-text. Colours: card #e0554a, number #3a1512, strips #f7f3e8, ink #24211b. The number is 206 px Anton. The
+    card sits at left 800 and top 560, and the ship at left 200 and top 130 (the ship image must fill its 1520 by 324
+    box). Each tween time is an argument in the tl calls.
+  MEDIA: No media file is bundled. This file has one photo slot and two font slots, and no video or sound.
+    Photo slot, the img inside #hy-ship (assets/generated/ship.png, the airship as a printed cut-out, made by the
+    cut-out scripts that make-footage.sh runs): it now shows a faint hatch stand-in labeled "PHOTO:
+    assets/generated/ship.png", filling the 1520 by 324 px box. To plug in your own cut-out, set the src of that img
+    to your file, for example src="assets/generated/ship.png". The image must fill the box, so use a transparent PNG
+    of the same proportions. The data-media attribute only names the expected path, so it can stay or be removed.
+    Font slot 1, Anton, used by #hy-num (the number) and nothing else: it now uses an installed Anton, or the fallback
+    sans-serif. To bundle it, change the src of the Anton @font-face rule to url("assets/fonts/anton-latin.woff2")
+    format("woff2"), local("Anton").
+    Font slot 2, Special Elite, used by #hy-id-text and #hy-label-text: it now uses an installed Special Elite, or the
+    fallback monospace. To bundle it, change the src of the Special Elite @font-face rule to
+    url("assets/fonts/special-elite-latin.woff2") format("woff2"), local("Special Elite").
+  WHEN TO USE: A quantity shown as a large number on a stamped card, beside the object it belongs to. Pick another
+    when the figure needs a chart, or when there is no object to show.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* Scene root: cream paper ground for the collage. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #e6dcc3; }
+        /* The camera group: every paper piece scales together, from a point near the card. */
+        #hy-cam { position: absolute; inset: 0; transform-origin: 1100px 600px; }
+        .hy-torn { filter: url(#hy-tear); }
+        /* The paper scraps under the airship: ruled newsprint and a grey strip. */
+        #hy-news { position: absolute; left: 60px; top: 600px; width: 620px; height: 380px; background: repeating-linear-gradient(180deg, #d8cfb6 0 9px, #b9af95 9px 12px); transform: rotate(2deg); }
+        #hy-scrap { position: absolute; left: 1380px; top: 40px; width: 460px; height: 150px; background: #c9bd9c; transform: rotate(-3deg); }
+        /* The airship as a printed cut-out: a paper shadow on the wrapper, motion blur on the image. */
+        #hy-ship { position: absolute; left: 200px; top: 130px; width: 1520px; height: 324px; transform: rotate(-2deg); filter: drop-shadow(10px 16px 12px rgba(40, 32, 14, 0.4)); }
+        #hy-ship img { position: absolute; inset: 0; width: 100%; height: 100%; }
+        /* The ID strip under the airship, typed on in the timeline. */
+        #hy-id { position: absolute; left: 250px; top: 500px; transform: rotate(-1.5deg); }
+        #hy-id-bg { position: absolute; inset: 0; background: #f7f3e8; }
+        #hy-id-text { position: relative; padding: 8px 18px; font-family: "Special Elite", monospace; font-size: 40px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        /* The number card: torn red paper, a big number, a typed label strip. */
+        #hy-card { position: absolute; left: 800px; top: 560px; width: 900px; height: 410px; transform: rotate(2deg); }
+        #hy-card-bg { position: absolute; inset: 0; background: #e0554a; box-shadow: 0 10px 16px rgba(40, 32, 14, 0.3); }
+        #hy-num { position: absolute; left: 0; right: 0; top: 14px; text-align: center; font-family: "Anton", sans-serif; font-size: 206px; line-height: 1.15; color: #3a1512; white-space: nowrap; }
+        #hy-label { position: absolute; left: 140px; right: 140px; bottom: 36px; height: 62px; background: #f7f3e8; text-align: center; }
+        #hy-label-text { font-family: "Special Elite", monospace; font-size: 40px; line-height: 66px; color: #24211b; white-space: nowrap; }
+        /* The tape piece that holds the number card to the page. */
+        #hy-tape { position: absolute; left: 760px; top: 540px; width: 150px; height: 40px; background: rgba(214, 200, 150, 0.9); transform: rotate(-24deg); }
+      </style>
+      <div id="root" data-composition-id="hydrogen" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="hy-tear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="6" /><feDisplacementMap in="SourceGraphic" scale="14" /></filter>
+        </svg>
+        <div id="hy-cam" data-layout-allow-overflow>
+          <div id="hy-news" class="hy-torn"></div>
+          <div id="hy-scrap" class="hy-torn"></div>
+          <div id="hy-ship" data-layout-allow-overflow><img src="data:image/svg+xml,%3C!--ship.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'668' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ship.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/ship.png" alt="" /></div>
+          <div id="hy-id">
+            <div id="hy-id-bg" class="hy-torn"></div>
+            <div id="hy-id-text">D-LZ 129 · 245 metres long</div>
+          </div>
+          <div id="hy-card">
+            <div id="hy-card-bg" class="hy-torn"></div>
+            <div id="hy-num">7,000,000</div>
+            <div id="hy-label"><span id="hy-label-text">CUBIC FEET OF HYDROGEN</span></div>
+          </div>
+          <div id="hy-tape"></div>
+        </div>
+      </div>
+      <script>
+        /* Setup: the scene timeline, paused so the host seeks it. */
+        const tl = gsap.timeline({ paused: true });
+        /* typeOn: reveals the text one character at a time, from a start time, at a fixed rate. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        /* The ID strip, card, tape and number start hidden; the timeline reveals them. */
+        gsap.set(["#hy-id", "#hy-card", "#hy-tape", "#hy-num"], { opacity: 0 });
+        // The airship whips in on "the Hindenburg" (40.23 s), smeared with motion blur.
+        tl.fromTo("#hy-ship", { x: -1900 }, { x: 0, duration: 0.42, ease: "power3.out" }, 0.2);
+        tl.fromTo("#hy-ship img", { filter: "blur(26px)" }, { filter: "blur(0px)", duration: 0.42, ease: "power2.out" }, 0.2);
+        tl.to("#hy-id", { opacity: 1, duration: 0.05 }, 0.72);
+        typeOn("#hy-id-text", 0.76, 28);
+        // The empty card slaps down on "flies on"; the number is stamped on "seven million" (41.77 s).
+        tl.fromTo("#hy-card", { scale: 1.3, rotation: -5, opacity: 0 }, { scale: 1, rotation: 2, opacity: 1, duration: 0.18, ease: "power4.out" }, 1.3);
+        tl.fromTo("#hy-tape", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.15, ease: "back.out(2)" }, 1.46);
+        tl.fromTo("#hy-num", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.12, ease: "power3.out" }, 1.76);
+        // The label types across "cubic feet of hydrogen" (42.44 s).
+        typeOn("#hy-label-text", 2.45, 20);
+        tl.fromTo("#hy-cam", { scale: 1 }, { scale: 1.05, duration: 5.18, ease: "sine.inOut" }, 0);
+        window.__timelines["hydrogen"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-04-brant.html (composition id "c1-04-brant")
+  WHAT: The beat that introduces Sebastian Brant, the city secretary. It opens on a painted portrait
+    of Brant with the lower third "Sebastian Brant" and "Sekretaris kota Strasbourg" (city secretary).
+    At 3.47 s it cuts to a page of Das Narrenschiff (Basel, 1494) with the caption "Das Narrenschiff
+    (Kapal Orang-Orang Bodoh)" and two yellow marker bars that swipe across two lines of the page at
+    4.87 s and 4.99 s. It runs 6.82 s; index.html mounts it as c1-04-brant-slot at 101.34 s.
+  STRUCTURE: back to front by id: #c104brant-a (the portrait) with its lower third #c104brant-a-l3
+    above it; #c104brant-b (the page), which holds the two marker bars #c104brant-b-m1 and
+    #c104brant-b-m2; and #c104brant-b-cap (the caption, placed after the page so it sits above it).
+    The paused GSAP timeline, registered as window.__timelines["c1-04-brant"], pushes the portrait
+    from 0 s (scale 1.014 to 1.072 over 3.47 s) and hides the lower third at 3.47 s. At 3.47 s it
+    shows the page and the caption and pushes the page (to 1.070 over 3.35 s). The first marker
+    grows from scaleX 0 at 4.87 s (0.55 s, power1.inOut), the second at 4.99 s (0.54 s).
+  CUSTOMIZE: the lower third is in the markup: "Sebastian Brant" (bold, 44 px) and "Sekretaris kota
+    Strasbourg" (italic, 30 px); its place is left 207 px and top 826 px in .dr-l3, colour #f04a2e.
+    The caption is in the markup at top 50 px, two lines, styled by .dr-cap. The marker bars are placed
+    inline in pixels: the first at left 552, top 170, 950 by 108 px; the second at left 552, top 292,
+    760 by 112 px. Their colour is rgba(255, 214, 64, 0.55) in .dr-mark. The page grade is the
+    data-color-grading on its img, which carries exposure -0.25 so the white caption reads over the
+    pale paper. The last tween ends at 6.82 s, which must match the data-duration that index.html
+    gives c1-04-brant-slot.
+  MEDIA: no media file is bundled. This file has two photo slots and one font slot. It has no sound and
+    no CSS image.
+    1. The portrait, img #c104brant-a-img (inside #c104brant-a, under the lower third). It showed a
+       painted portrait of Sebastian Brant (Burgkmair, about 1508). It now shows a faint hatch stand-in
+       labeled "PHOTO: assets/generated/brant.jpg". To plug in your picture, set the img's src to your
+       file (for example assets/generated/brant.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The book page, img #c104brant-b-img (inside #c104brant-b, which cuts in at 3.47 s). It showed the
+       preface page of Das Narrenschiff (Basel, 1494). It now shows a stand-in labeled
+       "PHOTO: assets/generated/narrenschiff.jpg". To plug in your page, set the img's src to your file.
+       The two yellow marker bars (#c104brant-b-m1 and #c104brant-b-m2) are plain boxes, not files; they
+       multiply onto whatever page is shown.
+    3. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap and .dr-l3. It was a
+       bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a beat that introduces a person by name and then points at one line of a book page
+    with a highlight. Pick another composition when there is no page to mark.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The lower third: name in red bold, role in red bold italic, no box. */
+        .dr-l3 { position: absolute; left: 207px; top: 826px; font-family: "Arimo", sans-serif; font-weight: 700; color: #f04a2e; text-shadow: 0 0 6px #0a0c0d, 0 0 18px #0a0c0d; white-space: nowrap; }
+        .dr-l3 b { display: block; font-size: 44px; line-height: 50px; }
+        .dr-l3 i { display: block; font-size: 30px; line-height: 38px; }
+        /* The marker: one yellow bar per text line, in frame pixels, multiplied onto the page. */
+        .dr-mark { position: absolute; height: 40px; background: rgba(255, 214, 64, 0.55); mix-blend-mode: multiply; transform-origin: 0 50%; }
+      </style>
+      <!-- "Sekretaris kotanya adalah Sebastian ..." (101.34 s): brant + lower third Sebastian Brant from the start; narrenschiff + caption on "penulis" (104.81 s). -->
+      <div id="root" data-composition-id="c1-04-brant" data-width="1920" data-height="1080">
+        <!-- The portrait shot, with its lower third on top. -->
+        <div class="dr-shot" id="c104brant-a" data-layout-allow-overflow><img id="c104brant-a-img" src="data:image/svg+xml,%3C!--brant.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/brant.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/brant.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-l3" id="c104brant-a-l3"><b>Sebastian Brant</b><i>Sekretaris kota Strasbourg</i></div>
+        <!-- The book page shot, with its two marker bars inside it. -->
+        <div class="dr-shot" id="c104brant-b" data-layout-allow-overflow><img id="c104brant-b-img" src="data:image/svg+xml,%3C!--narrenschiff.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/narrenschiff.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/narrenschiff.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.25,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /><div class="dr-mark" id="c104brant-b-m1" style="left: 552px; top: 170px; width: 950px; height: 108px;"></div><div class="dr-mark" id="c104brant-b-m2" style="left: 552px; top: 292px; width: 760px; height: 112px;"></div></div>
+        <div class="dr-cap" id="c104brant-b-cap" style="top: 50px;">Das Narrenschiff (Kapal Orang-Orang Bodoh)<br />Sebastian Brant, Basel, 1494</div>
+      </div>
+      <script>
+        /* The timeline: the portrait push, the cut to the page, then the two marker swipes. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c104brant-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.072, x: 6, y: -2, duration: 3.47, ease: "none" }, 0.0);
+        tl.to("#c104brant-a-l3", { opacity: 0, duration: 0.001 }, 3.47);
+        tl.fromTo("#c104brant-b-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 4.87);
+        tl.fromTo("#c104brant-b-m2", { scaleX: 0 }, { scaleX: 1, duration: 0.54, ease: "power1.inOut" }, 4.99);
+        tl.fromTo("#c104brant-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.070, x: -5, y: 3, duration: 3.35, ease: "none" }, 3.47);
+        gsap.set("#c104brant-b", { opacity: 0 });
+        tl.to("#c104brant-b", { opacity: 1, duration: 0.001 }, 3.47);
+        gsap.set("#c104brant-b-cap", { opacity: 0 });
+        tl.to("#c104brant-b-cap", { opacity: 1, duration: 0.001 }, 3.47);
+        window.__timelines["c1-04-brant"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

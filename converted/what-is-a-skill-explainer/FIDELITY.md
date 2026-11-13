@@ -1,16 +1,14 @@
 # Fidelity report: what-is-a-skill-explainer → main
 
 - translated: 32
-- approximated (with deltas): 168
-- refused: 5
+- approximated (with deltas): 170
+- refused: 3
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/frames/intro.html`:92 [tl.fromTo] property "transformOrigin" (value "\"0% 100%\"") has no KDL motion property; refusing the call site
-- `compositions/frames/anatomy.html`:98 [tl.to] property "filter" (value "\"blur(6px)\"") has no KDL motion property; refusing the call site
 - `compositions/captions.html`:76 [tl.set] property "color" (value "\"#6b6b6b\"") has no KDL motion property; refusing the call site
-- `compositions/captions.html`:77 [tl.set] position "start" is an expression; refusing the call site
-- `compositions/captions.html`:78 [tl.set] position "end" is an expression; refusing the call site
+- `compositions/captions.html`:77 [tl.set] position "start" is outside the numeric grammar (unbound identifier "start" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/captions.html`:78 [tl.set] position "end" is outside the numeric grammar (unbound identifier "end" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 
 ## Approximated (measured deltas)
 
@@ -37,6 +35,7 @@
 - `compositions/frames/intro.html`:78 [container element] element #intro-tab is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/intro.html`:79 [container element] element #intro-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/intro.html`:81 [container element] element #intro-file is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:92 [tl.fromTo] tl.fromTo on "#intro-tab" at start=5.5800 duration=0.5000 delta: transformOrigin "\"0% 100%\"" snapped to clip origin "left bottom" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
 - `compositions/frames/anatomy.html`:70 [placement] element #anatomy-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/anatomy.html`:71 [placement] element #anatomy-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/anatomy.html`:73 [placement] element #anatomy-doc has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -52,6 +51,7 @@
 - `compositions/frames/anatomy.html`:77 [container element] element #anatomy-name is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/anatomy.html`:78 [container element] element #anatomy-desc is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/anatomy.html`:81 [container element] element #anatomy-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:98 [tl.to] tl.to on "#anatomy-body" at start=12.4600 duration=0.6000 delta: blur endpoint resolves from the clip's static blur 0 (converter does not read CSS filter); GSAP animates from the captured authored filter state, so early eval differs
 - `compositions/frames/ladder.html`:60 [placement] element #ladder-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/ladder.html`:62 [placement] element #ladder-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/ladder.html`:63 [placement] element #ladder-eyebrow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights

@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/terminal.html (composition id "terminal")
+  WHAT: The opening 2.02s of the piece, mounted at 0s on track 0 by index.html. On black, a green
+    "$" prompt is followed by a HeyGen catalog search command for a fast synthetic whoosh, typed
+    one letter at a time from 0.3s to 1.35s. At 1.85s a grey line appears: no HeyGen sign-in
+    here, so Pixabay sound effects are used instead, and it lists whoosh, click, typing,
+    impact-bass-1, riser and key-press. The typing rhythm matches the trimmed typing sound in
+    index.html.
+  STRUCTURE: #root (black, absolute full frame) holds #terminal-box (absolute, 160px from the left
+    and right, top 300px, a flex column with a 28px gap). Inside, #terminal-cmd (34px white text)
+    starts with a green .terminal-prompt "$ " and then #terminal-typed, which gets one .terminal-ch
+    span per character of the command string. Below it, #terminal-note (26px grey text, opacity 0
+    at first) holds the Pixabay-sounds line. Timeline: one tl.set per character, shown at
+    0.3 + i * 1.05 / length, so the whole command lands by 1.35s; and tl.fromTo on #terminal-note
+    (opacity 0 to 1, y 12 to 0, 0.2s, power2.out) at 1.85s.
+  CUSTOMIZE: The command is the const cmd string in the script; changing it changes what is typed,
+    and the per-letter steps scale with its length. The span of 1.05 seconds (0.3 to 1.35) is
+    tied to the typing sound's trim in index.html, so keep them in step. The note text is the
+    literal line inside #terminal-note; keep it true to the media you use. Colors: #ffffff
+    command, #a1a1aa note, #3CE6AC prompt; sizes 34px and 26px. The font is JetBrains Mono,
+    which HyperFrames bundles, so no font file is needed. The key press at 1.8 in
+    index.html is the cue the note reveal (1.85) follows.
+  MEDIA: No media file is bundled. The file has no slots: the command and the note are text, with no
+    picture, video or font file. The typing and key-press sounds are played by index.html, not by this
+    file. JetBrains Mono is named in the root's font stack, and HyperFrames bundles it, so no font file is
+    needed.
+  WHEN TO USE: An opening that shows a real search step and then states which sounds were used,
+    so the viewer sees where the sound came from. Pick another opener when no command or source
+    needs to be shown.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Stage: full black frame; the terminal text uses a monospace stack. */
+        #root { position: absolute; inset: 0; background: #000; font-family: "JetBrains Mono", monospace; }
+        /* Text column: the command and the note, stacked 160px in from each side. */
+        #terminal-box { position: absolute; left: 160px; right: 160px; top: 300px; display: flex; flex-direction: column; gap: 28px; }
+        #terminal-cmd { font-size: 34px; line-height: 1.5; color: #ffffff; }
+        /* Prompt and per-character states: each typed letter starts hidden until its tl.set. */
+        .terminal-prompt { color: #3CE6AC; }
+        .terminal-ch { opacity: 0; }
+        #terminal-note { font-size: 26px; line-height: 1.5; color: #a1a1aa; opacity: 0; }
+      </style>
+      <!-- Root stage for this composition, sized 1920x1080 for the host. -->
+      <div id="root" data-composition-id="terminal" data-width="1920" data-height="1080">
+        <!-- Command line with its prompt, then the note that states which sounds are used. -->
+        <div id="terminal-box">
+          <div id="terminal-cmd"><span class="terminal-prompt">$ </span><span id="terminal-typed"></span></div>
+          <div id="terminal-note">no HeyGen sign-in here → Pixabay sound effects: whoosh · click · typing · impact-bass-1 · riser · key-press</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: one paused GSAP timeline that the host seeks. */
+        const tl = gsap.timeline({ paused: true });
+        const cmd = 'heygen audio sounds list --type sound_effects --query "fast synthetic whoosh" --min-score 0.3';
+        const typed = document.getElementById("terminal-typed");
+        // 0.3s → 1.35s, in sync with the typing SFX trimmed to its keys (data-media-start 0.45).
+        [...cmd].forEach((c, i) => {
+          const s = document.createElement("span");
+          s.className = "terminal-ch";
+          s.textContent = c;
+          typed.appendChild(s);
+          tl.set(s, { opacity: 1 }, 0.3 + (i * 1.05) / cmd.length);
+        });
+        // Enter key @1.8 (key-press onset 0.05 → audio at 1.75 would be exact; 1.8 lands on the frame after).
+        tl.fromTo("#terminal-note", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, 1.85);
+        /* Register the timeline under the composition id so the host can find and seek it. */
+        window.__timelines["terminal"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

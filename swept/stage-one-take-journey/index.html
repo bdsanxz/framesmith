@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main", 17.5 seconds, 1920 by 1080)
+  WHAT: The root of a 17.5 s, 1920x1080 narrated explainer that plays as one continuous take with
+    no cuts. One wide scene (compositions/journey.html) runs for the whole length while six voice
+    clips would play over it, each starting on its spoken line. No voice clip is bundled, so this
+    copy is silent; see MEDIA for the slots. The viewer sees a line of markup type
+    out, turn into a wire, draw a six-bar chart, bend into a waveform, drive a render counter to
+    525 frames, and land on a finished file card.
+  STRUCTURE: track 1 holds the graphics slot #journey-slot, which loads compositions/journey.html
+    (0 s for 17.5 s). Track 10 is where six audio clips, #voice-s01 to #voice-s06, from
+    assets/narration/, would sit, starting at 0, 2.675, 4.605, 7.45, 10.565 and 12.295 s, each with
+    data-volume 1. In this copy those six slots are SOUND SLOT comments (lines 53 to 58), not audio
+    elements, so nothing plays. The root #root (composition id "main", 1920x1080, 17.5 s) has an empty, paused
+    timeline tl that is registered as window.__timelines["main"]; the motion lives in journey.html.
+  CUSTOMIZE: the two top-level variables in data-composition-variables: accent (default #6ee7c8,
+    the wire and highlight color) and canvas (default #0f1115, the background). Passing a variables
+    JSON object to the render command (its variables flag) with accent #ff9f43 and canvas #17120e
+    re-skins every frame.
+    Each clip's data-start and data-duration must match its voice file and the spoken cues in
+    journey.html, so re-time them together. The length is data-duration="17.5" on #root and on
+    #journey-slot.
+  MEDIA: no media file is bundled, so the six voice slots are silent in this copy. Each slot is a
+    SOUND SLOT comment (lines 53 to 58) for one audio element that played assets/narration/sNN.mp3 at
+    its start time, on track 10, at volume 1: voice-s01 from 0 s for 2.674 s, voice-s02 from 2.675 s
+    for 1.929 s, voice-s03 from 4.605 s for 2.844 s, voice-s04 from 7.45 s for 3.114 s, voice-s05 from
+    10.565 s for 1.729 s, and voice-s06 from 12.295 s for 3.035 s. None starts mid-file, so none needs a
+    media start offset. To hear a voice, add an audio element beside each comment, with src set to your
+    own sound file and the attributes from its comment: for voice-s01, id="voice-s01" data-start="0"
+    data-duration="2.674" data-track-index="10" data-volume="1"; for voice-s02, id="voice-s02"
+    data-start="2.675" data-duration="1.929", and the same pattern for the rest. The clips came with
+    assets/transcript.json (word start times, which the cue times in journey.html come from) and
+    assets/narration/segments.json; the page does not load either. The picture does not depend on the
+    clips: with no clips it plays silently on the same timings. The page loads GSAP from cdn.jsdelivr.net,
+    which is code, not media.
+  WHEN TO USE: a narrated explainer that follows one object through several stages in one unbroken
+    camera move, where the object changes role at each stage. Pick cuts when the stages are
+    unrelated, or when one stage needs a full frame of its own.
+-->
+<!-- The look is not in the scene: two top-level variables color the whole film, so the render
+     command's variables flag, given a JSON object such as accent #ff9f43 and canvas #14110f, re-skins every frame. -->
+<html lang="en" data-composition-variables='[
+  {"id":"accent","type":"color","label":"Accent","default":"#6ee7c8"},
+  {"id":"canvas","type":"color","label":"Canvas","default":"#0f1115"}
+]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>One take, one wire</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and fix the 1920 by 1080 canvas; the page background is set on html and body. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0f1115; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--canvas, #0f1115); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="17.5" data-width="1920" data-height="1080">
+      <!-- One scene, one continuous camera: no cuts. Beat times are word starts in assets/transcript.json. -->
+      <div id="journey-slot" data-composition-id="journey" data-composition-src="compositions/journey.html"
+        data-start="0" data-duration="17.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- narration: one slot per segment (a SOUND SLOT comment each), written by scripts/narration-segments.py wire; do not edit -->
+      <!-- SOUND SLOT (id "voice-s01", from 0 s, for 2.674 s, volume 1, track 10): an audio element played assets/narration/s01.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s02", from 2.675 s, for 1.929 s, volume 1, track 10): an audio element played assets/narration/s02.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s03", from 4.605 s, for 2.844 s, volume 1, track 10): an audio element played assets/narration/s03.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s04", from 7.45 s, for 3.114 s, volume 1, track 10): an audio element played assets/narration/s04.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s05", from 10.565 s, for 1.729 s, volume 1, track 10): an audio element played assets/narration/s05.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s06", from 12.295 s, for 3.035 s, volume 1, track 10): an audio element played assets/narration/s06.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- /narration -->
+    </div>
+    <script>
+      /* Root timeline: empty and paused here; the camera and beats live in compositions/journey.html. */
+      const tl = gsap.timeline({ paused: true });
+      /* Register the root timeline under the "main" composition id so the renderer can seek it. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

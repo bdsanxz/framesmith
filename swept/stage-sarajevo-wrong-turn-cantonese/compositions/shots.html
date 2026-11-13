@@ -1,0 +1,126 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/shots.html (composition id "shots")
+  WHAT: The last 3.65 s of the Cantonese film, mounted at 24.85 s, on the line about the two shots.
+    A pistol cut-out slides in from the right at 24.85 s and settles at a slight tilt. A "2" card
+    lands at 25.35 s, and the label 槍 (gun) types on from 25.63 s. Two teal muzzle bursts flash on
+    the two shots (25.96 s and 26.36 s), the frame kicks sideways on the first, and the second shot
+    whites out the frame. Then the picture cuts to a black that holds.
+  STRUCTURE: Back to front: two dark bands (.sh-band), #sh-gun (the pistol image in a wrapper with a
+    drop shadow), two SVG bursts #sh-burst-1 and #sh-burst-2 (a teal star with a white centre), and
+    the card #sh-card (#sh-card-bg, #sh-num, #sh-label with #sh-label-text). All of these except the
+    overlays sit in #sh-cam. Over that are #sh-black (solid black) and #sh-flash (a white radial
+    gradient). Timeline (local seconds from 24.85 s): the pistol x 1300 to 0 and rotation 4 to -4
+    over 0.38 s; the card at 0.5 s over 0.18 s; the number at 0.6 s; the label typing at 0.78 s (10
+    per second); the bursts at 1.11 s and 1.51 s; the camera kick at 1.11 s (three steps over 0.17
+    s); the flash at 1.51 s (up over 0.03 s, held 0.08 s, falling away over 0.3 s); #sh-black fades
+    in at 1.56 s; #sh-cam is hidden at 1.6 s, so the black holds.
+  CUSTOMIZE: The count: the text of #sh-num ("2"). Label: #sh-label-text (槍, one character).
+    Colours: ground #ecdcd3, bands #36292f, card teal #2f9a86, number ink #400a2b, label strip
+    #fdfbfa with ink #291a20, bursts teal with white centres, flash gradient #ffffff to #e5dfdc,
+    final black #000000. Fonts: the number is Noto Sans HK at weight 900, the label Noto Serif HK at
+    weight 600. Positions: #sh-gun at 250,230 px (1000x669); #sh-card at 1380,300 px. The shot clips
+    in index.html start at 25.89 s and 26.29 s, each with a peak 0.07 s in, so the hits land at 1.11
+    s and 1.51 s here. Move the two together.
+  MEDIA: No media file is bundled. This file has one photo slot and two font slots; its sounds are not here.
+    (1) Photo: the img inside #sh-gun showed assets/generated/pistol.png, a paper-sticker cut-out of a pistol
+    from a CC BY 2.0 Wikimedia Commons photo, cut out by cutout.py and paper-cutout.py. It now shows a labeled
+    hatch stand-in in the same 1000 by 669 px box. To plug in your own cut-out, set that img's src to your file
+    (for example assets/generated/pistol.png). (2) Font: the @font-face for Noto Sans HK (weight 900, used by
+    #sh-num) and (3) the @font-face for Noto Serif HK (weight 600, used by #sh-label-text) declare src: local()
+    in place of the bundled assets/fonts/noto-sans-hk-subset.woff2 and assets/fonts/noto-serif-hk-subset.woff2.
+    Without them the text falls back to sans-serif and serif. To plug in the files, put
+    url("assets/fonts/...woff2") format("woff2") in front of local() in each rule. The two shot sounds
+    (assets/generated/src/shot.mp3) are sound slots in index.html, not in this file, so nothing is played here.
+  WHEN TO USE: A climax beat where a count and two hits end a scene, with a flash and silence to
+    close. Pick a softer end when the film's last beat should not be a violent event, or when the
+    sound should carry the close alone.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Chinese faces, declared with local() in place of the bundled subsets that held only the characters on screen. */
+        @font-face { font-family: "Noto Sans HK"; font-style: normal; font-weight: 900; font-display: block; src: local("Noto Sans HK"); }
+        @font-face { font-family: "Noto Serif HK"; font-style: normal; font-weight: 600; font-display: block; src: local("Noto Serif HK"); }
+        /* The frame: the pale rose paper ground, clipped to the stage. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #ecdcd3; }
+        /* The camera wrapper: the bands, pistol, bursts and card move together for the kick, and hide at the end. */
+        #sh-cam { position: absolute; inset: 0; }
+        /* Dark bands across the frame, each placed by its inline top and height. */
+        .sh-band { position: absolute; left: -40px; right: -40px; background: #36292f; }
+        /* Torn paper: the SVG turbulence filter displaces the edge of any piece marked .sh-torn. */
+        .sh-torn { filter: url(#sh-tear); }
+        #sh-gun { position: absolute; left: 250px; top: 230px; width: 1000px; height: 669px; transform: rotate(-4deg); filter: drop-shadow(10px 14px 12px rgba(43, 8, 22, 0.4)); }
+        #sh-gun img { position: absolute; inset: 0; width: 100%; height: 100%; }
+        /* Muzzle bursts: a comic star at the muzzle, accent outside, paper-white inside. */
+        .sh-burst { position: absolute; left: 150px; top: 250px; width: 220px; height: 220px; }
+        /* The count card: a teal torn card with the big number and the label strip. */
+        #sh-card { position: absolute; left: 1380px; top: 300px; width: 360px; height: 380px; transform: rotate(3deg); }
+        #sh-card-bg { position: absolute; inset: 0; background: #2f9a86; box-shadow: 0 10px 16px rgba(51, 5, 25, 0.3); }
+        #sh-num { position: absolute; left: 0; right: 0; top: 0; text-align: center; font-family: "Noto Sans HK", sans-serif; font-weight: 900; font-size: 220px; line-height: 1.15; color: #400a2b; }
+        #sh-label { position: absolute; left: 50px; right: 50px; bottom: 30px; height: 52px; background: #fdfbfa; text-align: center; }
+        #sh-label-text { font-family: "Noto Serif HK", serif; font-weight: 600; font-size: 34px; line-height: 52px; color: #291a20; }
+        /* The flash goes white, then cuts to a black that holds in silence. */
+        #sh-black { position: absolute; inset: 0; background: #000000; }
+        #sh-flash { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, #ffffff 40%, #e5dfdc 100%); }
+      </style>
+      <div id="root" data-composition-id="shots" data-width="1920" data-height="1080">
+        <!-- The torn-edge filter used by the card. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="sh-tear"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="6" /><feDisplacementMap in="SourceGraphic" scale="12" /></filter>
+        </svg>
+        <div id="sh-cam" data-layout-allow-overflow>
+          <!-- The two bands, the pistol cut-out, the two muzzle bursts, and the count card. -->
+          <div class="sh-band" style="top: 40px; height: 34px"></div>
+          <div class="sh-band" style="top: 96px; height: 14px"></div>
+          <div id="sh-gun" data-layout-allow-overflow><img src="data:image/svg+xml,%3C!--pistol.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pistol.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/pistol.png" alt="" /></div>
+          <svg class="sh-burst" id="sh-burst-1" viewBox="-50 -50 100 100"><polygon points="0,-48 9,-18 34,-36 20,-8 48,-6 20,8 36,32 8,18 0,48 -8,18 -36,32 -20,8 -48,-6 -20,-8 -34,-36 -9,-18" fill="#2f9a86" /><polygon points="0,-26 5,-10 18,-18 10,-3 26,-2 10,5 18,17 4,10 0,26 -4,10 -18,17 -10,5 -26,-2 -10,-3 -18,-18 -5,-10" fill="#ffffff" /></svg>
+          <svg class="sh-burst" id="sh-burst-2" viewBox="-50 -50 100 100"><polygon points="0,-48 9,-18 34,-36 20,-8 48,-6 20,8 36,32 8,18 0,48 -8,18 -36,32 -20,8 -48,-6 -20,-8 -34,-36 -9,-18" fill="#2f9a86" transform="rotate(14)" /><polygon points="0,-26 5,-10 18,-18 10,-3 26,-2 10,5 18,17 4,10 0,26 -4,10 -18,17 -10,5 -26,-2 -10,-3 -18,-18 -5,-10" fill="#ffffff" /></svg>
+          <div id="sh-card">
+            <div id="sh-card-bg" class="sh-torn"></div>
+            <div id="sh-num">2</div>
+            <div id="sh-label"><span id="sh-label-text">槍</span></div>
+          </div>
+        </div>
+        <!-- The overlays, outside the camera: the black that holds at the end and the white flash of the second shot. -->
+        <div id="sh-black"></div>
+        <div id="sh-flash"></div>
+      </div>
+      <script>
+        /* Setup: this scene's paused timeline. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: types a text element one character at a time, from a start time and a rate. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        tl.fromTo("#sh-gun", { x: 1300, rotation: 4 }, { x: 0, rotation: -4, duration: 0.38, ease: "power3.out" }, 0);
+        tl.fromTo("#sh-gun img", { filter: "blur(18px)" }, { filter: "blur(0px)", duration: 0.38, ease: "power2.out" }, 0);
+        // The count arrives with 兩 (25.46 s), before the shots are heard.
+        tl.fromTo("#sh-card", { scale: 1.3, rotation: 10, opacity: 0 }, { scale: 1, rotation: 3, opacity: 1, duration: 0.18, ease: "power4.out" }, 0.5);
+        tl.fromTo("#sh-num", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.12, ease: "power3.out" }, 0.6);
+        typeOn("#sh-label-text", 0.78, 10);
+        // Two shots (1.11 s and 1.51 s, on the measured sound): a burst at the muzzle and a kick of the frame.
+        tl.fromTo("#sh-burst-1", { scale: 0, opacity: 1 }, { keyframes: [{ scale: 1.15, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }] }, 1.11);
+        tl.fromTo("#sh-burst-2", { scale: 0, opacity: 1 }, { keyframes: [{ scale: 1.25, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }] }, 1.51);
+        tl.fromTo("#sh-cam", { x: 0, y: 0 }, { keyframes: [{ x: -14, y: 8, duration: 0.04 }, { x: 9, y: -6, duration: 0.05 }, { x: 0, y: 0, duration: 0.08 }] }, 1.11);
+        // The second shot whites out the frame, and the white falls away to black, which holds.
+        tl.fromTo("#sh-flash", { opacity: 0 }, { keyframes: [{ opacity: 1, duration: 0.03 }, { opacity: 1, duration: 0.08 }, { opacity: 0, duration: 0.3, ease: "power2.in" }] }, 1.51);
+        tl.fromTo("#sh-black", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 1.56);
+        tl.set("#sh-cam", { autoAlpha: 0 }, 1.6);
+        /* Registration: the host finds this timeline by the composition id "shots". */
+        window.__timelines["shots"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

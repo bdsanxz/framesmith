@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-12-agreed.html (composition id "c4-12-agreed")
+  WHAT: About 12.3 seconds closing chapter 4, with no words on screen and no sound in this file
+    (the narration is in index.html). It opens on the title page of Hecker's Die Tanzwuth (1832),
+    pushed slowly in. At 4.06 seconds it cuts to Brant's dance ban of 2 August 1518, on the
+    narration word "Tetapi" (but), and at 7.57 seconds it cuts to a Hondius footbridge plate of
+    1642, on "pada" (in). Each picture is a file that is not bundled, so until you add it a faint
+    hatched stand-in with its file name shows in its place (see MEDIA). It is mounted in index.html
+    as #c4-12-agreed-slot, plays from 504.86 seconds, on the narration "Belum ada penjelasan yang"
+    (no explanation has yet been agreed), and lasts 12.34 seconds.
+  STRUCTURE: Three img layers in #root, each in its own .dr-shot wrapper, stacked in source
+    order: #c412agreed-a at the back, then #c412agreed-b and #c412agreed-c. Layers b and c are
+    set to opacity 0 at the start and shown at their cut times with a 0.001 second tween.
+    Timeline: a scales 1.014 to 1.081 with a small x and y drift over 4.06 seconds; b scales 1.014
+    to 1.072 from 4.06 for 3.51 seconds; c scales 1.014 to 1.092 from 7.57 for 4.77 seconds. There
+    is no text, no marker and no transition.
+  CUSTOMIZE: The three pictures are the img tags with ids c412agreed-a-img (back), c412agreed-b-img
+    (middle) and c412agreed-c-img (front); their src attributes hold the stand-ins, so set each src
+    to your file. The cut times 4.06 and 7.57 seconds are in the tl calls, and they match the
+    narration words "Tetapi" at 508.92 seconds and "pada" at 512.43 seconds (504.86 plus each cut).
+    If the narration moves, change the cut times and the narration offsets together. The 12.34
+    second length must match data-duration of c4-12-agreed-slot in index.html. Push ends and offsets
+    are in the tl calls, and the grade is the data-color-grading attribute on each picture.
+  MEDIA: No media file is bundled in this composition. It has three photo slots and one font slot,
+    and no sound, video or CSS image slot.
+    1. Photo, back layer: the img #c412agreed-a-img inside #c412agreed-a. It showed
+       assets/generated/hecker-title2.jpg, the title page of Hecker's 1832 book Die Tanzwuth. Now
+       it shows the hatched stand-in naming that path (data-media). To plug in: set
+       src="assets/generated/hecker-title2.jpg" on that img.
+    2. Photo, middle layer: the img #c412agreed-b-img inside #c412agreed-b, hidden until 4.06
+       seconds. It showed assets/generated/ban-sign.jpg, Brant's dance ban of 2 August 1518. The
+       ban is a document, so keep the document in the picture if it is replaced, or caption the
+       stand-in with its own source. Now it shows the stand-in naming that path. To plug in: set
+       src="assets/generated/ban-sign.jpg" on that img.
+    3. Photo, front layer: the img #c412agreed-c-img inside #c412agreed-c, hidden until 7.57
+       seconds. It showed assets/generated/hon-wide3.jpg, a Hondius footbridge plate of 1642. Now
+       it shows the stand-in naming that path. To plug in: set src="assets/generated/hon-wide3.jpg"
+       on that img.
+    Each picture keeps its data-color-grading grade. If a picture is missing, use a still of the
+    same kind, or a dark ground that keeps the timing.
+    4. Font: Arimo, in the @font-face rule at the top of the style block. It was a bundled file.
+       Now the rule reads src: local("Arimo"), and this file has no text, so the font is never
+       drawn here. To plug in (only if you add text): add url("assets/fonts/arimo-latin.woff2")
+       format("woff2") to the src list of that rule.
+  WHEN TO USE: a chapter closing on a sentence that admits no answer yet, answered by three
+    pictures with no words. Pick another layout when the closing needs a caption.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The Arimo font rule: local only, and unused because the file has no text. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Belum ada penjelasan yang ..." (504.86 s): hecker-title2 from the start; ban-sign on "Tetapi" (508.92 s); hon-wide3 on "pada" (512.43 s). -->
+      <div id="root" data-composition-id="c4-12-agreed" data-width="1920" data-height="1080">
+        <!-- Layer 1, at the back: the title page, pushed from the start. -->
+        <div class="dr-shot" id="c412agreed-a" data-layout-allow-overflow><img id="c412agreed-a-img" src="data:image/svg+xml,%3C!--hecker-title2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'839' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hecker-title2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hecker-title2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Layer 2: Brant's dance ban, hidden until its cut at 4.06 seconds. -->
+        <div class="dr-shot" id="c412agreed-b" data-layout-allow-overflow><img id="c412agreed-b-img" src="data:image/svg+xml,%3C!--ban-sign.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ban-sign.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/ban-sign.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Layer 3, at the front: the footbridge plate, hidden until its cut at 7.57 seconds. -->
+        <div class="dr-shot" id="c412agreed-c" data-layout-allow-overflow><img id="c412agreed-c-img" src="data:image/svg+xml,%3C!--hon-wide3.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-wide3.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-wide3.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* Timeline setup: three pushes, with hard cuts at 4.06 and 7.57 seconds. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c412agreed-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.081, x: 6, y: -2, duration: 4.06, ease: "none" }, 0.0);
+        tl.fromTo("#c412agreed-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.072, x: -5, y: 3, duration: 3.51, ease: "none" }, 4.06);
+        gsap.set("#c412agreed-b", { opacity: 0 });
+        tl.to("#c412agreed-b", { opacity: 1, duration: 0.001 }, 4.06);
+        tl.fromTo("#c412agreed-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.092, x: 4, y: 3, duration: 4.77, ease: "none" }, 7.57);
+        gsap.set("#c412agreed-c", { opacity: 0 });
+        tl.to("#c412agreed-c", { opacity: 1, duration: 0.001 }, 7.57);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-12-agreed"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

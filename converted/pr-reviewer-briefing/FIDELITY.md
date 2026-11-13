@@ -1,19 +1,18 @@
 # Fidelity report: pr-reviewer-briefing → main
 
 - translated: 12
-- approximated (with deltas): 31
-- refused: 8
+- approximated (with deltas): 32
+- refused: 7
 
 ## Refused (cause named; conversion refused)
 
 - `compositions/code-diff.html`:867 [tl.set] target "parts.scene" is not a DOM selector ("parts.scene" is runtime state); naming the call site instead of guessing a clip
 - `compositions/code-diff.html`:868 [tl.to] target "parts.scene" is not a DOM selector ("parts.scene" is runtime state); naming the call site instead of guessing a clip
-- `compositions/code-diff.html`:871 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+- `compositions/code-diff.html`:871 [tl.fromTo] position "atDel + k * 0.08" is outside the numeric grammar (unbound identifier "atDel" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/code-diff.html`:880 [tl.set] target "el" is not a DOM selector ("el" is runtime state); naming the call site instead of guessing a clip
-- `compositions/code-diff.html`:881 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+- `compositions/code-diff.html`:881 [tl.fromTo] position "atAdd + k * 0.12" is outside the numeric grammar (unbound identifier "atAdd" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/code-diff.html`:913 [tl.duration] timeline call "duration" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
-- `compositions/code-diff.html`:914 [tl.to] duration "dur" is not a non-negative number; refusing the call site
-- `compositions/frames/08-handoff.html`:74 [tl.fromTo] target "[\"#pr-handoff-name\", \"#pr-handoff-role\"]" is not a DOM selector ("[\"#pr-handoff-name\", \"#pr-handoff-role\"]" is runtime state); naming the call site instead of guessing a clip
+- `compositions/code-diff.html`:914 [tl.to] duration "dur" is outside the numeric grammar (unbound identifier "dur" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 
 ## Approximated (measured deltas)
 
@@ -47,6 +46,7 @@
 - `compositions/frames/08-handoff.html`:66 [placement] element #pr-handoff-role has no own left/top; placed by flow approximation at (0, 252) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/08-handoff.html`:67 [placement] element #pr-handoff-pill has no own left/top; placed by flow approximation at (0, 314) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/08-handoff.html`:61 [container element] element #pr-handoff-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/08-handoff.html`:74 [tl.fromTo] tl.fromTo on ["#pr-handoff-name", "#pr-handoff-role"] at start=10.5000 duration=0.6000 delta: selector matched 2 clips; stagger 0.1200s expanded to per-element start offsets
 - `index.html`:52 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
 
 ## Translated

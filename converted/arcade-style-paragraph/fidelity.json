@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 23,
-    "refused": 13,
-    "translated": 7
+    "refused": 3,
+    "translated": 17
   },
   "duration": 6.0,
   "entries": [
@@ -56,38 +56,39 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"steps(4)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#boot-line\" at start=0.0500 duration=0.2000",
       "file": "compositions/boot.html",
       "line": 55,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
-      "detail": "ease \"steps(4)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.to on \"#boot-line\" at start=0.2500 duration=0.2000",
       "file": "compositions/boot.html",
       "line": 56,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.12 }, { scale: 0.9, duration: 0.08 }, { scale: 1, duration: 0.08 }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#boot-title\" at start=0.5500 duration=0.2800",
       "file": "compositions/boot.html",
       "line": 58,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "delta": "duration 0.0100s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "tl.fromTo on \"#boot-sub\" at start=1.0000 duration=0.0100",
       "file": "compositions/boot.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.to",
-      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.to on \"#boot-sub\" at start=1.2000 duration=0.2000",
       "file": "compositions/boot.html",
       "line": 61,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -122,12 +123,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #score-star is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-score-star.svg (1571 bytes; xmlns added: true)",
       "file": "compositions/score.html",
       "line": 55,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -153,31 +153,31 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.12 }, { scale: 0.9, duration: 0.08 }, { scale: 1, duration: 0.08 }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#score-star\" at start=2.4000 duration=0.2800",
       "file": "compositions/score.html",
       "line": 67,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
-      "detail": "ease \"steps(2)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.to on \"#score-star\" at start=3.4000 duration=0.1000",
       "file": "compositions/score.html",
       "line": 68,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "detail": "target \"p\" is not a DOM selector (\"p\" is runtime state); naming the call site instead of guessing a clip",
       "file": "compositions/score.html",
       "line": 78,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.1 }, { scale: 1, duration: 0.1 }]\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#score-label\" at start=3.5000 duration=0.2000",
       "file": "compositions/score.html",
       "line": 81,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -228,10 +228,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.to on \"#start-text\" at start=4.6000 duration=0.2000",
       "file": "compositions/start.html",
       "line": 51,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -250,10 +250,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#coin-flash-fill\" at start=2.1993 duration=0.0340",
       "file": "compositions/coin-flash.html",
       "line": 42,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -288,7 +288,7 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"0.02 * i\" is an expression; refusing the call site",
+      "detail": "position \"0.02 * i\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/crt-glitch.html",
       "line": 47,
       "verdict": "refused"

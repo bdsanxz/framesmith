@@ -1,0 +1,260 @@
+<!doctype html>
+<!--
+  GUIDE: registry/blocks/odometer-roll/odometer-roll.html (composition id "odometer-roll")
+  WHAT: One odometer readout, 5 seconds at 1920x1080. The number rolls into place digit by digit
+    like a mechanical counter. All reels land by 3.2 s (64 percent of the slot); then an accent
+    rule scales in and the label fades up, and the number holds still to the end. With the
+    defaults it shows 1,284,907 with the label "renders this month" on a dark ground. This is the
+    file a catalog contribution carries; it is the same composition as
+    compositions/odometer-roll.html, and its metadata is in registry-item.json beside it. The file plays no sound of its own.
+  STRUCTURE: #od-root (data-composition-id "odometer-roll") holds #od-stage, a centered column of
+    three layers: #od-row (prefix, digit windows, separators), #od-rule (the accent bar) and
+    #od-label (text bound to the label variable). Each digit window .od-win clips one reel,
+    #od-reel-N, of 40 cells (0 to 9 repeated four times). Timeline: the row fades in and rises
+    40 px from 0.1 s; reel N scrolls to its digit starting at 0.25 s plus 0.06 s times N, ending
+    by 3.2 s; the rule scales in from its center at 3.0 s over 0.6 s; the label fades in and
+    rises 20 px at 3.1 s over 0.5 s. Each reel makes 1 + floor(k / 2) full turns, capped at 3,
+    where k is the number of digits to its left, so the right-hand digits make the most turns, as on a
+    mechanical counter.
+    The inline comment on that line is correct: the turn count rises with the digit's index from the left, so the
+    right-hand digits spin the most. The timeline is registered as window.__timelines["odometer-roll"].
+  CUSTOMIZE: The declared variables are in data-composition-variables on the html tag: value
+    (default 1284907), prefix, suffix, label ("renders this month"), ink (#f4f5f7), ground
+    (#121418) and accent (#f4f5f7). A host sets one instance's values in data-variable-values.
+    The numeral size is 220 px in #od-row, and the reel step STEP (242 px) is 1.1 em of that
+    size, so change both together. The label is 56 px in #od-label. Timing reads data-duration
+    from the root (5) and the rolls land at 64 percent of it, so keep the host slot's
+    data-duration equal to it. REPEAT 4 sets the reel length and caps the turns at 3. The colors
+    are read as the ink, ground and accent CSS variables with the fallbacks shown; this file
+    never assigns them.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. It loads only the GSAP 3.14.2 script from jsdelivr. The font Inter is bundled by HyperFrames, so it
+    needs no file. Nothing needs a stand-in: the look is drawn with the ink color (windows and separators are
+    alpha steps of it at 8, 14, 45 and 72 percent) and one accent rule.
+  WHEN TO USE: One stat that should land and then hold, such as a count of items or renders in a
+    data-led scene. Pick a plain text tween instead for a number that must keep changing through
+    the shot, since this block lands once and then holds.
+-->
+<html
+  lang="en"
+  data-composition-variables='[
+    {"id":"value","type":"number","label":"Value","default":1284907,"min":0,"max":999999999999,"step":1},
+    {"id":"prefix","type":"string","label":"Prefix","default":"","maxLength":3},
+    {"id":"suffix","type":"string","label":"Suffix","default":"","maxLength":6},
+    {"id":"label","type":"string","label":"Label","default":"renders this month","maxLength":40},
+    {"id":"ink","type":"color","label":"Ink","default":"#f4f5f7"},
+    {"id":"ground","type":"color","label":"Ground","default":"#121418"},
+    {"id":"accent","type":"color","label":"Accent","default":"#f4f5f7"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and padding, with border-box sizing, so the frame layout is exact. */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: transparent;
+      }
+      /* Root frame: 1920 by 1080, with the ground and ink colors taken from CSS variables that have fallbacks. */
+      #od-root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground, #121418);
+        color: var(--ink, #f4f5f7);
+        font-family: "Inter", sans-serif;
+      }
+      /* Centers the number, the accent rule and the label as one column on the frame. */
+      #od-stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 44px;
+      }
+      /* The numeral row: 220 px bold tabular digits, aligned to the bottom of each cell. */
+      #od-row {
+        display: flex;
+        align-items: flex-end;
+        font-size: 220px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+      /* One window per digit: a 1-digit-tall slot the reel scrolls through. */
+      .od-win {
+        position: relative;
+        width: 0.62em;
+        height: 1.1em;
+        overflow: hidden;
+        border-radius: 0.06em;
+        background: color-mix(in srgb, var(--ink, #f4f5f7) 8%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink, #f4f5f7) 14%, transparent);
+        margin: 0 0.03em;
+      }
+      /* The reel: a column of digit cells that the script moves up with GSAP. */
+      .od-reel {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .od-reel span {
+        display: block;
+        height: 1.1em;
+        line-height: 1.1em;
+      }
+      /* Thousands separator: a comma drawn at 45 percent of the ink. */
+      .od-sep {
+        width: 0.28em;
+        text-align: center;
+        line-height: 1.1em;
+        color: color-mix(in srgb, var(--ink, #f4f5f7) 45%, transparent);
+      }
+      /* Prefix and suffix text next to the digits. */
+      .od-affix {
+        line-height: 1.1em;
+        padding: 0 0.04em;
+      }
+      /* Accent rule under the number: the only element drawn in the accent color. */
+      #od-rule {
+        width: 360px;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--accent, #f4f5f7);
+        transform-origin: 50% 50%;
+      }
+      /* Label under the rule, drawn at 72 percent of the ink. */
+      #od-label {
+        font-size: 56px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: color-mix(in srgb, var(--ink, #f4f5f7) 72%, transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Block root: the composition frame, with the stage inside it and a 5 second duration. -->
+    <div
+      id="od-root"
+      data-composition-id="odometer-roll"
+      data-start="0"
+      data-duration="5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Stage: the number row, the accent rule and the label, stacked in the center. -->
+      <div id="od-stage">
+        <div id="od-row"></div>
+        <div id="od-rule"></div>
+        <div id="od-label" data-var-text="label">renders this month</div>
+      </div>
+    </div>
+
+    <script>
+      /* Wraps the setup in one function so its names stay private; it runs when the script loads. */
+      (function () {
+        window.__timelines = window.__timelines || {};
+        /* Reads the composition id and duration from the root element, which carries data-composition-id. */
+        var root = document.getElementById("od-root");
+        var host = root.closest("[data-composition-id]") || root;
+        var compositionId = host.getAttribute("data-composition-id") || "odometer-roll";
+        var duration = Number(host.getAttribute("data-duration")) || 5;
+        var vars =
+          (window.__hyperframes &&
+            window.__hyperframes.getVariables &&
+            window.__hyperframes.getVariables()) ||
+          {};
+        /* Reads the declared variables: value is clamped to a whole number of 0 or more, default 1284907. */
+        var value = Math.max(0, Math.floor(Number(vars.value != null ? vars.value : 1284907) || 0));
+        var prefix = vars.prefix != null ? String(vars.prefix) : "";
+        var suffix = vars.suffix != null ? String(vars.suffix) : "";
+
+        // Build the row: affixes, digit windows, and thousands separators.
+        var digits = String(value).split("");
+        var row = document.getElementById("od-row");
+        var html = prefix
+          ? '<span class="od-affix">' + prefix.replace(/</g, "&lt;") + "</span>"
+          : "";
+        var REPEAT = 4; // each reel holds 0–9 four times so right-hand digits can spin more turns
+        var STEP = 242; // one digit cell: 1.1em at the 220px row size
+        var reel = "";
+        for (var r = 0; r < REPEAT; r++)
+          for (var d = 0; d < 10; d++) reel += "<span>" + d + "</span>";
+        digits.forEach(function (_, i) {
+          var fromRight = digits.length - i;
+          // The reel is taller than its window by design; the window clips it.
+          html +=
+            '<div class="od-win"><div class="od-reel" id="od-reel-' +
+            i +
+            '" data-layout-allow-overflow>' +
+            reel +
+            "</div></div>";
+          if (fromRight > 1 && (fromRight - 1) % 3 === 0) html += '<span class="od-sep">,</span>';
+        });
+        if (suffix) html += '<span class="od-affix">' + suffix.replace(/</g, "&lt;") + "</span>";
+        row.innerHTML = html;
+
+        // Timing scales with the slot: rolls land by 64 %, then the number holds still to the end.
+        var land = duration * 0.64;
+        /* One paused timeline for the whole roll; every tween below is placed on it by time. */
+        var tl = gsap.timeline({ paused: true });
+        /* A no-op tween that keeps the timeline as long as the host, so the final hold runs to the end. */
+        tl.to({}, { duration: duration, ease: "none" }, 0);
+        /* The row enters first: it fades in and rises 40 px over 0.5 s, starting at 0.1 s. */
+        tl.fromTo(
+          "#od-row",
+          { opacity: 0, y: 40 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+          0.1,
+        );
+        /* One reel per digit: each scrolls to its target digit, adding full turns that depend on its position. */
+        digits.forEach(function (ch, i) {
+          var turns = Math.min(REPEAT - 1, 1 + Math.floor(i / 2)); // right-hand digits spin more turns
+          var target = turns * 10 + Number(ch);
+          var start = 0.25 + i * 0.06;
+          tl.fromTo(
+            "#od-reel-" + i,
+            { y: 0 },
+            { y: -target * STEP, duration: land - start - i * 0.05, ease: "power4.out" },
+            start,
+          );
+        });
+        /* The accent rule scales in from its center, starting 0.2 s before the rolls land. */
+        tl.fromTo(
+          "#od-rule",
+          { scaleX: 0 },
+          { scaleX: 1, duration: 0.6, ease: "power3.out" },
+          land - 0.2,
+        );
+        /* The label fades in and rises 20 px, starting 0.1 s before the rolls land. */
+        tl.fromTo(
+          "#od-label",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+          land - 0.1,
+        );
+        /* Registers the timeline under the composition id, as the runtime expects. */
+        window.__timelines[compositionId] = tl;
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,225 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/full-01.html (composition id "full-01"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: Scenes that FILL the frame while the presenter's voice goes on (z-index 5): pages, cards, b-roll,
+    rankings, big figures, comparisons, flows. A page capture with marker boxes, a red ring, and a slow zoom; a card of type on a pale or dark ground;
+    a ranking whose rows come in and one row picked; a big figure; two values side by side; icons in a flow.
+  STRUCTURE: mounted by index.html as #full-01-slot at 8.57 s for 272.27 s (z-index 5). One .clip per scene (#fN,
+    the id number is the scene's place in the build). tl times each part to the presenter's words (mark_at, zoom_at,
+    pick, each row). The scenes in this file, with this file's own seconds (the host adds 8.57 s):
+      f1    page     0.00-7.80 s     a capture with two marks and a slow zoom (#f1-cam)
+      f3    flow     11.03-15.67 s   icon steps in a row (#f3-s0 ...)
+      f10   page     57.10-64.80 s
+      f11   page     64.80-69.00 s
+      f12   clip     69.00-72.53 s   an empty window: the clip is the host's, see MEDIA
+      f14   page     82.50-86.47 s
+      f21   flow     126.20-139.47 s six check icons in a row
+      f25   versus   147.53-153.57 s two values side by side (#f25-l, #f25-op)
+      f29   card     174.27-176.73 s a type card on the dark ground
+      f35   clip     205.60-211.80 s an empty window: the host's clip
+      f37   rank     222.77-229.70 s rows that come in and one row in red (#f37-r0 ...)
+      f38   page     236.90-241.83 s
+      f39   clip     241.83-246.43 s an empty window: the host's clip
+      f40   flow     246.43-256.77 s icons: chart-line, coin, cash
+      f42   page     262.40-272.27 s
+  CUSTOMIZE: change cut.json and build again, never this file: it is rewritten on every build. A scene's
+    words ("w"), its text ("lines", "word", "label"), its side and pictures live there; the colours
+    are COLORS and the timings CHAPTER, END, LEAD at the head of scripts/deep-tracery-build.py.
+  MEDIA: no media file is bundled. Slots in this file:
+    PHOTO slots, the six page captures. Each is an img element with class "pg" inside its page scene and was an image of its
+    capture. Now a labelled hatch stand-in shows. #f1 showed assets/pages/p01-antara-first-time.png; #f10
+    assets/pages/p03-setkab-why-in-person.png; #f11 assets/pages/p15-detik-prabowo-menjawab-2025.png; #f14
+    assets/pages/p16-cnn-hambalang-2026.png; #f38 assets/pages/p02-kompastv-dasco-first.png; #f42
+    assets/pages/p04-antara-apbn-alat-perjuangan.png. To plug in, set each img's src to that file (its data-media
+    names the expected path). The marks are drawn over it from the page's .json of marks, as the build wrote them.
+    CSS image slots, the blurred copies: the .soft layer of each of those six pages (inline style) was
+    assets/pages/NAME.soft.jpg (NAME being the page's own file name), now "none". To plug in, put url("assets/pages/NAME.soft.jpg") in place of none.
+    CSS image slots, the grounds: .scene.t-page.white, .t-card.white, .t-versus and .t-flow use assets/grounds/pale.jpg,
+    and .scene.t-page.dark, .t-card.dark, .t-rank and .t-big use assets/grounds/dark.jpg. Both are now "none", so the
+    rule's colour shows (#ecebea pale or #0e0f10 dark). To plug in, put url("assets/grounds/pale.jpg") or
+    url("assets/grounds/dark.jpg") back in place of none in those rules.
+    Bundled drawings (SVG, kept): the CSS icon masks, loaded with url('assets/icons/...') in inline styles: book.svg
+    and question-mark.svg (#f3), check.svg (six times, #f21), and chart-line.svg, coin.svg and cash.svg (#f40). They
+    render as they are and need nothing plugged in. To use your own icon, change each url('...') to your own SVG.
+    VIDEO slots: none in this file. The three clip windows (#f12, #f35, #f39) are empty divs; their clips play from
+    index.html's clip videos at the same film time (footage/c11.mp4, c10.mp4 and c01.mp4). Plug them in there.
+    SOUND slots: none. FONTS: the six @font-face rules use local(...) for Archivo, Instrument Serif, Bricolage
+    Grotesque and JetBrains Mono. An installed font is used, otherwise the stack falls back. To bundle one, add
+    src: url("fonts/NAME.woff2") format("woff2") to its @font-face.
+  WHEN TO USE: a presenter explainer: a talking head dressed with text and pictures timed to his own words, in the
+    deep tracery style (references/deep-tracery.md). For a narrated film without a presenter, use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is taken from the installed font (local); see MEDIA for bundling your own. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; }
+        .clip { position: absolute; }
+        .scene { inset: 0; overflow: hidden; background: #0c0c0d; }
+        .w { display: inline-block; }
+        .tag { display: inline-block; }
+        /* A page: the real capture on a pale ground, sharp where the marker is and soft elsewhere. */
+        .scene.t-page.white, .scene.t-card.white, .scene.t-versus, .scene.t-flow { background: #ecebea none /* image slot: assets/grounds/pale.jpg, not bundled */ center / cover; }
+        .scene.t-page.dark { background: #0e0f10 none /* image slot: assets/grounds/dark.jpg, not bundled */ center / cover; }
+        /* The camera (.cam) and the page sheet (.sheet, .pg, .soft): a capture is scaled and moved by its .cam;
+           .soft is the blurred copy under the sharp capture; .mark is a yellow highlight box drawn over it. */
+        .cam { position: absolute; inset: 0; }
+        .sheet { position: absolute; transform-origin: 0 0; }
+        .sheet .pg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        .sheet .soft { position: absolute; inset: 0; background-size: 100% 100%; opacity: 0.97; }
+        .scene.t-page.white .sheet { mix-blend-mode: multiply; }
+        .mark { position: absolute; background: #fbe406; mix-blend-mode: multiply; transform-origin: 0 50%; }
+        .scene.t-page.dark .mark { mix-blend-mode: screen; background: rgba(251, 228, 6, 0.38); }
+        .ring { position: absolute; overflow: visible; }
+        .ring path { fill: none; stroke: #d92329; stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 1; vector-effect: non-scaling-stroke; }
+        .veil { position: absolute; left: 0; width: 1920px; bottom: 0; height: 420px; background: linear-gradient(0deg, rgba(236, 235, 234, 0.97) 0%, rgba(236, 235, 234, 0.94) 52%, rgba(236, 235, 234, 0) 100%); }
+        .scene.t-page.dark .veil { background: linear-gradient(0deg, rgba(14, 15, 16, 0.97) 0%, rgba(14, 15, 16, 0.94) 52%, rgba(14, 15, 16, 0) 100%); }
+        .scene.t-page.dark .psource { color: #9a9b9d; }
+        .plabel { position: absolute; left: 0; width: 1920px; bottom: 150px; text-align: center; }
+        .plabel .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 58px; line-height: 1; padding: 12px 22px 12px; text-transform: uppercase; letter-spacing: -0.01em; }
+        .psource { position: absolute; left: 0; width: 1920px; bottom: 96px; text-align: center; font-weight: 500; font-size: 24px; color: #3b3b3b; letter-spacing: 0.01em; }
+        .psource.dark { color: #8f9092; }
+        /* A text card: black caps on the pale ground with a red bar, or white type on black with film specks. */
+        .scene.t-card.dark, .scene.t-rank, .scene.t-big { background: #0e0f10 none /* image slot: assets/grounds/dark.jpg, not bundled */ center / cover; }
+        .cblock { position: absolute; left: 160px; width: 1600px; top: 0; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+        .ccaps { font-weight: 800; font-size: 104px; line-height: 1.02; letter-spacing: -0.025em; text-transform: uppercase; color: #0d0c0c; }
+        .scene.t-card.dark .ccaps { color: #f6fbfa; }
+        .clow { font-weight: 700; font-size: 76px; line-height: 1.1; letter-spacing: -0.02em; color: #0d0c0c; }
+        .scene.t-card.dark .clow { color: #f6fbfa; }
+        .cserif { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 500; font-size: 88px; line-height: 1.05; color: #0d0c0c; }
+        .scene.t-card.dark .cserif { color: #b9e31c; }
+        .cl .em { color: #d92329; }
+        .scene.t-card.dark .cl .em { color: #b9e31c; }
+        .cbar .tag, .cchip .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 60px; line-height: 1; padding: 10px 20px; text-transform: uppercase; letter-spacing: -0.005em; }
+        .cchip .tag { font-size: 44px; }
+        /* B-roll: darkened so the caps over it read. */
+        .scene.t-broll { background: #050505; }
+        .bstill { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; background-size: cover; background-position: center; filter: brightness(0.6) contrast(1.1) saturate(0.9); }
+        .bstill.gray { filter: grayscale(1) brightness(0.55) contrast(1.2); }
+        .bshade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(5, 5, 5, 0.86) 0%, rgba(5, 5, 5, 0.45) 30%, rgba(5, 5, 5, 0.15) 58%, rgba(5, 5, 5, 0.3) 100%); }
+        .scene.t-clip { background: #050505; }
+        /* A ranking: rows on black, the one that matters in red. */
+        .rk { position: absolute; left: 460px; width: 1000px; top: 0; height: 1080px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+        .rk-title { color: #f6fbfa; font-weight: 800; font-size: 54px; letter-spacing: -0.02em; margin-bottom: 18px; text-align: center; }
+        .rk-row { display: flex; align-items: center; gap: 22px; height: 78px; background: #f3f3f1; color: #0d0c0c; padding: 0 26px 0 0; font-weight: 700; font-size: 42px; letter-spacing: -0.01em; }
+        .rk-n { width: 78px; height: 78px; line-height: 78px; text-align: center; background: #0d0c0c; color: #f3f3f1; font-weight: 800; }
+        .rk-l { flex: 1; }
+        .rk-v { font-weight: 800; }
+        .rk-row.pick { background: #d92329; color: #ffffff; }
+        .rk-row.pick .rk-n { background: #ffffff; color: #d92329; }
+        /* One figure, as large as the frame takes. */
+        .bg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #f6fbfa; }
+        .bg-label { font-weight: 500; font-size: 46px; color: #a9e8e0; letter-spacing: -0.01em; }
+        .bg-fig { font-weight: 800; font-size: 330px; line-height: 0.95; letter-spacing: -0.04em; }
+        .bg-unit .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 60px; line-height: 1; padding: 10px 22px; letter-spacing: -0.005em; }
+        /* Two things side by side. */
+        .vs { position: absolute; left: 0; width: 1920px; top: 250px; height: 380px; display: flex; align-items: center; justify-content: center; gap: 70px; color: #0d0c0c; }
+        .vs-col { width: 560px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .vs-col img { max-width: 420px; max-height: 190px; object-fit: contain; }
+        .vs-label { font-weight: 800; font-size: 62px; letter-spacing: -0.02em; text-transform: uppercase; text-align: center; line-height: 1.02; }
+        .vs-value { font-weight: 800; font-size: 110px; letter-spacing: -0.03em; line-height: 1; color: #d92329; }
+        .vs-op { font-weight: 800; font-size: 120px; line-height: 1; color: #0d0c0c; }
+        .vs-line { position: absolute; left: 160px; width: 1600px; top: 700px; text-align: center; font-weight: 800; font-size: 58px; letter-spacing: -0.015em; text-transform: uppercase; color: #0d0c0c; }
+        .vs-line .em { font-style: italic; }
+        /* A flow: plain icons in a row, an arrow between each, a red label under them. */
+        .fl { position: absolute; left: 0; width: 1920px; top: 250px; height: 330px; display: flex; align-items: center; justify-content: center; gap: 34px; }
+        .fl-step { width: 300px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .fl-icon { width: 190px; height: 190px; background: #0d0c0c; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+        .fl-num { width: 170px; height: 170px; border-radius: 50%; border: 8px solid #0d0c0c; font-weight: 800; font-size: 100px; line-height: 170px; text-align: center; color: #0d0c0c; }
+        .fl-label { font-weight: 700; font-size: 36px; letter-spacing: -0.01em; color: #0d0c0c; text-align: center; line-height: 1.1; }
+        .fl-arrow { width: 90px; height: 10px; background: #0d0c0c; position: relative; transform-origin: 0 50%; margin-bottom: 60px; }
+        .fl-arrow::after { content: ""; position: absolute; right: -6px; top: -15px; border-left: 30px solid #0d0c0c; border-top: 20px solid transparent; border-bottom: 20px solid transparent; }
+        .fl-box { position: absolute; left: 0; width: 1920px; top: 660px; text-align: center; }
+        .fl-box .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 58px; line-height: 1; padding: 12px 22px; text-transform: uppercase; letter-spacing: -0.01em; }
+        .fl-line { position: absolute; left: 160px; width: 1600px; top: 760px; text-align: center; font-weight: 800; font-size: 54px; letter-spacing: -0.015em; text-transform: uppercase; color: #0d0c0c; }
+        .fl-line .em { font-style: italic; }
+      </style>
+      <!-- Layout: #root fills the frame; each scene is a full-frame .clip with the host timing (data-start, data-duration). -->
+      <div id="root" data-composition-id="full-01" data-width="1920" data-height="1080">
+        <div id="f1" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="0.0" data-duration="7.8" data-track-index="0"><div id="f1-cam" class="cam"><div class="sheet" style="left:-55.132px;top:-382.474px;width:2200px;height:1240px;transform:scale(1.3158)"><img class="pg" src="data:image/svg+xml,%3C!--p01-antara-first-time.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'915' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/p01-antara-first-time.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/p01-antara-first-time.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/p01-antara-first-time.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 37.2%,transparent 41.2%,transparent 58.6%,#000 62.6%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 37.2%,transparent 41.2%,transparent 58.6%,#000 62.6%,#000 100%)"></div><div id="f1-m0" class="mark" style="left:166px;top:571px;width:1211px;height:40px"></div><div id="f1-m1" class="mark" style="left:166px;top:627px;width:707px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f1-lt" class="tag"><span id="f1-l0w0" class="w">PERTAMA</span> <span id="f1-l0w1" class="w">KALINYA</span></span></div><div class="psource">source : antaranews.com</div></div>
+        <div id="f3" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="11.033" data-duration="4.634" data-track-index="0"><div class="fl"><div id="f3-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/book.svg');mask-image:url('assets/icons/book.svg')"></div><div class="fl-label">apa aja yang dibahas</div></div><div id="f3-a1" class="fl-arrow"></div><div id="f3-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/question-mark.svg');mask-image:url('assets/icons/question-mark.svg')"></div><div class="fl-label">kenapa beliau hadir</div></div></div><div class="fl-box"><span class="tag">YANG BAKAL KITA BAHAS</span></div></div>
+        <div id="f10" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="57.1" data-duration="7.7" data-track-index="1"><div id="f10-cam" class="cam"><div class="sheet" style="left:90.353px;top:-58.165px;width:2200px;height:1240px;transform:scale(0.7906)"><img class="pg" src="data:image/svg+xml,%3C!--p03-setkab-why-in-person.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'972' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/p03-setkab-why-in-person.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/p03-setkab-why-in-person.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/p03-setkab-why-in-person.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 36.6%,transparent 40.6%,transparent 59.4%,#000 63.4%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 36.6%,transparent 40.6%,transparent 59.4%,#000 63.4%,#000 100%)"></div><div id="f10-m0" class="mark" style="left:1164px;top:570px;width:1030px;height:44px"></div><div id="f10-m1" class="mark" style="left:146px;top:626px;width:1531px;height:44px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f10-lt" class="tag"><span id="f10-l0w0" class="w">KATA</span> <span id="f10-l0w1" class="w">PRABOWO</span></span></div><div class="psource">source : setkab.go.id</div></div>
+        <div id="f11" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="64.8" data-duration="4.2" data-track-index="1"><div id="f11-cam" class="cam"><div class="sheet" style="left:80px;top:-221.875px;width:2200px;height:1240px;transform:scale(1.0538)"><img class="pg" src="data:image/svg+xml,%3C!--p15-detik-prabowo-menjawab-2025.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1105' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/p15-detik-prabowo-menjawab-2025.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/p15-detik-prabowo-menjawab-2025.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/p15-detik-prabowo-menjawab-2025.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 34.1%,transparent 38.1%,transparent 62.0%,#000 66.0%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 34.1%,transparent 38.1%,transparent 62.0%,#000 66.0%,#000 100%)"></div><div id="f11-m0" class="mark" style="left:490px;top:567px;width:543px;height:62px"></div><div id="f11-m1" class="mark" style="left:114px;top:612px;width:863px;height:62px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f11-lt" class="tag"><span id="f11-l0w0" class="w">PRABOWO</span> <span id="f11-l0w1" class="w">MENJAWAB</span></span></div><div class="psource">source : news.detik.com</div></div>
+        <div id="f12" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="69.0" data-duration="3.533" data-track-index="1"></div>
+        <div id="f14" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="82.5" data-duration="3.967" data-track-index="2"><div id="f14-cam" class="cam"><div class="sheet" style="left:80px;top:-383.789px;width:2200px;height:1240px;transform:scale(1.3158)"><img class="pg" src="data:image/svg+xml,%3C!--p16-cnn-hambalang-2026.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'934' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/p16-cnn-hambalang-2026.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/p16-cnn-hambalang-2026.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/p16-cnn-hambalang-2026.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 39.6%,transparent 43.6%,transparent 56.4%,#000 60.4%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 39.6%,transparent 43.6%,transparent 56.4%,#000 60.4%,#000 100%)"></div><div id="f14-m0" class="mark" style="left:28px;top:600px;width:1135px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f14-lt" class="tag"><span id="f14-l0w0" class="w">HAMBALANG,</span> <span id="f14-l0w1" class="w">17</span> <span id="f14-l0w2" class="w">MARET</span> <span id="f14-l0w3" class="w">2026</span></span></div><div class="psource">source : cnnindonesia.com</div></div>
+        <div id="f21" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="126.2" data-duration="13.267" data-track-index="2"><div class="fl"><div id="f21-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/check.svg');mask-image:url('assets/icons/check.svg')"></div><div class="fl-label">stressing-nya bagus</div></div><div id="f21-a1" class="fl-arrow"></div><div id="f21-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/check.svg');mask-image:url('assets/icons/check.svg')"></div><div class="fl-label">tahu kapan mesti stop</div></div><div id="f21-a2" class="fl-arrow"></div><div id="f21-s2" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/check.svg');mask-image:url('assets/icons/check.svg')"></div><div class="fl-label">icebreaking</div></div></div><div class="fl-box"><span class="tag">TAPI</span></div></div>
+        <div id="f25" class="clip scene t-versus" data-layout-allow-occlusion data-layout-allow-overflow data-start="147.533" data-duration="6.034" data-track-index="3"><div class="vs"><div id="f25-l" class="vs-col"><div class="vs-label">Soekarno</div><div class="vs-value">terbaik</div></div><div id="f25-op" class="vs-op">&gt;</div><div id="f25-r" class="vs-col"><div class="vs-label">Prabowo</div><div class="vs-value">di bawahnya</div></div></div></div>
+        <div id="f29" class="clip scene t-card dark" data-layout-allow-occlusion data-layout-allow-overflow data-start="174.267" data-duration="2.466" data-track-index="3"><div class="cblock"><div class="cl ccaps"><span id="f29-l0w0" class="w">kita</span> <span id="f29-l0w1" class="w">mulai</span> <span id="f29-l0w2" class="w">aja</span> <span id="f29-l0w3" class="w">ya</span></div><div class="cl cserif"><span id="f29-l1w0" class="w">bakal</span> <span id="f29-l1w1" class="w">panjang</span> <span id="f29-l1w2" class="w">nih</span></div></div></div>
+        <div id="f35" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="205.6" data-duration="6.2" data-track-index="4"></div>
+        <div id="f37" class="clip scene t-rank" data-layout-allow-occlusion data-layout-allow-overflow data-start="222.767" data-duration="6.933" data-track-index="4"><div class="rk"><div class="rk-title">Baca prompter vs ngomong langsung</div><div id="f37-r0" class="rk-row"><span class="rk-n">1</span><span class="rk-l">Matanya</span><span class="rk-v">beda</span></div><div id="f37-r1" class="rk-row"><span class="rk-n">2</span><span class="rk-l">Pace-nya</span><span class="rk-v">beda</span></div><div id="f37-r2" class="rk-row"><span class="rk-n">3</span><span class="rk-l">Isi omongannya</span><span class="rk-v">beda</span></div><div id="f37-r3" class="rk-row pick"><span class="rk-n">4</span><span class="rk-l">Blundernya</span><span class="rk-v">beda</span></div></div></div>
+        <div id="f38" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="236.9" data-duration="4.933" data-track-index="4"><div id="f38-cam" class="cam"><div class="sheet" style="left:80px;top:-268.578px;width:2200px;height:1240px;transform:scale(1.1318)"><img class="pg" src="data:image/svg+xml,%3C!--p02-kompastv-dasco-first.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'972' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/p02-kompastv-dasco-first.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/p02-kompastv-dasco-first.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/p02-kompastv-dasco-first.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38.2%,transparent 42.2%,transparent 57.6%,#000 61.6%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38.2%,transparent 42.2%,transparent 57.6%,#000 61.6%,#000 100%)"></div><div id="f38-m0" class="mark" style="left:564px;top:577px;width:915px;height:36px"></div><div id="f38-m1" class="mark" style="left:46px;top:625px;width:392px;height:36px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f38-lt" class="tag"><span id="f38-l0w0" class="w">HADIR</span> <span id="f38-l0w1" class="w">LANGSUNG</span></span></div><div class="psource">source : kompas.tv</div></div>
+        <div id="f39" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="241.833" data-duration="4.6" data-track-index="5"></div>
+        <div id="f40" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="246.433" data-duration="10.334" data-track-index="5"><div class="fl"><div id="f40-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/chart-line.svg');mask-image:url('assets/icons/chart-line.svg')"></div><div class="fl-label">arah ekonomi</div></div><div id="f40-a1" class="fl-arrow"></div><div id="f40-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/coin.svg');mask-image:url('assets/icons/coin.svg')"></div><div class="fl-label">kebijakan fiskal</div></div><div id="f40-a2" class="fl-arrow"></div><div id="f40-s2" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/cash.svg');mask-image:url('assets/icons/cash.svg')"></div><div class="fl-label">pemanfaatan APBN 2027</div></div></div><div class="fl-box"><span class="tag">YANG MAU DIA KASIH TAHU</span></div></div>
+        <div id="f42" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="262.4" data-duration="9.867" data-track-index="5"><div id="f42-cam" class="cam"><div class="sheet" style="left:-43.289px;top:-382.474px;width:2200px;height:1240px;transform:scale(1.3158)"><img class="pg" src="data:image/svg+xml,%3C!--p04-antara-apbn-alat-perjuangan.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1105' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/p04-antara-apbn-alat-perjuangan.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/p04-antara-apbn-alat-perjuangan.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/p04-antara-apbn-alat-perjuangan.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 37.2%,transparent 41.2%,transparent 58.6%,#000 62.6%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 37.2%,transparent 41.2%,transparent 58.6%,#000 62.6%,#000 100%)"></div><div id="f42-m0" class="mark" style="left:884px;top:571px;width:475px;height:40px"></div><div id="f42-m1" class="mark" style="left:166px;top:627px;width:530px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f42-lt" class="tag"><span id="f42-l0w0" class="w">ALAT</span> <span id="f42-l0w1" class="w">PERJUANGAN</span></span></div><div class="psource">source : antaranews.com</div></div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it. Each scene's cues are placed on the presenter's
+        // word times, and each scene's camera or row timing sits inside the scene's own span listed in STRUCTURE.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each. Both are defined here
+        // for the build's shared helpers; this file uses Q and tl.fromTo directly.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        Q([["f1-lt", 0.3], ["f1-l0w0", 0.35], ["f1-l0w1", 0.44]]);
+        tl.set("#f1-cam", { transformOrigin: "960.0px 432.0px" }, 0);
+        tl.fromTo("#f1-cam", { scale: 1 }, { scale: 1.07, duration: 7.8, ease: "none", immediateRender: false }, 0.0);
+        tl.fromTo("#f1-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 2.203);
+        tl.fromTo("#f1-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.389, ease: "power1.inOut" }, 2.483);
+        tl.fromTo("#f3-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 12.206);
+        tl.fromTo("#f3-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 13.455);
+        tl.fromTo("#f3-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 13.615);
+        Q([["f10-lt", 57.4], ["f10-l0w0", 57.45], ["f10-l0w1", 57.54]]);
+        tl.set("#f10-cam", { transformOrigin: "1015.341px 432.0px" }, 0);
+        tl.fromTo("#f10-cam", { scale: 1 }, { scale: 1.07, duration: 7.7, ease: "none", immediateRender: false }, 57.1);
+        tl.fromTo("#f10-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 59.893);
+        tl.fromTo("#f10-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 60.173);
+        Q([["f11-lt", 65.1], ["f11-l0w0", 65.15], ["f11-l0w1", 65.24]]);
+        tl.set("#f11-cam", { transformOrigin: "684.347px 432.0px" }, 0);
+        tl.fromTo("#f11-cam", { scale: 1 }, { scale: 1.059, duration: 4.2, ease: "none", immediateRender: false }, 64.8);
+        tl.fromTo("#f11-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.326, ease: "power1.inOut" }, 65.815);
+        tl.fromTo("#f11-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.449, ease: "power1.inOut" }, 66.095);
+        Q([["f14-lt", 82.8], ["f14-l0w0", 82.85], ["f14-l0w1", 82.94], ["f14-l0w2", 83.03], ["f14-l0w3", 83.12]]);
+        tl.set("#f14-cam", { transformOrigin: "863.553px 432.0px" }, 0);
+        tl.fromTo("#f14-cam", { scale: 1 }, { scale: 1.056, duration: 3.967, ease: "none", immediateRender: false }, 82.5);
+        tl.fromTo("#f14-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 84.136);
+        tl.fromTo("#f21-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 128.869);
+        tl.fromTo("#f21-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 131.583);
+        tl.fromTo("#f21-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 131.743);
+        tl.fromTo("#f21-a2", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 134.973);
+        tl.fromTo("#f21-s2", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 135.133);
+        tl.fromTo("#f25-l", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 147.613);
+        tl.fromTo("#f25-op", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.2, ease: "back.out(2)" }, 147.833);
+        tl.fromTo("#f25-r", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 147.953);
+        W([["f29-l0w0", 174.267], ["f29-l0w1", 174.953], ["f29-l0w2", 175.45], ["f29-l0w3", 175.56], ["f29-l1w0", 175.744], ["f29-l1w1", 176.24], ["f29-l1w2", 176.493]]);
+        tl.fromTo("#f37 .rk-row", { opacity: 0, x: -40, filter: "blur(8px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.26, ease: "power2.out", stagger: 0.09 }, 222.887);
+        tl.fromTo("#f37-r3", { scale: 1 }, { scale: 1.06, duration: 0.25, ease: "back.out(2)", immediateRender: false }, 228.105);
+        Q([["f38-lt", 237.2], ["f38-l0w0", 237.25], ["f38-l0w1", 237.34]]);
+        tl.set("#f38-cam", { transformOrigin: "942.989px 432.0px" }, 0);
+        tl.fromTo("#f38-cam", { scale: 1 }, { scale: 1.069, duration: 4.933, ease: "none", immediateRender: false }, 236.9);
+        tl.fromTo("#f38-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 241.103);
+        tl.fromTo("#f38-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.268, ease: "power1.inOut" }, 241.383);
+        tl.fromTo("#f40-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 247.652);
+        tl.fromTo("#f40-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 248.617);
+        tl.fromTo("#f40-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 248.777);
+        tl.fromTo("#f40-a2", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 254.438);
+        tl.fromTo("#f40-s2", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 254.598);
+        Q([["f42-lt", 262.7], ["f42-l0w0", 262.75], ["f42-l0w1", 262.84]]);
+        tl.set("#f42-cam", { transformOrigin: "960.0px 432.0px" }, 0);
+        tl.fromTo("#f42-cam", { scale: 1 }, { scale: 1.035, duration: 8.404, ease: "none", immediateRender: false }, 262.4);
+        tl.fromTo("#f42-cam", { scale: 1.035 }, { scale: 1.12, duration: 0.3, ease: "power3.inOut", immediateRender: false }, 270.824);
+        tl.fromTo("#f42-cam", { scale: 1.12 }, { scale: 1.16, duration: 1.103, ease: "none", immediateRender: false }, 271.144);
+        tl.fromTo("#f42-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power1.inOut" }, 268.169);
+        tl.fromTo("#f42-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.321, ease: "power1.inOut" }, 268.449);
+        window.__timelines["full-01"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/gate.html (composition id "gate")
+  WHAT: The film gate, an overlay that lies over the whole film. index.html mounts it at 0 s with a length of
+    534.2 s on track 2, above every scene. It carries no content: a dark vignette, soft dark edges at the left
+    and right, two thin gate marks on the left edge, two warm light leaks at the edges that breathe unevenly,
+    and a layer of dust specks that jumps across the frame. Together they make the whole film look like an old
+    projected print. It has no sound, and it lets pointer events pass through.
+  STRUCTURE: Layers back to front: #gt-vig (radial vignette), #gt-edges (dark linear edges), the two gate marks
+    #gt-mark-1 (top 62 px, 92 px high) and #gt-mark-2 (top 806 px, 118 px high), the light leaks #gt-leak-l and
+    #gt-leak-r (screen blended, 200 px wide, 120% of the height), and #gt-dust-box holding the SVG #gt-dust
+    (a 1920 by 8640 drawing of eight stacked frames of specks). Timeline (gsap, paused): #gt-dust moves y 0 to
+    -8640 px in steps(8) every 0.64 s, repeated for the whole length. #gt-leak-l breathes between opacity 0.25
+    and 0.9 every 3.7 s (yoyo, sine.inOut), and #gt-leak-r between 0.8 and 0.15 every 5.3 s. The length is read
+    from the data-duration of the slot whose src is compositions/gate.html (60 s if it is not found), so the
+    loops fill any film length.
+  CUSTOMIZE: The vignette: the radial gradient in #gt-vig (ellipse 80% 78%, edge colour rgba(4, 8, 10, 0.5)).
+    The dark edges: the gradient in #gt-edges (rgba(4, 8, 10, 0.55) with 22px and 1898px stops). The gate
+    marks: top and height of #gt-mark-1 and #gt-mark-2 and their outline in .gt-mark (rgba(150, 165, 165, 0.3)).
+    The leaks: colours rgba(214, 104, 44, 0.42) on the left and rgba(200, 80, 36, 0.45) on the right, width 200px,
+    and their opacity ranges and periods (3.7 s and 5.3 s). The dust: the circles and paths in the SVG. The
+    loop uses eight frames at 12.5 per second, so change steps(8), the 0.64 s duration and the -8640 px travel
+    together with the SVG height of 8640. This file needs no change for a new film length.
+  MEDIA: No media file is bundled in this composition, and it has no media slots: none. It needs none
+    because it is built from CSS gradients and one inline SVG drawing of dust specks. It loads no
+    image, font, video or audio file, so there is nothing to plug in.
+  WHEN TO USE: To give any film an old-print finish (vignette, edges, light leaks and dust) without touching the
+    scenes beneath it. Use it once, as a whole-film overlay. Pick another approach, or remove the overlay slot
+    from index.html, when the film must look clean or when the darkening would hide small text.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The film gate: one overlay above every scene for the whole film. It never carries content. */
+        #root { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        /* The vignette: a radial darkening that is strongest at the corners. */
+        #gt-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 78% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(4, 8, 10, 0.5) 100%); }
+        /* Soft dark edges left and right, and two gate marks on the left edge. */
+        #gt-edges { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(4, 8, 10, 0.55) 0, rgba(4, 8, 10, 0) 22px, rgba(4, 8, 10, 0) 1898px, rgba(4, 8, 10, 0.55) 1920px); }
+        /* The two gate marks: thin rounded outlines on the left edge, each placed by its own id. */
+        .gt-mark { position: absolute; left: -6px; width: 16px; border: 2px solid rgba(150, 165, 165, 0.3); border-radius: 8px; }
+        #gt-mark-1 { top: 62px; height: 92px; }
+        #gt-mark-2 { top: 806px; height: 118px; }
+        /* Light leaks: warm glows on the two edges, screened over the picture, breathing unevenly. */
+        .gt-leak { position: absolute; top: -10%; width: 200px; height: 120%; mix-blend-mode: screen; }
+        #gt-leak-l { left: -110px; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(214, 104, 44, 0.42) 0%, rgba(214, 104, 44, 0) 100%); }
+        #gt-leak-r { right: -112px; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(200, 80, 36, 0.45) 0%, rgba(200, 80, 36, 0) 100%); }
+        /* Dust: eight frames of specks stacked in one drawing, stepped past the frame. */
+        #gt-dust { position: absolute; left: 0; top: 0; width: 1920px; height: 8640px; }
+      </style>
+      <div id="root" data-composition-id="gate" data-width="1920" data-height="1080">
+        <!-- The darkening layers, drawn first: the vignette and the dark edges. -->
+        <div id="gt-vig"></div>
+        <div id="gt-edges"></div>
+        <!-- The two gate marks on the left edge. -->
+        <div class="gt-mark" id="gt-mark-1" data-layout-allow-overflow></div>
+        <div class="gt-mark" id="gt-mark-2" data-layout-allow-overflow></div>
+        <!-- The two light leaks, one on each edge, screened over the picture. -->
+        <div class="gt-leak" id="gt-leak-l" data-layout-allow-overflow></div>
+        <div class="gt-leak" id="gt-leak-r" data-layout-allow-overflow></div>
+        <!-- The dust layer: an SVG of specks, moved one frame at a time by the script. -->
+        <div id="gt-dust-box" data-layout-allow-overflow style="position:absolute;inset:0;overflow:hidden">
+          <svg id="gt-dust" viewBox="0 0 1920 8640" data-layout-allow-overflow>
+            <circle cx="338" cy="434" r="1.2" fill="rgba(235,225,205,0.35)" /><circle cx="1711" cy="578" r="1.2" fill="rgba(235,225,205,0.5)" /><circle cx="1223" cy="89" r="1.6" fill="rgba(235,225,205,0.35)" /><circle cx="206" cy="474" r="3" fill="rgba(235,225,205,0.35)" /><circle cx="522" cy="122" r="3" fill="rgba(235,225,205,0.35)" />
+            <circle cx="487" cy="1755" r="1.2" fill="rgba(235,225,205,0.7)" /><circle cx="1229" cy="1516" r="1.2" fill="rgba(235,225,205,0.35)" /><circle cx="125" cy="1680" r="1.6" fill="rgba(235,225,205,0.5)" /><path d="M 1058 1377 q 4 27 1 55" fill="none" stroke="rgba(235,225,205,0.32)" stroke-width="1.4" />
+            <circle cx="1177" cy="3025" r="1.6" fill="rgba(235,225,205,0.35)" /><circle cx="1221" cy="2774" r="1.6" fill="rgba(235,225,205,0.5)" /><circle cx="229" cy="2750" r="1.2" fill="rgba(235,225,205,0.7)" /><circle cx="152" cy="2823" r="1.6" fill="rgba(235,225,205,0.5)" /><circle cx="1423" cy="2734" r="3" fill="rgba(235,225,205,0.5)" /><circle cx="1053" cy="2859" r="5" fill="rgba(8,10,10,0.55)" />
+            <circle cx="770" cy="3576" r="1.6" fill="rgba(235,225,205,0.35)" /><circle cx="1461" cy="4068" r="1.6" fill="rgba(235,225,205,0.35)" /><circle cx="1206" cy="3577" r="3" fill="rgba(235,225,205,0.5)" /><circle cx="1523" cy="3729" r="2.2" fill="rgba(235,225,205,0.7)" /><circle cx="179" cy="3390" r="3" fill="rgba(235,225,205,0.35)" /><circle cx="1580" cy="3620" r="1.6" fill="rgba(235,225,205,0.5)" />
+            <circle cx="110" cy="5335" r="1.2" fill="rgba(235,225,205,0.7)" /><circle cx="1203" cy="5158" r="2.2" fill="rgba(235,225,205,0.5)" /><circle cx="1453" cy="4708" r="3" fill="rgba(235,225,205,0.7)" /><circle cx="1662" cy="4817" r="1.2" fill="rgba(235,225,205,0.35)" /><circle cx="582" cy="4835" r="1.2" fill="rgba(235,225,205,0.35)" /><circle cx="1527" cy="5068" r="2.2" fill="rgba(235,225,205,0.7)" /><path d="M 1383 4926 q -12 65 -4 131" fill="none" stroke="rgba(235,225,205,0.32)" stroke-width="1.4" />
+            <circle cx="1846" cy="6114" r="2.2" fill="rgba(235,225,205,0.35)" /><circle cx="975" cy="5793" r="1.6" fill="rgba(235,225,205,0.7)" /><circle cx="269" cy="5935" r="1.2" fill="rgba(235,225,205,0.35)" /><circle cx="1603" cy="5724" r="1.6" fill="rgba(235,225,205,0.7)" /><circle cx="537" cy="5837" r="3" fill="rgba(235,225,205,0.5)" /><circle cx="195" cy="5600" r="3" fill="rgba(235,225,205,0.5)" /><circle cx="1225" cy="5784" r="5" fill="rgba(8,10,10,0.55)" />
+            <circle cx="1707" cy="6950" r="2.2" fill="rgba(235,225,205,0.7)" /><circle cx="880" cy="7520" r="2.2" fill="rgba(235,225,205,0.7)" /><circle cx="1840" cy="6899" r="1.6" fill="rgba(235,225,205,0.35)" /><circle cx="199" cy="6690" r="1.6" fill="rgba(235,225,205,0.35)" /><path d="M 1548 6868 q -30 51 -10 102" fill="none" stroke="rgba(235,225,205,0.32)" stroke-width="1.4" />
+            <circle cx="568" cy="7878" r="1.2" fill="rgba(235,225,205,0.35)" /><circle cx="888" cy="8137" r="2.2" fill="rgba(235,225,205,0.7)" /><circle cx="1189" cy="7916" r="1.6" fill="rgba(235,225,205,0.7)" /><circle cx="1789" cy="8117" r="1.2" fill="rgba(235,225,205,0.5)" />
+          </svg>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // The host sets the length: data-duration on the slot. Read it so one file serves any film.
+        const D = Number(document.querySelector('[data-composition-src="compositions/gate.html"]')?.dataset.duration || 60);
+        // Dust: 8 frames at 12.5 per second, looped for the whole film.
+        tl.fromTo("#gt-dust", { y: 0 }, { y: -8640, duration: 0.64, ease: "steps(8)", repeat: Math.max(0, Math.floor(D / 0.64) - 1) }, 0);
+        // Leaks: slow, unequal breaths (periods that never line up), never fully gone.
+        tl.fromTo("#gt-leak-l", { opacity: 0.25 }, { opacity: 0.9, duration: 3.7, ease: "sine.inOut", yoyo: true, repeat: Math.max(0, Math.floor(D / 3.7) - 1) }, 0);
+        tl.fromTo("#gt-leak-r", { opacity: 0.8 }, { opacity: 0.15, duration: 5.3, ease: "sine.inOut", yoyo: true, repeat: Math.max(0, Math.floor(D / 5.3) - 1) }, 0);
+        /* Registration: the host finds this timeline by the id gate. */
+        window.__timelines["gate"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

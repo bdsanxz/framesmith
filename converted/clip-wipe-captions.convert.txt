@@ -1,10 +1,8 @@
-framesmith convert refused for clip-wipe-captions: 9 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/clip-wipe-captions/fidelity.json.
-  compositions/frames/intro.html:83 [tl.fromTo] property "transformOrigin" (value "\"0% 100%\"") has no KDL motion property; refusing the call site
-  compositions/frames/anatomy.html:90 [tl.to] property "filter" (value "\"blur(6px)\"") has no KDL motion property; refusing the call site
-  compositions/components/caption-clip-wipe.html:289 [tl.set] position "g.start" is an expression; refusing the call site
-  compositions/components/caption-clip-wipe.html:296 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-  compositions/components/caption-clip-wipe.html:302 [tl.to] position "w.start + 0.1" is an expression; refusing the call site
-  compositions/components/caption-clip-wipe.html:304 [tl.to] position "w.end" is an expression; refusing the call site
-  compositions/components/caption-clip-wipe.html:308 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-  compositions/components/caption-clip-wipe.html:318 [tl.set] position "g.end" is an expression; refusing the call site
+framesmith convert refused for clip-wipe-captions: 7 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/clip-wipe-captions/fidelity.json.
+  compositions/components/caption-clip-wipe.html:289 [tl.set] position "g.start" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/components/caption-clip-wipe.html:296 [tl.to] position "w.start" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/components/caption-clip-wipe.html:302 [tl.to] position "w.start + 0.1" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/components/caption-clip-wipe.html:304 [tl.to] position "w.end" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/components/caption-clip-wipe.html:308 [tl.to] position "g.end - 0.2" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/components/caption-clip-wipe.html:318 [tl.set] position "g.end" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
   compositions/components/caption-clip-wipe.html:322 [tl.seek] timeline call "seek" is outside the translatable grammar (to/from/fromTo/set); refusing the call site

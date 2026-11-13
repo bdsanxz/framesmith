@@ -1,0 +1,93 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/labels.html (composition id "labels")
+  WHAT: a transparent text layer for the whole 22 s film. It opens with a title plate ("One clip,
+    five costumes") over the first 4 s, then shows one tag card per beat (bloom, pixelate, paint
+    and print) in the lower left, except the print tag, which sits at the lower right. Each tag
+    slides in from the left as its beat starts. A top-right end card ("Every look is a payload")
+    shows from 19.6 s to the end. Mounted by index.html at 0 s for 22 s on track 10, the top layer.
+  STRUCTURE: #root holds six .group layers, each a full-frame box that the timeline switches on and
+    off: #g-title (0 to 4 s, with #title-plate), #g-bloom (4 to 8 s), #g-pixel (8 to 12 s),
+    #g-paint (12 to 15.5 s), #g-print (15.5 to 19.6 s) and #g-end (19.6 to 22 s, with #end-plate).
+    Each tag is a .tag card with a .name line and a .code line. Tag entrances start at 4.6, 9.3,
+    12.5 and 17.2 s; the title plate rises at 0.8 s and the end card drops at 19.7 s.
+  CUSTOMIZE: the copy in the h1, p, .name and .code elements. Colors: text #f6f2ea, code accent
+    #ffd28a, and the dark card and plate backgrounds (about 80 to 86 percent opacity). Fonts are
+    Inter for text and JetBrains Mono for code, both bundled with HyperFrames. The beat times are the
+    pairs in the group list and the tag start times in the script. If a beat moves in index.html,
+    move its group pair and its tag time to match.
+  MEDIA: No media file is bundled. The file has no slots: it is text only, with no picture, video or
+    sound. Its two fonts, Inter and JetBrains Mono, are named in the style block, and HyperFrames bundles
+    both, so no font file is needed and nothing is to be plugged in.
+  WHEN TO USE: a captioned teaching film that names each effect on screen. Drop or replace the text
+    when the film needs no captions, or when the captions must be in another language.
+-->
+
+<!-- Every word of the film on one transparent layer: the title, one costume tag per beat
+     (name + the payload that makes it), and the end card. Groups switch at beat boundaries. -->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root layer and base text style: Inter, with a sans-serif fallback. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #f6f2ea; }
+        /* Each group is a full-frame layer that starts hidden until the timeline shows it. */
+        .group { position: absolute; inset: 0; opacity: 0; }
+        #g-title { opacity: 1; }
+        /* Tag card in the lower left: a dark plate with a name line and a code line. */
+        .tag { position: absolute; left: 64px; bottom: 150px; background: rgba(14, 12, 10, 0.84); border-radius: 12px; padding: 16px 24px; }
+        .tag .name { font-size: 40px; font-weight: 800; }
+        .tag .code { font-family: "JetBrains Mono", monospace; font-size: 22px; color: #ffd28a; margin-top: 6px; }
+        /* Centered title plate with a heading and a subtitle. */
+        #title-plate { position: absolute; left: 50%; top: 50%; width: 1060px; margin-left: -530px; margin-top: -120px; text-align: center;
+          background: rgba(14, 12, 10, 0.8); border-radius: 16px; padding: 36px 40px; }
+        #title-plate h1 { font-size: 88px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+        #title-plate p { font-family: "JetBrains Mono", monospace; font-size: 26px; color: #ffd28a; margin-top: 18px; }
+        /* End card in the upper right. */
+        #end-plate { position: absolute; right: 64px; top: 64px; width: 620px; background: rgba(14, 12, 10, 0.86); border-radius: 16px; padding: 30px 34px; }
+        #end-plate h2 { font-size: 56px; font-weight: 800; line-height: 1.05; }
+        #end-plate p { font-size: 25px; color: #d8d0c4; margin-top: 12px; line-height: 1.35; }
+      </style>
+      <div id="root" data-composition-id="labels" data-width="1920" data-height="1080">
+        <!-- Six groups, one per part of the film; the timeline switches them at the beat boundaries. -->
+        <div class="group" id="g-title">
+          <div id="title-plate"><h1>One clip, five costumes</h1><p>effects change the pixels · overlays dress the frame</p></div>
+        </div>
+        <div class="group" id="g-bloom">
+          <div class="tag"><div class="name">Bloom, under a camcorder HUD</div><div class="code">--hf-color-grading-bloom 2.2 → 0.55 · + camcorder-hud</div></div>
+        </div>
+        <div class="group" id="g-pixel">
+          <div class="tag"><div class="name">Pixelate is the entrance and the exit</div><div class="code">--hf-color-grading-pixelate 1 → 0 … 0 → 1</div></div>
+        </div>
+        <div class="group" id="g-paint">
+          <div class="tag"><div class="name">Paint the world, not the subject</div><div class="code">plate: kuwahara 1 · radius 0.4 — cutout: nothing</div></div>
+        </div>
+        <div class="group" id="g-print">
+          <div class="tag" style="left:auto;right:64px"><div class="name">The freeze frame becomes a print</div><div class="code">monoScreen 1 · palette #17130d / #f4f0e0 + freeze-frame-dressing</div></div>
+        </div>
+        <div class="group" id="g-end">
+          <div id="end-plate"><h2>Every look is a payload.</h2>
+            <p>Effects live in data-color-grading on the media. Overlays are editable blocks on top, untouched by the grade.</p></div>
+        </div>
+      </div>
+      <script>
+        /* Beat switching: each group turns on at its start and off at its end; the title is already visible and the end card stays on. */
+        const tl = gsap.timeline({ paused: true });
+        [["#g-title", 0, 4], ["#g-bloom", 4, 8], ["#g-pixel", 8, 12], ["#g-paint", 12, 15.5], ["#g-print", 15.5, 19.6], ["#g-end", 19.6, 22]]
+          .forEach(([sel, a, b]) => {
+            if (a > 0) tl.set(sel, { opacity: 1 }, a);
+            if (b < 22) tl.set(sel, { opacity: 0 }, b);
+          });
+        /* Entrance: the title plate rises into place at 0.8 s. */
+        tl.from("#title-plate", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.8);
+        /* Tag entrances: each tag slides in from the left just after its beat starts. */
+        ["#g-bloom", "#g-pixel", "#g-paint", "#g-print"].forEach((g, i) =>
+          tl.from(`${g} .tag`, { x: -50, opacity: 0, duration: 0.45, ease: "power3.out" }, [4.6, 9.3, 12.5, 17.2][i]));
+        /* End card: drops in from above at 19.7 s. */
+        tl.from("#end-plate", { y: -30, opacity: 0, duration: 0.5, ease: "power3.out" }, 19.7);
+        window.__timelines["labels"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

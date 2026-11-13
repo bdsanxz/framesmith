@@ -1,0 +1,1 @@
+HyperFrames turns HTML into video. The registry already holds about 400 blocks and components. 18 font families ship inside the renderer. And because every frame is seeked, not played, the same input gives the same video, every time. That is why an agent can direct it.

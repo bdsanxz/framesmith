@@ -1,0 +1,476 @@
+{
+ "version": 1,
+ "engine": "Qwen (bayamf (qwen-audio-3.0-tts-flash-bayamf-995bf68af9af46cdaa037fdf7e7135f4, qwen-audio-3.0-tts-flash))",
+ "lead": 0.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "Kenapa motong bawang selalu bikin lo nangis...? Ternyata itu memang cara bawang ngelindungin dirinya!",
+   "key": "1dc70e7e7a339456",
+   "start": 0.0,
+   "duration": 5.6,
+   "gap_after": 0.3,
+   "words": [
+    {
+     "text": "Kenapa",
+     "start": 0.197,
+     "end": 0.404
+    },
+    {
+     "text": "motong",
+     "start": 0.404,
+     "end": 0.74
+    },
+    {
+     "text": "bawang",
+     "start": 0.811,
+     "end": 1.238
+    },
+    {
+     "text": "selalu",
+     "start": 1.238,
+     "end": 1.564
+    },
+    {
+     "text": "bikin",
+     "start": 1.564,
+     "end": 1.829
+    },
+    {
+     "text": "lo",
+     "start": 1.829,
+     "end": 1.93
+    },
+    {
+     "text": "nangis?",
+     "start": 1.93,
+     "end": 2.46
+    },
+    {
+     "text": "Ternyata",
+     "start": 2.46,
+     "end": 2.479
+    },
+    {
+     "text": "itu",
+     "start": 3.038,
+     "end": 3.264
+    },
+    {
+     "text": "memang",
+     "start": 3.264,
+     "end": 3.691
+    },
+    {
+     "text": "cara",
+     "start": 3.691,
+     "end": 3.986
+    },
+    {
+     "text": "bawang",
+     "start": 3.986,
+     "end": 4.475
+    },
+    {
+     "text": "ngelindungin",
+     "start": 4.475,
+     "end": 4.923
+    },
+    {
+     "text": "dirinya.",
+     "start": 4.923,
+     "end": 5.35
+    }
+   ],
+   "voice": "Qwen (bayamf-plus (qwen-audio-3.0-tts-plus-bayamfplus-7ee9f478f711429bb4908057f9ea791c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "Pas pisau lo ngerusak sel bawang, enzim di dalamnya langsung bikin gas yang gampang banget menguap... Begitu gas ini kena mata, saraf lo ngira ada bahaya... Air mata pun keluar buat ngebilasnya!",
+   "key": "91d477f7ba3811dc",
+   "start": 5.9,
+   "duration": 10.88,
+   "gap_after": 0.3,
+   "words": [
+    {
+     "text": "Pas",
+     "start": 0.322,
+     "end": 0.431
+    },
+    {
+     "text": "pisau",
+     "start": 0.431,
+     "end": 0.582
+    },
+    {
+     "text": "lo",
+     "start": 0.672,
+     "end": 0.763
+    },
+    {
+     "text": "ngerusak",
+     "start": 0.833,
+     "end": 1.356
+    },
+    {
+     "text": "sel",
+     "start": 1.416,
+     "end": 1.587
+    },
+    {
+     "text": "bawang,",
+     "start": 1.587,
+     "end": 2.151
+    },
+    {
+     "text": "enzim",
+     "start": 2.221,
+     "end": 2.372
+    },
+    {
+     "text": "di",
+     "start": 2.372,
+     "end": 2.462
+    },
+    {
+     "text": "dalamnya",
+     "start": 2.462,
+     "end": 2.825
+    },
+    {
+     "text": "langsung",
+     "start": 2.905,
+     "end": 3.227
+    },
+    {
+     "text": "bikin",
+     "start": 3.227,
+     "end": 3.368
+    },
+    {
+     "text": "gas",
+     "start": 3.458,
+     "end": 3.589
+    },
+    {
+     "text": "yang",
+     "start": 3.629,
+     "end": 3.77
+    },
+    {
+     "text": "gampang",
+     "start": 3.8,
+     "end": 4.092
+    },
+    {
+     "text": "banget",
+     "start": 4.142,
+     "end": 4.404
+    },
+    {
+     "text": "menguap.",
+     "start": 4.404,
+     "end": 4.8
+    },
+    {
+     "text": "Begitu",
+     "start": 5.299,
+     "end": 5.42
+    },
+    {
+     "text": "gas",
+     "start": 5.621,
+     "end": 5.631
+    },
+    {
+     "text": "ini",
+     "start": 5.631,
+     "end": 5.772
+    },
+    {
+     "text": "kena",
+     "start": 5.862,
+     "end": 6.124
+    },
+    {
+     "text": "mata,",
+     "start": 6.124,
+     "end": 6.523
+    },
+    {
+     "text": "saraf",
+     "start": 6.803,
+     "end": 6.908
+    },
+    {
+     "text": "lo",
+     "start": 6.908,
+     "end": 7.049
+    },
+    {
+     "text": "ngira",
+     "start": 7.049,
+     "end": 7.2
+    },
+    {
+     "text": "ada",
+     "start": 7.411,
+     "end": 7.612
+    },
+    {
+     "text": "bahaya.",
+     "start": 7.612,
+     "end": 8.278
+    },
+    {
+     "text": "Armata",
+     "start": 8.583,
+     "end": 8.709
+    },
+    {
+     "text": "pun",
+     "start": 8.709,
+     "end": 9.081
+    },
+    {
+     "text": "keluar",
+     "start": 9.081,
+     "end": 9.373
+    },
+    {
+     "text": "buat",
+     "start": 9.373,
+     "end": 9.644
+    },
+    {
+     "text": "ngebilasnya.",
+     "start": 9.644,
+     "end": 10.63
+    }
+   ],
+   "voice": "Qwen (bayamf (qwen-audio-3.0-tts-flash-bayamf-995bf68af9af46cdaa037fdf7e7135f4, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "Triknya gampang... Dinginin dulu bawangnya di kulkas sekitar setengah jam, biar gasnya lebih lambat menguap... Terus pakai pisau yang tajam, biar sel yang rusak lebih sedikit!",
+   "key": "092d7be6e8573acb",
+   "start": 17.08,
+   "duration": 9.52,
+   "gap_after": 0.3,
+   "words": [
+    {
+     "text": "Triknya",
+     "start": 0.205,
+     "end": 0.53
+    },
+    {
+     "text": "gampang.",
+     "start": 0.57,
+     "end": 1.119
+    },
+    {
+     "text": "Dinginin",
+     "start": 1.519,
+     "end": 1.618
+    },
+    {
+     "text": "dulu",
+     "start": 1.718,
+     "end": 1.828
+    },
+    {
+     "text": "bawangnya",
+     "start": 1.928,
+     "end": 2.438
+    },
+    {
+     "text": "di",
+     "start": 2.438,
+     "end": 2.557
+    },
+    {
+     "text": "kulkas",
+     "start": 2.557,
+     "end": 2.957
+    },
+    {
+     "text": "sekitar",
+     "start": 3.027,
+     "end": 3.357
+    },
+    {
+     "text": "setengah",
+     "start": 3.357,
+     "end": 3.806
+    },
+    {
+     "text": "jam,",
+     "start": 3.806,
+     "end": 4.07
+    },
+    {
+     "text": "biar",
+     "start": 4.233,
+     "end": 4.276
+    },
+    {
+     "text": "gasnya",
+     "start": 4.355,
+     "end": 4.575
+    },
+    {
+     "text": "lebih",
+     "start": 4.625,
+     "end": 4.865
+    },
+    {
+     "text": "lambat",
+     "start": 4.865,
+     "end": 5.175
+    },
+    {
+     "text": "menguap.",
+     "start": 5.175,
+     "end": 5.701
+    },
+    {
+     "text": "Terus",
+     "start": 6.162,
+     "end": 6.353
+    },
+    {
+     "text": "pakai",
+     "start": 6.353,
+     "end": 6.363
+    },
+    {
+     "text": "pisau",
+     "start": 6.363,
+     "end": 6.653
+    },
+    {
+     "text": "yang",
+     "start": 6.663,
+     "end": 6.913
+    },
+    {
+     "text": "tajam,",
+     "start": 6.913,
+     "end": 7.292
+    },
+    {
+     "text": "biar",
+     "start": 7.292,
+     "end": 7.572
+    },
+    {
+     "text": "sel",
+     "start": 7.769,
+     "end": 7.769
+    },
+    {
+     "text": "yang",
+     "start": 7.769,
+     "end": 8.001
+    },
+    {
+     "text": "rusak",
+     "start": 8.001,
+     "end": 8.301
+    },
+    {
+     "text": "lebih",
+     "start": 8.301,
+     "end": 8.611
+    },
+    {
+     "text": "sedikit.",
+     "start": 8.611,
+     "end": 9.31
+    }
+   ],
+   "voice": "Qwen (bayamf (qwen-audio-3.0-tts-flash-bayamf-995bf68af9af46cdaa037fdf7e7135f4, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "Lo sendiri tim pasrah nangis, atau udah punya trik lain...? Komen di bawah!",
+   "key": "d3714ce13e8e6208",
+   "start": 26.9,
+   "duration": 4.4,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Lo",
+     "start": 0.215,
+     "end": 0.279
+    },
+    {
+     "text": "sendiri",
+     "start": 0.279,
+     "end": 0.705
+    },
+    {
+     "text": "tim",
+     "start": 0.705,
+     "end": 0.824
+    },
+    {
+     "text": "pasrah",
+     "start": 0.913,
+     "end": 1.329
+    },
+    {
+     "text": "nangis",
+     "start": 1.329,
+     "end": 1.794
+    },
+    {
+     "text": "atau",
+     "start": 1.794,
+     "end": 1.962
+    },
+    {
+     "text": "udah",
+     "start": 2.032,
+     "end": 2.18
+    },
+    {
+     "text": "punya",
+     "start": 2.19,
+     "end": 2.438
+    },
+    {
+     "text": "trik",
+     "start": 2.438,
+     "end": 2.635
+    },
+    {
+     "text": "lain?",
+     "start": 2.635,
+     "end": 3.002
+    },
+    {
+     "text": "Komen",
+     "start": 3.398,
+     "end": 3.477
+    },
+    {
+     "text": "di",
+     "start": 3.606,
+     "end": 3.665
+    },
+    {
+     "text": "bawah.",
+     "start": 3.665,
+     "end": 4.17
+    }
+   ],
+   "voice": "Qwen (bayamf (qwen-audio-3.0-tts-flash-bayamf-995bf68af9af46cdaa037fdf7e7135f4, qwen-audio-3.0-tts-flash))"
+  }
+ ],
+ "duration": 31.3
+}

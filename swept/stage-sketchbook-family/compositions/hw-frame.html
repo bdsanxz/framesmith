@@ -1,0 +1,367 @@
+<!-- hyperframes-registry-item: hw-frame -->
+<!--
+  GUIDE: compositions/hw-frame.html (composition id "hw-frame")
+  WHAT: A hand-drawn window on a dark ground. A wobbly ink border draws itself around a 960 by 620
+    slot, three small warm doodles spark in at the corners, and a handwritten caption fades in under
+    the slot. The whole framed unit tilts by -1.2 degrees, jitters, and fades out. It runs 8 seconds;
+    in the sketchbook-family film, index.html mounts it at 11.5 s, at the cut, while the scribble wipe clears.
+  STRUCTURE: back to front: #hw-fr-media (the slot box, holding an img when CONFIG.src is set, else the green .hw-fr-fill
+    gradient), #hw-fr-svg (the border path #hw-fr-border and the three doodle paths .hw-fr-doodle that
+    the script adds), #hw-fr-caption (centered text). Timeline "hw-frame": the media scales from 0.96
+    to 1 and fades in from 0.51 s over 0.9 s; the border draws on from 0.2 s over 0.9 s; the doodles draw on
+    at 1.1, 1.22 and 1.34 s; the caption fades in at 1.4 s; hwBoil jitters the unit every 3 frames for
+    its whole length; the unit fades out from 7.47 s; #hw-fr-root is hidden at 7.98 s.
+  CUSTOMIZE: CONFIG.src is an image path shown in the slot (null keeps the green gradient stand-in).
+    CONFIG.slot {x, y, w, h} is the window position and size; the host footage in index.html must use
+    the same numbers. CONFIG.caption is the text ("" or null hides it). CONFIG.doodles turns the corner
+    sparks on or off. CONFIG.tilt is the rotation in degrees; the host's #slot-wrap repeats this slot and tilt by hand. CONFIG.seed changes the wobble and the
+    spark angles. CONFIG.boil {enabled, amp, rot, frameDrop} sets how far and how often it jitters.
+    CONFIG.animationIn and animationOut switch the fades. DUR = 8 must match data-duration on
+    #hw-fr-root, on #hw-fr-drv and on the host slot. Colors: the ink token #f4f2ec (border and caption),
+    the warm accent token #ffb020 (doodles), the stand-in gradient #35604a to #14231c in .hw-fr-fill,
+    and the stage ground #1b1a1e in #hw-fr-root. The caption is 58 px.
+  MEDIA: No media file is bundled. Photo slot: none in the markup. The optional image is CONFIG.src in the
+    script, null here, so nothing loads. To show a photo, set CONFIG.src to its path (for example
+    "photos/table.jpg") and the script adds an img that covers the slot. Shown now: the dark green gradient
+    .hw-fr-fill (#35604a to #14231c) fills the slot. In sketchbook-family index.html the footage is a video
+    in #slot-wrap at z 4, above this slot at z 3, so that video covers the gradient. While the video is
+    missing, the host's hatch stand-in covers it, and this gradient shows only with the host layer removed.
+    Font: Caveat bold for the caption, through @font-face with local("Caveat"). None is bundled, so an
+    installed Caveat is used and otherwise the cursive fallback. To plug in a font file, change that src to
+    url("assets/fonts/Caveat-700-latin.woff2") format("woff2"), local("Caveat") with your own path. gsap
+    3.14.2 comes from the jsDelivr CDN. No sound or CSS image slot.
+  WHEN TO USE: a sketchbook-style window around a picture or a clip, as a "here is the table" reveal.
+    Pick a plain bordered box when the look should be clean, or a full-bleed clip when there is no frame.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Caveat bold for the caption, taken from the installed fonts through local(); no font file is bundled. */
+      @font-face {
+        font-family: "Caveat";
+        src: local("Caveat");
+        font-weight: 700;
+        font-display: block;
+      }
+      /* Reset: zero margins and padding, border-box sizing everywhere. */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      /* The page is transparent and clipped, so only the composition is drawn over the host. */
+      body {
+        background: transparent;
+        overflow: hidden;
+      }
+      /* The stage: a 1920 by 1080 box with the ink and accent tokens and a dark ground. */
+      #hw-fr-root {
+        --hw-font-print: "Caveat", cursive;
+        --hw-font-script: "Caveat", cursive;
+        --hw-ink: #f4f2ec;
+        --hw-accent-warm: #ffb020;
+
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #1b1a1e;
+        font-family: var(--hw-font-print, "Caveat", cursive);
+      }
+      /* The media slot: an absolutely placed, clipped box with rounded corners. */
+      #hw-fr-media {
+        position: absolute;
+        overflow: hidden;
+        border-radius: 10px;
+      }
+      /* The image or the stand-in fills the slot and is cropped to cover it. */
+      #hw-fr-media img,
+      #hw-fr-media .hw-fr-fill {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      /* The stand-in: a dark green gradient that stays visible when nothing covers the slot. */
+      .hw-fr-fill {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 110px;
+        color: rgba(244, 242, 236, 0.9);
+        background: linear-gradient(150deg, #35604a 0%, #14231c 100%);
+      }
+      /* The overlay SVG covers the whole stage and holds the border and the doodles. */
+      #hw-fr-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      /* Every overlay path is an open line with round caps and joins. */
+      #hw-fr-svg path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* The hand-drawn border: ink colored and 7 px wide. */
+      #hw-fr-border {
+        stroke: var(--hw-ink);
+        stroke-width: 7;
+      }
+      /* The corner sparks: warm accent colored and 5 px wide. */
+      .hw-fr-doodle {
+        stroke: var(--hw-accent-warm);
+        stroke-width: 5;
+      }
+      /* The caption: centered bold text below the slot, invisible until its fade. */
+      #hw-fr-caption {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        font-weight: 700;
+        font-size: 58px;
+        color: var(--hw-ink);
+        opacity: 0;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The stage root holds the media slot, the overlay, the caption and the clip driver. -->
+    <div
+      id="hw-fr-root"
+      data-composition-id="hw-frame"
+      data-start="0"
+      data-duration="8"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- The media slot; the script fills it with the image or the stand-in. -->
+      <div id="hw-fr-media"></div>
+      <!-- The overlay: the border path is here, and the script adds the doodle paths. -->
+      <svg id="hw-fr-svg" viewBox="0 0 1920 1080"><path id="hw-fr-border"></path></svg>
+      <!-- The caption: the script sets its text and places it under the slot. -->
+      <div id="hw-fr-caption"></div>
+      <!-- A hidden clip that carries this block's 8 second duration and track index. -->
+      <div
+        id="hw-fr-drv"
+        class="clip"
+        data-start="0"
+        data-duration="8"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
+    </div>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+
+        /* ---- published parameters ----
+           A sketched frame: content inside a hand-drawn border with
+           corner doodles + optional caption. IMAGES ONLY inside this block
+           (learning: the runtime never seeks media elements inside
+           sub-compositions) — for live footage keep the media element in
+           the HOST root positioned over the documented media slot below;
+           layering two framed clips = instant PiP. */
+        var CONFIG = {
+          src: null, // IMAGE path; null -> stand-in gradient (demo)
+          slot: { x: 480, y: 180, w: 960, h: 620 }, // the media window (documented for host-side footage)
+          caption: "the whole table, framed",
+          doodles: true, // corner sparks
+          tilt: -1.2, // deg — the whole framed unit sits slightly rotated
+          seed: 14,
+          boil: { enabled: true, amp: 1.6, rot: 0.35, frameDrop: 3 },
+          animationIn: true,
+          animationOut: true,
+        };
+
+        /* Timing: DUR is the length in seconds; IN and OUT are fade lengths clamped to fixed limits. */
+        var DUR = 8;
+        function clamp(v, lo, hi) {
+          return Math.min(hi, Math.max(lo, v));
+        }
+        var IN = clamp(DUR * 0.08, 0.3, 0.8);
+        var OUT = clamp(DUR * 0.06, 0.25, 0.6);
+
+        /* hw family runtime */
+        window.hwOnUpdate = function (tl, fn) {
+          if (!tl.__hwRenders) {
+            tl.__hwRenders = [];
+            tl.eventCallback("onUpdate", function () {
+              for (var i = 0; i < tl.__hwRenders.length; i++) tl.__hwRenders[i]();
+            });
+          }
+          tl.__hwRenders.push(fn);
+          fn();
+        };
+        /* Seeded hash: a stable pseudo random value from -1 to 1 for an index. */
+        window.hwHash = function (n, seed) {
+          var x = Math.sin(n * 127.1 + (seed || 1) * 311.7) * 43758.5453;
+          return (x - Math.floor(x)) * 2 - 1;
+        };
+        /* Boil: jitters the targets in steps of three frames, using the seeded hash. */
+        window.hwBoil = function (tl, target, opts) {
+          opts = opts || {};
+          var amp = opts.amp !== undefined ? opts.amp : 1.6;
+          var rot = opts.rot !== undefined ? opts.rot : 0.5;
+          var fps = opts.fps || 30;
+          var drop = opts.frameDrop || 3;
+          var seed = opts.seed || 1;
+          var els = gsap.utils.toArray(target);
+          window.hwOnUpdate(tl, function () {
+            var step = Math.floor((tl.time() * fps) / drop);
+            for (var i = 0; i < els.length; i++) {
+              gsap.set(els[i], {
+                x: window.hwHash(step * 3 + i * 97, seed) * amp,
+                y: window.hwHash(step * 3 + 1 + i * 97, seed) * amp,
+                rotation: (opts.baseRot || 0) + window.hwHash(step * 3 + 2 + i * 97, seed) * rot,
+              });
+            }
+          });
+        };
+        /* Wobbly rectangle: the border outline, with a seeded jitter on each point. */
+        window.hwWobbleRect = function (w, h, r, seed, amp) {
+          amp = amp === undefined ? 3.5 : amp;
+          function wob(n) {
+            return window.hwHash(n, seed) * amp;
+          }
+          var d = "M " + (r + wob(1)) + " " + wob(2);
+          d += " L " + (w / 2 + wob(3)) + " " + wob(4);
+          d += " L " + (w - r + wob(5)) + " " + wob(6);
+          d += " Q " + (w + wob(7)) + " " + wob(8) + " " + (w + wob(9)) + " " + (r + wob(10));
+          d += " L " + (w + wob(11)) + " " + (h / 2 + wob(12));
+          d += " L " + (w + wob(13)) + " " + (h - r + wob(14));
+          d +=
+            " Q " +
+            (w + wob(15)) +
+            " " +
+            (h + wob(16)) +
+            " " +
+            (w - r + wob(17)) +
+            " " +
+            (h + wob(18));
+          d += " L " + (w / 2 + wob(19)) + " " + (h + wob(20));
+          d += " L " + (r + wob(21)) + " " + (h + wob(22));
+          d += " Q " + wob(23) + " " + (h + wob(24)) + " " + wob(25) + " " + (h - r + wob(26));
+          d += " L " + wob(27) + " " + (h / 2 + wob(28));
+          d += " L " + wob(29) + " " + (r + wob(30));
+          d += " Q " + wob(31) + " " + wob(32) + " " + (r + wob(33)) + " " + wob(34);
+          return d;
+        };
+
+        /* Media slot: sets the box from CONFIG.slot and fills it with the image or the stand-in. */
+        var S = CONFIG.slot;
+        var media = document.getElementById("hw-fr-media");
+        media.style.left = S.x + "px";
+        media.style.top = S.y + "px";
+        media.style.width = S.w + "px";
+        media.style.height = S.h + "px";
+        if (CONFIG.src) {
+          var img = document.createElement("img");
+          img.src = CONFIG.src;
+          media.appendChild(img);
+        } else {
+          var d = document.createElement("div");
+          d.className = "hw-fr-fill";
+          // Made ours: no stand-in word. The host places live footage over this slot.
+          media.appendChild(d);
+        }
+
+        /* border drawn slightly outside the slot */
+        var NS = "http://www.w3.org/2000/svg";
+        var border = document.getElementById("hw-fr-border");
+        var m = 16;
+        border.setAttribute("d", window.hwWobbleRect(S.w + m * 2, S.h + m * 2, 18, CONFIG.seed, 5));
+        border.setAttribute("transform", "translate(" + (S.x - m) + " " + (S.y - m) + ")");
+
+        /* corner doodles: little three-spark bursts */
+        var svg = document.getElementById("hw-fr-svg");
+        var doodles = [];
+        if (CONFIG.doodles) {
+          [
+            [S.x - 40, S.y - 34],
+            [S.x + S.w + 40, S.y - 26],
+            [S.x + S.w + 36, S.y + S.h + 30],
+          ].forEach(function (pt, i) {
+            var p = document.createElementNS(NS, "path");
+            p.setAttribute("class", "hw-fr-doodle");
+            p.setAttribute("id", "hw-fr-doodle-" + i);
+            var dd = "";
+            for (var k = 0; k < 3; k++) {
+              var a = -0.6 - k * 0.5 + window.hwHash(i * 9 + k, CONFIG.seed) * 0.2;
+              var l = 26 + window.hwHash(i * 9 + k + 4, CONFIG.seed) * 8;
+              dd +=
+                "M " +
+                pt[0] +
+                " " +
+                pt[1] +
+                " l " +
+                (Math.cos(a) * l).toFixed(1) +
+                " " +
+                (Math.sin(a) * l).toFixed(1) +
+                " ";
+            }
+            p.setAttribute("d", dd);
+            svg.appendChild(p);
+            doodles.push(p);
+          });
+        }
+
+        /* Caption: sets its text and places it 42 px below the bottom edge of the slot. */
+        var caption = document.getElementById("hw-fr-caption");
+        caption.textContent = CONFIG.caption || "";
+        caption.style.top = S.y + S.h + 42 + "px";
+
+        /* Timeline: paused, so the host seeks it; every tween below is registered on it. */
+        var tl = gsap.timeline({ paused: true });
+
+        /* Media fade-in: the slot scales from 0.96 to 1 while it fades in. */
+        if (CONFIG.animationIn) {
+          gsap.set(media, { opacity: 0, scale: 0.96 });
+          tl.to(media, { opacity: 1, scale: 1, duration: IN * 1.4, ease: "power2.out" }, IN * 0.8);
+        }
+        /* Border draw-on: the dash is set to the full path length, then its offset is tweened to zero. */
+        var blen = border.getTotalLength();
+        gsap.set(border, { strokeDasharray: blen, strokeDashoffset: blen });
+        tl.to(border, { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, 0.2);
+        /* Doodles draw on one after another, 0.12 s apart, starting at 1.1 s. */
+        doodles.forEach(function (p, i) {
+          var l = p.getTotalLength();
+          gsap.set(p, { strokeDasharray: l, strokeDashoffset: l });
+          tl.to(p, { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 1.1 + i * 0.12);
+        });
+        /* Caption fade-in at 1.4 s, when there is a caption. */
+        if (CONFIG.caption) tl.to(caption, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.4);
+
+        /* whole framed unit tilts + boils together */
+        var unit = [media, svg, caption];
+        gsap.set(unit, { rotation: CONFIG.tilt, transformOrigin: "50% 50%" });
+        if (CONFIG.boil.enabled) {
+          window.hwBoil(tl, unit, {
+            amp: CONFIG.boil.amp,
+            rot: CONFIG.boil.rot,
+            frameDrop: CONFIG.boil.frameDrop,
+            seed: CONFIG.seed,
+            baseRot: CONFIG.tilt,
+          });
+        }
+
+        /* Exit: the framed unit fades out just before the block ends. */
+        if (CONFIG.animationOut) {
+          tl.to(unit, { opacity: 0, duration: OUT, ease: "power2.in" }, DUR - OUT - 0.05);
+        }
+        tl.set("#hw-fr-root", { visibility: "hidden" }, DUR - 0.02);
+
+        /* Registration: the paused timeline is handed to the host under this composition id. */
+        window.__timelines["hw-frame"] = tl;
+      })();
+    </script>
+  </body>
+</html>

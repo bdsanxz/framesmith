@@ -1,0 +1,158 @@
+{
+ "width": 1920,
+ "height": 1080,
+ "fps": 30,
+ "out": "footage",
+ "handle": 0.2,
+ "shots": [
+  {
+   "id": "b01",
+   "start": 0.0,
+   "end": 6.0,
+   "source": "https://videos.pexels.com/video-files/3558720/3558720-hd_1920_1080_30fps.mp4",
+   "in_point": 0.5,
+   "subject": "football referee talking to the two captains before kick-off",
+   "credit": "Nazim Zafri",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b02",
+   "start": 6.0,
+   "end": 12.0,
+   "source": "https://videos.pexels.com/video-files/3195653/3195653-hd_1920_1080_25fps.mp4",
+   "in_point": 8.5,
+   "subject": "face-painted football fans shouting in the stands",
+   "credit": "Pressmaster",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b03",
+   "start": 12.0,
+   "end": 18.0,
+   "source": "footage/raw/commons-var-penalty.webm",
+   "in_point": 10.0,
+   "zoom": 1.7,
+   "cx": 0.31,
+   "cy": 0.71,
+   "subject": "players crowd the referees at the pitch-side VAR monitor (stand view)"
+  },
+  {
+   "id": "b04",
+   "start": 18.0,
+   "end": 24.0,
+   "source": "https://videos.pexels.com/video-files/6104279/6104279-hd_1920_1080_25fps.mp4",
+   "in_point": 3.0,
+   "subject": "two fans on a sofa reacting in frustration to a match on TV",
+   "credit": "Kampus Production",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b05",
+   "start": 24.0,
+   "end": 30.0,
+   "source": "https://videos.pexels.com/video-files/3558720/3558720-hd_1920_1080_30fps.mp4",
+   "in_point": 11.0,
+   "subject": "captain holds his head while the referee explains",
+   "credit": "Nazim Zafri",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b06",
+   "start": 30.0,
+   "end": 36.0,
+   "source": "https://videos.pexels.com/video-files/35053395/14849030_1920_1080_30fps.mp4",
+   "in_point": 0.5,
+   "subject": "floodlit football stadium, wide, at night",
+   "credit": "Necip Duman",
+   "license": "Pexels License",
+   "zoom": 1.07
+  },
+  {
+   "id": "b07",
+   "start": 36.0,
+   "end": 42.0,
+   "source": "https://videos.pexels.com/video-files/6767271/6767271-uhd_4096_2160_25fps.mp4",
+   "in_point": 0.0,
+   "subject": "referee with a whistle signalling (indoor court, stand-in for a football referee)",
+   "credit": "cottonbro studio",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b08",
+   "start": 42.0,
+   "end": 48.0,
+   "source": "https://assets.mixkit.co/videos/4911/4911-1080.mp4",
+   "in_point": 0.5,
+   "subject": "woman scrolling a photo feed on her phone, over the shoulder"
+  },
+  {
+   "id": "b09",
+   "start": 48.0,
+   "end": 54.0,
+   "source": "https://videos.pexels.com/video-files/946146/946146-hd_1920_1080_30fps.mp4",
+   "in_point": 4.0,
+   "subject": "hands typing on a laptop keyboard, close",
+   "credit": "Carlos Arribas",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b10",
+   "start": 54.0,
+   "end": 60.0,
+   "source": "https://assets.mixkit.co/videos/41272/41272-1080.mp4",
+   "in_point": 7.0,
+   "subject": "creator talking to his camera in a studio"
+  },
+  {
+   "id": "b11",
+   "start": 60.0,
+   "end": 66.0,
+   "source": "https://videos.pexels.com/video-files/6699964/6699964-hd_1920_1080_24fps.mp4",
+   "in_point": 3.0,
+   "subject": "hand strikes a judge's gavel",
+   "credit": "pickarick",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b12",
+   "start": 66.0,
+   "end": 72.0,
+   "source": "https://videos.pexels.com/video-files/34550101/14640400_2160_3840_50fps.mp4",
+   "in_point": 15.0,
+   "cy": 0.53,
+   "subject": "courtroom interior with people seated (staged)",
+   "credit": "khezez",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b13",
+   "start": 72.0,
+   "end": 78.0,
+   "source": "https://videos.pexels.com/video-files/5636967/5636967-hd_1920_1080_24fps.mp4",
+   "in_point": 1.0,
+   "subject": "scales of justice on a desk",
+   "credit": "Sora Shimazaki",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b14",
+   "start": 78.0,
+   "end": 84.0,
+   "source": "https://videos.pexels.com/video-files/5243246/5243246-hd_1920_1080_24fps.mp4",
+   "in_point": 7.4,
+   "subject": "prison cell bars, slow pan",
+   "credit": "Teela Hudak",
+   "license": "Pexels License"
+  },
+  {
+   "id": "b15",
+   "start": 84.0,
+   "end": 90.0,
+   "source": "https://videos.pexels.com/video-files/39681507/16921228_1920_1080_25fps.mp4",
+   "in_point": 2.0,
+   "subject": "commuters leaving Dukuh Atas station, Jakarta, at dusk",
+   "credit": "Daneswara Eka",
+   "license": "Pexels License"
+  }
+ ]
+}

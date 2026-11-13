@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-03-cathedral.html (composition id "c1-03-cathedral")
+  WHAT: The third beat of chapter 1, on Strasbourg Cathedral. A picture of the cathedral (its base)
+    holds from the start. At 2.78 s it cuts to a picture of the spire, with the red figure "142
+    meter" beside it, and at 5.84 s the figure goes and a third picture of the cathedral takes over
+    for the rest of the beat. It runs 9.78 s; index.html mounts it as c1-03-cathedral-slot at 91.56 s.
+  STRUCTURE: three .dr-shot wrappers in document order: #c103cathedral-a (base), #c103cathedral-b
+    (spire) and #c103cathedral-c (mid). Between b and c sits #c103cathedral-b-fig, the red figure,
+    which is above the spire and below the mid shot. The paused GSAP timeline, registered as
+    window.__timelines["c1-03-cathedral"], pushes the base from 0 s (scale 1.014 to 1.061 over
+    2.78 s). At 2.78 s it shows the spire and the figure and pushes the spire (to 1.065 over 3.06 s).
+    At 5.84 s it hides the figure and shows and pushes the mid shot (to 1.079 over 3.94 s).
+  CUSTOMIZE: the figure text is inline in the markup: "142" and "meter" on two lines, with top 420 px
+    and left -400 px, which moves its centre left of the frame's middle. Its style is in
+    .dr-figure: 64 px bold italic, letter-spacing 0.12em and colour rgba(214, 62, 38, 0.96). The
+    times 2.78 and 5.84 must match in both shots and in the figure: the figure shows from 2.78 s and
+    is hidden at 5.84 s, the moment the mid shot appears. The last tween ends at 9.78 s, which must
+    match the data-duration that index.html gives c1-03-cathedral-slot. The grades are the
+    data-color-grading JSON on each img.
+  MEDIA: no media file is bundled. This file has three photo slots and one font slot. It has no sound
+    and no CSS image.
+    1. The base, img #c103cathedral-a-img (inside #c103cathedral-a, on screen from the start). It showed
+       the foot of Strasbourg Cathedral, one of three Hollar etchings (1630). It now shows a faint hatch
+       stand-in labeled "PHOTO: assets/generated/cath-base.jpg". To plug in your picture, set the img's
+       src to your file (for example assets/generated/cath-base.jpg). The data-media attribute only names
+       the expected path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The spire, img #c103cathedral-b-img (inside #c103cathedral-b, which cuts in at 2.78 s). It showed
+       the spire, with the red figure beside it. It now shows a stand-in labeled
+       "PHOTO: assets/generated/cath-spire.jpg". To plug in your picture, set the img's src to your file.
+    3. The mid shot, img #c103cathedral-c-img (inside #c103cathedral-c, which cuts in at 5.84 s). It showed
+       a third picture of the cathedral for the rest of the beat. It now shows a stand-in labeled
+       "PHOTO: assets/generated/cath-mid.jpg". To plug in your picture, set the img's src to your file.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-figure for the red "142
+       meter". It was a bundled font file. It now reads local("Arimo"): the face is used if it is installed,
+       otherwise the sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+    The red figure is plain text and needs no file.
+  WHEN TO USE: a beat that shows one building from three framings and sets one number in red beside
+    it. Pick another composition when there is no number to show.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The red figure: number on one line, unit on the next, bold italic, tracked. */
+        .dr-figure { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-style: italic; font-size: 64px; line-height: 1.28; letter-spacing: 0.12em; color: rgba(214, 62, 38, 0.96); text-shadow: 0 0 18px rgba(198, 58, 36, 0.45); white-space: nowrap; }
+      </style>
+      <!-- "Di tengahnya berdiri katedral ..." (91.56 s): cath-base from the start; cath-spire + red figure 142 meter on "menara" (94.34 s); cath-mid on "yang" (97.40 s). -->
+      <div id="root" data-composition-id="c1-03-cathedral" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c103cathedral-a" data-layout-allow-overflow><img id="c103cathedral-a-img" src="data:image/svg+xml,%3C!--cath-base.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/cath-base.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/cath-base.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The spire shot, cut in at 2.78 s; the red figure that goes with it follows. -->
+        <div class="dr-shot" id="c103cathedral-b" data-layout-allow-overflow><img id="c103cathedral-b-img" src="data:image/svg+xml,%3C!--cath-spire.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/cath-spire.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/cath-spire.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-figure" id="c103cathedral-b-fig" style="top: 420px; left: -400px;">142<br />meter</div>
+        <div class="dr-shot" id="c103cathedral-c" data-layout-allow-overflow><img id="c103cathedral-c-img" src="data:image/svg+xml,%3C!--cath-mid.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/cath-mid.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/cath-mid.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* The timeline: the base push, then the spire with its figure, then the mid shot. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c103cathedral-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.061, x: 6, y: -2, duration: 2.78, ease: "none" }, 0.0);
+        tl.fromTo("#c103cathedral-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.065, x: -5, y: 3, duration: 3.06, ease: "none" }, 2.78);
+        gsap.set("#c103cathedral-b", { opacity: 0 });
+        tl.to("#c103cathedral-b", { opacity: 1, duration: 0.001 }, 2.78);
+        gsap.set("#c103cathedral-b-fig", { opacity: 0 });
+        tl.to("#c103cathedral-b-fig", { opacity: 1, duration: 0.001 }, 2.78);
+        tl.to("#c103cathedral-b-fig", { opacity: 0, duration: 0.001 }, 5.84);
+        tl.fromTo("#c103cathedral-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.079, x: 4, y: 3, duration: 3.94, ease: "none" }, 5.84);
+        gsap.set("#c103cathedral-c", { opacity: 0 });
+        tl.to("#c103cathedral-c", { opacity: 1, duration: 0.001 }, 5.84);
+        window.__timelines["c1-03-cathedral"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

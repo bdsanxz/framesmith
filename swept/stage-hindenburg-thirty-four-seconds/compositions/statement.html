@@ -1,0 +1,77 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/statement.html (composition id "statement")
+  WHAT: A still of the passenger lounge, sharp at first under a warm tint, dims and softens as one sentence
+    rises in word by word: "No Zeppelin passenger had ever been killed". A short gold rule draws in above
+    the sentence. It lasts 5.26 s, and index.html mounts it at 21.73 s, after the stat scene and before the
+    Eckener collage. The file plays no sound of its own.
+  STRUCTURE: Back to front. #sm-bg is a slow push (scale 1.02 to 1.09) holding #sm-img, the lounge photo.
+    #sm-tint is a colour layer (#6f7458, blend mode color, opacity 0.35). #sm-shade is a dark gradient from
+    top to bottom. #sm-block sits on the left below the middle and holds the gold rule #sm-tick and the
+    sentence #sm-line, split into seven spans #sm-w1 to #sm-w7. Timeline: the push runs for 5.26 s; from
+    0.85 s the photo filter tweens over 0.7 s from grayscale with blur 0 and brightness 0.82 to blur 4 px
+    and brightness 0.36; the rule scales in from the left at 1.2 s; each word fades up 24 px in 0.3 s at
+    1.42, 1.62, 2.27, 2.86, 3.09, 3.31 and 3.54 s.
+  CUSTOMIZE: The sentence is the text of the seven spans in #sm-line. A different sentence needs one span per
+    word and one time per span in the array in the script, and the array length must equal the span count.
+    The font is Cormorant Garamond 600 at 82 px, colour #f3efe4. The gold rule is #e9b04a, 64 by 4 px. The
+    tint colour and opacity are on #sm-tint. The block position is left 132 px, top 566 px. The dimming
+    values are the filter arguments of the #sm-img tween.
+  MEDIA: No media file is bundled. This file has one photo slot and one font slot, and no video or sound.
+    Photo slot, #sm-img inside #sm-bg (assets/generated/src/lounge.jpg, a photo of the passenger lounge, used sharp
+    and then dimmed by the filter tween): it now shows a faint hatch stand-in labeled "PHOTO:
+    assets/generated/src/lounge.jpg", with the tint and shade over it. To plug in your own photo, set the src of that
+    img to your file, for example src="assets/generated/src/lounge.jpg". Any dim interior photo gives the same look.
+    Font slot, Cormorant Garamond 600, used by #sm-line (the sentence): it now uses an installed Cormorant Garamond, or
+    the fallback serif. To bundle it, change the src of the @font-face rule to
+    url("assets/fonts/cormorant-garamond-latin.woff2") format("woff2"), local("Cormorant Garamond").
+    Without a photo, the scene sits on its #0c0d0b ground with the tint and shade, and the sentence still plays.
+  WHEN TO USE: One sentence that carries the moment, revealed word by word over a photo that dims. Pick
+    another for several sentences or for a set of figures.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 600; font-display: block; src: local("Cormorant Garamond"); }
+        /* Scene root: a near-black ground under the photo. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0d0b; }
+        /* The photo is shown sharp first, then dims and softens as the sentence arrives. */
+        #sm-bg { position: absolute; inset: -30px; transform-origin: 45% 50%; }
+        #sm-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; }
+        /* A warm colour tint over the photo, blended in colour mode. */
+        #sm-tint { position: absolute; inset: 0; background: #6f7458; mix-blend-mode: color; opacity: 0.35; }
+        #sm-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 9, 7, 0.1) 0%, rgba(8, 9, 7, 0.55) 100%); }
+        /* The text block: the gold rule and the sentence, on the left below the middle. */
+        #sm-block { position: absolute; left: 132px; top: 566px; }
+        #sm-tick { width: 64px; height: 4px; background: #e9b04a; }
+        #sm-line { margin-top: 26px; font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: 82px; line-height: 1.25; color: #f3efe4; white-space: nowrap; }
+        #sm-line span { display: inline-block; }
+      </style>
+      <div id="root" data-composition-id="statement" data-width="1920" data-height="1080">
+        <div id="sm-bg" data-layout-allow-overflow><img id="sm-img" src="data:image/svg+xml,%3C!--lounge.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/lounge.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/src/lounge.jpg" alt="" /></div>
+        <div id="sm-tint"></div>
+        <div id="sm-shade"></div>
+        <div id="sm-block">
+          <div id="sm-tick"></div>
+          <div id="sm-line"><span id="sm-w1">No</span> <span id="sm-w2">Zeppelin</span> <span id="sm-w3">passenger</span> <span id="sm-w4">had</span> <span id="sm-w5">ever</span> <span id="sm-w6">been</span> <span id="sm-w7">killed</span></div>
+        </div>
+      </div>
+      <script>
+        /* Setup: the scene timeline, paused so the host seeks it; the photo push runs for the full scene. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#sm-bg", { scale: 1.02 }, { scale: 1.09, duration: 5.26, ease: "sine.inOut" }, 0);
+        // "Until that evening" plays over the sharp photo of the passenger lounge; it dims for the sentence.
+        tl.fromTo("#sm-img", { filter: "grayscale(1) blur(0px) brightness(0.82)" }, { filter: "grayscale(1) blur(4px) brightness(0.36)", duration: 0.7, ease: "power2.inOut" }, 0.85);
+        tl.fromTo("#sm-tick", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 1.2);
+        // Each word rises in as it is spoken ("no" 23.15 s ... "killed" 25.27 s, minus the scene start 21.73 s).
+        /* Each word gets its own tween, at the time listed for it in the array. */
+        [1.42, 1.62, 2.27, 2.86, 3.09, 3.31, 3.54].forEach((t, i) => {
+          tl.fromTo(`#sm-w${i + 1}`, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, t);
+        });
+        window.__timelines["statement"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

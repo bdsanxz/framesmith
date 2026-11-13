@@ -1,0 +1,88 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/stat.html (composition id "stat")
+  WHAT: A dark still of the fire, blurred and dimmed, sits behind a large number. A gold kicker reading
+    SECONDS, FLAME TO GROUND fades in, and the figure counts up from 0 to 34 over about 0.85 s as the
+    narration speaks the number. Then the italic line "the largest aircraft ever built, gone" rises in,
+    and a source caption with a short rule appears at the bottom. It lasts 4.65 s, and index.html mounts
+    it at 17.08 s, right after the flame scene. The file plays no sound of its own.
+  STRUCTURE: Back to front. #st-bg is a slow push (scale 1.04 to 1.1) that holds the photo. #st-shade is a
+    dark gradient running left to right. #st-block is the text stack on the left: #st-kicker (gold caps),
+    #st-num (the number, starting at 0) and #st-unit (the italic line). #st-source, low on the left, holds
+    a rule and the caption. Timeline: the push runs for 4.65 s; the kicker rises at 0.05 s; #st-num fades in
+    at 0.25 s; the count object runs from 0 to 34 over 0.85 s from 0.3 s, and onUpdate writes the rounded
+    value into #st-num; #st-unit rises at 2.3 s; #st-source fades in at 2.8 s.
+  CUSTOMIZE: The target of the count is the 34 in the fromTo on the count object, and the "0" in #st-num is
+    only the first frame. The texts are #st-kicker, #st-unit and the caption in #st-source. Colours: kicker
+    #e9b04a, figure #f3efe4, italic #d2ccbf, caption #a7a39a, shade rgba(8, 8, 8). The photo filter (grayscale
+    1, blur 13 px, brightness 0.4) is on #st-bg img. Sizes: figure 280 px, italic 58 px. The count's start
+    (0.3 s) and duration (0.85 s) are arguments in the tween.
+  MEDIA: No media file is bundled. This file has one photo slot and three font slots, and no video or sound.
+    Photo slot, the img inside #st-bg (assets/generated/src/fire.jpg, a still of the fire from the stills that
+    make-footage.sh produces, used only as a mood behind the number): it now shows a faint hatch stand-in labeled
+    "PHOTO: assets/generated/src/fire.jpg", under the grayscale, blur and dim filter. To plug in your own still, set
+    the src of that img to your file, for example src="assets/generated/src/fire.jpg". The data-media attribute only
+    names the expected path, so it can stay or be removed.
+    Font slot 1, Roboto Condensed 400, used by #st-source: it now uses an installed Roboto Condensed, or the
+    sans-serif fallback. Font slot 2, Roboto Condensed 700, used by #st-kicker. To bundle the family, change the src
+    of each Roboto Condensed @font-face rule (weight 400 and weight 700) to
+    url("assets/fonts/roboto-condensed-latin.woff2") format("woff2"), local("Roboto Condensed").
+    Font slot 3, Cormorant Garamond 600, used by #st-num (the figure): it now uses an installed Cormorant Garamond, or the
+    fallback serif. To bundle it, change the src of the Cormorant Garamond @font-face rule to
+    url("assets/fonts/cormorant-garamond-latin.woff2") format("woff2"), local("Cormorant Garamond").
+    The italic line in #st-unit names EB Garamond, which HyperFrames bundles, so it needs no font file. With the
+    stand-in the near-black ground (#0a0a0a) still keeps the number readable and the count still runs.
+  WHEN TO USE: One number that counts up across a spoken figure, over a dim photo. Pick another when the
+    number is not the point of the moment, or when no photo is available for a mood.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 400; font-display: block; src: local("Roboto Condensed"); }
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 700; font-display: block; src: local("Roboto Condensed"); }
+        @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 600; font-display: block; src: local("Cormorant Garamond"); }
+        /* Scene root: a near-black ground under the mood photo; the number reads against it. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0a0a0a; }
+        /* The photo is only a mood behind the number: blurred, dimmed, drifting. */
+        #st-bg { position: absolute; inset: -40px; transform-origin: 62% 45%; }
+        #st-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; filter: grayscale(1) blur(13px) brightness(0.4); }
+        /* A dark gradient from the left keeps the number readable over the photo. */
+        #st-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8, 8, 8, 0.78) 0%, rgba(8, 8, 8, 0.25) 68%, rgba(8, 8, 8, 0.45) 100%); }
+        #st-block { position: absolute; left: 132px; top: 300px; }
+        #st-kicker { font-family: "Roboto Condensed", sans-serif; font-weight: 700; font-size: 36px; line-height: 1.3; letter-spacing: 0.22em; color: #e9b04a; white-space: nowrap; }
+        #st-num { margin-top: 0; font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: 280px; line-height: 1.22; color: #f3efe4; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+        #st-unit { margin-top: 0; font-family: "EB Garamond", serif; font-style: italic; font-size: 58px; line-height: 1.3; color: #d2ccbf; white-space: nowrap; }
+        /* The source caption at the bottom left, with a short rule in front of it. */
+        #st-source { position: absolute; left: 132px; top: 958px; display: flex; align-items: center; gap: 18px; }
+        #st-source i { display: block; width: 46px; height: 2px; background: #8d8a83; }
+        #st-source span { font-family: "Roboto Condensed", sans-serif; font-weight: 400; font-size: 22px; line-height: 1.3; letter-spacing: 0.16em; color: #a7a39a; white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="stat" data-width="1920" data-height="1080">
+        <div id="st-bg" data-layout-allow-overflow><img src="data:image/svg+xml,%3C!--fire.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/fire.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/src/fire.jpg" alt="" /></div>
+        <div id="st-shade"></div>
+        <div id="st-block">
+          <div id="st-kicker">SECONDS, FLAME TO GROUND</div>
+          <div id="st-num">0</div>
+          <div id="st-unit">the largest aircraft ever built, gone</div>
+        </div>
+        <div id="st-source"><i></i><span>SOURCE: NEWSREEL FILM, LAKEHURST, MAY 6, 1937</span></div>
+      </div>
+      <script>
+        /* Setup: the scene timeline, paused so the host seeks it; the photo push runs for the full scene. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#st-bg", { scale: 1.04 }, { scale: 1.1, duration: 4.65, ease: "sine.inOut" }, 0);
+        tl.fromTo("#st-kicker", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 0.05);
+        tl.fromTo("#st-num", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.25);
+        // The figure counts up across the spoken number ("thirty-four" 17.41 s to "seconds" 18.11 s).
+        const el = document.querySelector("#st-num");
+        const n = { v: 0 };
+        tl.fromTo(n, { v: 0 }, { v: 34, duration: 0.85, ease: "power2.out", onUpdate: () => { el.textContent = String(Math.round(n.v)); } }, 0.3);
+        tl.fromTo("#st-unit", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 2.3);
+        tl.fromTo("#st-source", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 2.8);
+        window.__timelines["stat"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/registry-item.json",
+  "name": "odometer-roll",
+  "type": "hyperframes:block",
+  "title": "Odometer Roll",
+  "description": "A number rolls into place digit by digit like a mechanical odometer, right-hand digits spinning more turns, then holds with its label.",
+  "tags": ["data", "counter", "number", "stat", "readout"],
+  "dimensions": { "width": 1920, "height": 1080 },
+  "duration": 5,
+  "minCliVersion": "0.8.103",
+  "files": [
+    {
+      "path": "odometer-roll.html",
+      "target": "compositions/odometer-roll.html",
+      "type": "hyperframes:composition"
+    }
+  ]
+}

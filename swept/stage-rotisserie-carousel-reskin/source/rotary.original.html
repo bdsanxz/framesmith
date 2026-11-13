@@ -1,0 +1,136 @@
+<!--
+  GUIDE: source/rotary.original.html (composition id "rotary", inside a template named rotary-template)
+  WHAT: The original, untouched below this comment, of the rotisserie scene from HeyGen's HF-heygen-stripe launch film
+    (Apache-2.0), kept as the reference for compositions/rotary.html. It is 5.25 seconds on a
+    near-black ground: "The agent" on the left, a green drum in the middle that cycles discovers,
+    provisions, generates, pays, and a background video from assets/bg-dev-loop.mp4 that starts
+    27.0 s into its clip. The markup holds only "The agent" and the drum. The CSS comment on the
+    row mentions a trailing "it" that is not in the markup. No index.html in this folder mounts it.
+  STRUCTURE: #ro-root (composition id "rotary", 1920 by 1080, data-duration 5.25). Back to front: a
+    muted video .bg at z 0, and .row at z 3 holding .fixed "The agent" and .drum. The drum is 34vw
+    by 22vw in CSS, but the script sets its width to fit the widest verb. Inside it, .axis is
+    pushed back 13vw and #cyl is the cylinder; eight .w words sit at n = -2 to 5, 30 degrees apart,
+    at radius 13vw. Timeline (tl): the fixed text goes from a 7 px blur to sharp at 0.1 s over
+    0.5 s; the cylinder rotates to 30, 60 and 90 degrees at 1.12, 1.87 and 2.79 s, 0.35 s each,
+    and holds on "pays" until 5.25 s. The timeline is registered as window.__timelines["rotary"].
+  CUSTOMIZE: The words are the SEQ array (discovers, provisions, generates, pays) and the fixed
+    text is "The agent". Colors are the ink (#FFFFFF) and green (#35C838) variables on #ro-root,
+    and the ground is #0A0C0B. Size is 6vw at weight 700. The rotation times are the numbers in
+    the tl.to calls, matched to the onsets of the spoken words given in the comments, which start
+    from the 27.0 s media start. Do not copy the t and dev URL parameters (seek and play) into a
+    composition; the rebuild removes them.
+  MEDIA: assets/bg-dev-loop.mp4, the background video, which plays muted from media time 27.0 s
+    for 5.25 s. It is not in this folder. The stand-in is the solid #0A0C0B ground that #ro-root
+    already sets, or a dark still or a free licensed loop of similar brightness. Fonts:
+    fonts/ABCSolarDisplay-Bold.otf and fonts/HankenGrotesk-normal-700-latin-fe1634.woff2, loaded by
+    the @font-face rules. Both are missing here, so the browser falls back to the next names in the
+    font stack, then system-ui. GSAP 3.12.5 is loaded from jsdelivr.
+  WHEN TO USE: Reference only. Open it to compare with compositions/rotary.html or to check the
+    original drum timing. Do not render it from this folder, since its video and fonts are missing.
+    The rebuild in compositions/rotary.html is the file to use.
+-->
+<template id="rotary-template">
+  <div id="ro-root" data-composition-id="rotary" data-width="1920" data-height="1080" data-duration="5.25">
+    <style>
+      /* Font faces for the display and text fonts; the font files are not in this folder. */
+      @font-face { font-family:'ABC Solar Display'; font-weight:700; font-display:block;
+        src:url(fonts/ABCSolarDisplay-Bold.otf) format('opentype'); }
+      @font-face { font-family:'Hanken Grotesk'; font-weight:700; font-display:block;
+        src:url(fonts/HankenGrotesk-normal-700-latin-fe1634.woff2) format('woff2'); }
+      /* Root frame: the ink and green colors as variables, the display font stack, and a solid ground. */
+      #ro-root{ --ink:#FFFFFF; --green:#35C838;
+        --f-display:"ABC Solar Display","Hanken Grotesk",system-ui,sans-serif;
+        position:relative;width:1920px;height:1080px;overflow:hidden;
+        background:#0A0C0B;container-type:size;font-family:var(--f-display);color:var(--ink)}
+      #ro-root *,#ro-root *::before,#ro-root *::after{box-sizing:border-box}
+      /* Background video: covers the whole frame behind the text. */
+      #ro-root .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+
+      /* one centered line: The agent · [drum] · it */
+      #ro-root .row{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+        gap:1.4vw;z-index:3}
+      /* Fixed text: bold 6vw, the same size as the drum words, in the ink color. */
+      #ro-root .fixed{font-weight:700;font-size:6vw;letter-spacing:-0.025em;line-height:1;color:var(--ink);white-space:nowrap}
+
+      /* the rotisserie drum: 3D cylinder seen edge-on, top & bottom rows fade behind the "wall".
+         width is set in JS to hug the widest verb so the gap to "it" matches the gap from "agent". */
+      #ro-root .drum{position:relative;width:34vw;height:22vw;perspective:60vw;
+        -webkit-mask-image:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.25) 16%,#000 38%,#000 62%,rgba(0,0,0,.25) 84%,transparent 100%);
+                mask-image:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.25) 16%,#000 38%,#000 62%,rgba(0,0,0,.25) 84%,transparent 100%)}
+      /* push the assembly back by the radius so the FRONT (active) word lands at z:0 — same scale as the fixed text */
+      #ro-root .axis{position:absolute;inset:0;transform:translateZ(-13vw);transform-style:preserve-3d}
+      /* the cylinder we spin (GSAP drives rotationX) */
+      #ro-root .cyl{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+      /* each verb sits on the cylinder surface: tilt by its angle, then push out by the radius */
+      #ro-root .w{position:absolute;left:0;top:50%;width:100%;text-align:center;
+        font-weight:700;font-size:6vw;letter-spacing:-0.025em;line-height:1;color:var(--green);white-space:nowrap;
+        transform-origin:center center;backface-visibility:hidden}
+    </style>
+    <!-- Background video from assets/bg-dev-loop.mp4, which is not in this folder; it starts 27.0 s into that clip. -->
+    <video class="bg" id="ro-bg" src="assets/bg-dev-loop.mp4" muted playsinline data-start="0" data-duration="5.25" data-media-start="27.0" data-track-index="0"></video>
+    <!-- The centered row: the fixed The agent text and the drum. -->
+    <div class="row">
+      <div class="fixed">The agent</div>
+      <div class="drum"><div class="axis"><div class="cyl" id="cyl"></div></div></div>
+    </div>
+    <!-- Loads GSAP 3.12.5 from jsdelivr, which the scene timeline needs. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script>
+    /* Wraps the scene setup in one function so its names stay private to the scene. */
+    (function(){
+      const root=document.querySelector('[data-composition-id="rotary"]');
+      /* Finds the scene root, the cylinder, and the drum element that fitDrum sizes. */
+      const cyl=root.querySelector('#cyl');
+      const drum=root.querySelector('.drum');
+
+      // Rotisserie geometry. Active (center) word cycles: discovers → provisions → generates → pays.
+      const SEQ=['discovers','provisions','generates','pays'];
+      const STEP=30, R=13;                 // degrees between slots · cylinder radius (vw)
+
+      // Hug the widest verb so the gap to "it" matches the gap from "The agent" (verbs are centered).
+      function fitDrum(){
+        const m=document.createElement('span');
+        m.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font-family:var(--f-display);'
+          +'font-weight:700;font-size:6vw;letter-spacing:-0.025em';
+        drum.appendChild(m);
+        let max=0; SEQ.forEach(t=>{m.textContent=t;max=Math.max(max,m.getBoundingClientRect().width);});
+        drum.removeChild(m);
+        drum.style.width=Math.ceil(max+2)+'px';
+      }
+      fitDrum();
+      if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitDrum);}
+      // place verbs at intrinsic angle = -n*STEP for n in [-2..4]; container rotates +STEP per advance.
+      for(let n=-2;n<=5;n++){
+        const w=document.createElement('div');
+        w.className='w';
+        w.textContent=SEQ[((n%SEQ.length)+SEQ.length)%SEQ.length];
+        const a=-n*STEP;
+        w.style.transform='translateY(-50%) rotateX('+a+'deg) translateZ('+R+'vw)';
+        cyl.appendChild(w);
+      }
+
+      gsap.set(cyl,{rotationX:0});          // S0: center=discovers
+      /* Paused timeline: the fixed text blurs in, the drum flips three times, and the hold runs to the end. */
+      const tl=gsap.timeline({paused:true});
+      // motion-blur-in on the fixed "The agent"; the 3D drum stays sharp (a CSS filter would flatten the cylinder)
+      const fixed=root.querySelectorAll('.fixed');
+      gsap.set(fixed,{filter:'blur(7px)'});
+      tl.to(fixed,{filter:'blur(0px)',duration:.5,ease:'power3.out'},0.1);
+      // each verb LANDS centered exactly on its spoken word (scene starts 13.2; onsets: discovers +0.71,
+      // provisions +1.63, generates +2.38, pays +3.30). "discovers" is the resting state, already centered.
+      // scene now starts 27.0 (on the VO); onsets discovers +0.55, provisions +1.47, generates +2.22, pays +3.14
+      tl.to(cyl,{rotationX:30,duration:.35,ease:'power3.inOut'},1.12);  // settles on "provisions" @ 1.47
+      tl.to(cyl,{rotationX:60,duration:.35,ease:'power3.inOut'},1.87);  // settles on "generates"  @ 2.22
+      tl.to(cyl,{rotationX:90,duration:.35,ease:'power3.inOut'},2.79);  // settles on "pays"       @ 3.14
+      tl.to({},{duration:2.11},3.14);                                   // hold on "pays"
+
+      /* Registers the timeline as rotary. The t and dev URL parameters seek or play it here; the rebuild removes both. */
+      window.__timelines=window.__timelines||{};
+      window.__timelines["rotary"]=tl;
+      const q=new URLSearchParams(location.search);
+      if(q.has('t')){tl.seek(parseFloat(q.get('t'))||0);}
+      else if(q.get('dev')==='1'){tl.play();}
+    })();
+    </script>
+  </div>
+</template>

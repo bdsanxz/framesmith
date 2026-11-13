@@ -1,0 +1,70 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main", 14 seconds, 1920 by 1080)
+  WHAT: A 14-second, 1920x1080 reviewer briefing for heygen-com/hyperframes PR 2026, built from
+    three frames cut together with no narration. It opens with a one-line hook and the size of
+    the change (0 to 4s), shows the real changed code with one row removed and two rows added
+    (4 to 10s), and closes on the author and a MERGED status pill (10 to 14s).
+  STRUCTURE: The root #root (data-composition-id "main", data-duration 14) holds three host divs
+    on track 0, in time order: #frame-hook (compositions/frames/01-hook.html, id pr-hook) at 0s
+    for 4s; #frame-diff (compositions/code-diff.html, id code-diff) at 4s for 6s; and
+    #frame-handoff (compositions/frames/08-handoff.html, id pr-handoff) at 10s for 4s. The root
+    script makes a paused, empty GSAP timeline and registers it as "main"; the motion lives in
+    the three frames, each of which registers its own timeline.
+  CUSTOMIZE: Each frame is retimed by the data-start and data-duration on its host. A frame's
+    own timeline must fit inside its host duration; the hook and handoff use 4s and the code
+    frame uses 6s. Keep the root data-duration (14) at the end of the last frame. To brief a
+    different PR, change the text and numbers inside each frame file, and rebuild the code
+    frame's tokens with the Shiki script named in the CUSTOMIZE note of
+    compositions/code-diff.html (the inspiration README has the exact command), since the PR's
+    names, counts and code are all in those files. The canvas is 1920x1080 in data-width, data-height and the viewport meta. The
+    only external file is the GSAP script in the head, pinned to gsap@3.14.2.
+  MEDIA: no media file is bundled, and this file loads none: no audio, photo or video. Its
+    three frames are cut together with no sound. The handoff frame shows a monogram instead of
+    the author photo, and the code frame's rows are inline tokens, so there is nothing to plug
+    in here. The fonts named in the frames (JetBrains Mono, EB Garamond) are set by family name
+    only, with no @font-face rule and no font file: both are among the families the renderer
+    bundles, so they need nothing plugged in. The only network file is the gsap.min.js
+    script from cdn.jsdelivr.net, which is code, not media. For the real photo and font steps,
+    see MEDIA in compositions/frames/08-handoff.html and in each frame that names a font.
+  WHEN TO USE: A short reviewer briefing for one pull request: the hook, the key code change,
+    and who owns it. Pick another format for a multi-file review, a long walkthrough, or a
+    briefing that needs narration.
+-->
+<html lang="en">
+  <head>
+    <!-- Document head: charset, a fixed 1920x1080 viewport, the title, and the GSAP script. -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>PR #2026 — reviewer briefing (built frames)</title>
+    <!-- GSAP 3.14.2 from jsdelivr: the animation library the frames use. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset: zero margins and padding, border-box sizing, and a fixed 1920x1080 canvas. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #FAF9F5; }
+      /* Root composition: fills the 1920x1080 canvas on the cream ground and clips what it holds. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #FAF9F5; }
+    </style>
+  </head>
+  <body>
+    <!-- Frames 1, 5 and 8 of STORYBOARD.md, cut together: hook → diff → handoff. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="1920" data-height="1080">
+      <!-- Frame 1, 0 to 4s: the hook line and the size of the change. -->
+      <div id="frame-hook" data-composition-id="pr-hook" data-composition-src="compositions/frames/01-hook.html"
+        data-start="0" data-duration="4" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <!-- Frame 2, 4 to 10s: the real code change, shown as removed and added rows. -->
+      <div id="frame-diff" data-composition-id="code-diff" data-composition-src="compositions/code-diff.html"
+        data-start="4" data-duration="6" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <!-- Frame 3, 10 to 14s: the author and the MERGED status. -->
+      <div id="frame-handoff" data-composition-id="pr-handoff" data-composition-src="compositions/frames/08-handoff.html"
+        data-start="10" data-duration="4" data-track-index="0" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Root timeline: paused and empty, since the three frames carry all the motion. */
+      const tl = gsap.timeline({ paused: true });
+      /* Register the root timeline under the root composition id. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

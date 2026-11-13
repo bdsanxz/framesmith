@@ -1,0 +1,67 @@
+<!doctype html>
+<!--
+  GUIDE: design-export/index.html (the stand-in design export, not a composition)
+  WHAT: A static HTML page, not a video scene. It stands in for what a design tool such as Claude Design
+    exports: real HTML and CSS with a fictional "Lumen" design system. It shows four 540 by 540 frames in
+    a two-column grid on a dark gray page: the grid frame (f1), the title frame (f2), the counter frame
+    (f3) and the end frame (f4). It is never rendered to video. The compositions in compositions/ rebuild
+    these four frames as four 3-second scenes, so this page is the source the motion was built from. It plays no sound of its own.
+  STRUCTURE: the :root block holds the Lumen tokens (ink, dim text, accent, ground, display and mono
+    faces). The body is a two-column grid of .frame sections, each with a .chrome label. f1 holds a
+    .grid of five cells, two of them lit. f2 holds a .title line. f3 holds a .count with a DAY label and
+    the numeral 20. f4 holds an .end stack with a .mark ring over a .word. The page has no script and no
+    timeline.
+  CUSTOMIZE: the palette and the font families are the :root declarations; the frame size is the .frame
+    width and height (540 px). The scene compositions copy these values by hand, so change both sides
+    together. A real design export would replace this file; keep its tokens in :root so the scenes can be
+    rebuilt from them.
+  MEDIA: No media file is bundled. None is needed: this page has no photo, video, sound, font file or CSS
+    image slot. It names Archivo Black and JetBrains Mono and loads neither. It is opened in a browser, not
+    rendered by HyperFrames, so it shows them only where they are installed and falls back to the system sans
+    and mono faces elsewhere; the compositions built from it get both from the fonts HyperFrames bundles.
+  WHEN TO USE: as a stand-in for a real design export while building or demonstrating the design-to-video
+    path. It is source material, not part of the film itself.
+-->
+<!-- Stand-in for a design-tool export (e.g. a Claude Design "Download project"): real HTML/CSS with the
+     design system's tokens and four static frames. The video is built FROM this file, not redrawn. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Lumen — Design to video (design export)</title>
+<style>
+  /* Design tokens: the Lumen palette and the two font families, as custom properties. */
+  :root { --lumen-ink: #F2F4FF; --lumen-dim: #9AA3C7; --lumen-accent: #7DF9C5; --lumen-ground: #0B1020;
+          --lumen-display: "Archivo Black", sans-serif; --lumen-mono: "JetBrains Mono", monospace; }
+  /* The page: a dark gray canvas holding the four frames in a two-column grid. */
+  body { background: #222; display: grid; gap: 24px; padding: 24px; grid-template-columns: repeat(2, 540px); }
+  /* One frame: a 540 by 540 ground that clips its contents. */
+  .frame { width: 540px; height: 540px; background: var(--lumen-ground); position: relative; overflow: hidden; color: var(--lumen-ink); }
+  /* Frame f1: a five-column grid of cells inset from the frame edge. */
+  .grid { position: absolute; inset: 60px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  /* Grid cells: mint outline boxes; a lit cell gets a solid mint fill. */
+  .cell { border: 1px solid rgba(125,249,197,.35); border-radius: 6px; }
+  .cell.on { background: rgba(125,249,197,.85); }
+  /* Frame f2: the centered display title. */
+  .title { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--lumen-display); font-size: 64px; letter-spacing: -.02em; }
+  /* The small mono label at the top left of each frame. */
+  .chrome { position: absolute; left: 24px; top: 20px; font-family: var(--lumen-mono); font-size: 11px; letter-spacing: .14em; color: var(--lumen-dim); }
+  /* Frame f3: the centered numeral with its DAY label. */
+  .count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 14px; font-family: var(--lumen-display); font-size: 120px; }
+  /* The DAY label: mono, small and mint. */
+  .count small { font-family: var(--lumen-mono); font-size: 18px; color: var(--lumen-accent); letter-spacing: .14em; }
+  /* Frame f4: the ring mark stacked over the wordmark. */
+  .end { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  /* The ring: a 72 px circle with a thick mint border. */
+  .mark { width: 72px; height: 72px; border-radius: 50%; border: 10px solid var(--lumen-accent); }
+  /* The wordmark in the display face. */
+  .word { font-family: var(--lumen-display); font-size: 48px; }
+</style>
+</head>
+<body>
+  <!-- The four export frames in reading order; each one is the source of one scene. -->
+  <section class="frame" id="f1"><div class="chrome">LUMEN · 01/04</div><div class="grid"><div class="cell on"></div><div class="cell on"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div></section>
+  <section class="frame" id="f2"><div class="chrome">LUMEN · 02/04</div><div class="title">DESIGN → VIDEO</div></section>
+  <section class="frame" id="f3"><div class="chrome">LUMEN · 03/04</div><div class="count"><small>DAY</small>20</div></section>
+  <section class="frame" id="f4"><div class="end"><div class="mark"></div><div class="word">lumen</div></div></section>
+</body>
+</html>

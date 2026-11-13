@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/title.html (composition id "title")
+  WHAT: The second scene, 3 seconds long, mounted at 3 s in index.html. On a dark ground a small mono label
+    "LUMEN 02/04" sits at the top left, and the display title (DESIGN, an arrow, VIDEO) sits centered at 92 px
+    in Archivo Black. It pops in from 0.1 s: opacity from 0 to 1 and scale from 1.15 to 1 over 0.5 s with
+    expo.out. From 0.6 s an inner span widens slowly from scale 1 to 1.04 over 2.4 s, linearly. Scale is used
+    instead of letter spacing so the widening does not snap to whole pixels. The scene plays no sound of its own.
+  STRUCTURE: the scene sits in a template element, and the host mounts its style, markup and script. Back to
+    front: #root holds .title-chrome and #title-text, a full-frame flex box that is centered and marked
+    data-layout-allow-overflow, containing #title-inner, the span that holds the title. Timeline "title": a
+    tween on #title-text (opacity and scale) at 0.1 s, then a scale tween on #title-inner from 1 to 1.04 at
+    0.6 s over 2.4 s with ease none.
+  CUSTOMIZE: the title string is the text of #title-inner. In the style: the font size (92 px), the letter
+    spacing (-0.02em), and the colors (ink #F2F4FF, chrome #9AA3C7). In the tl calls: the entry scale (1.15),
+    the widen target (1.04) and the two start times (0.1 and 0.6). The title is nowrap, so a longer title must
+    still fit 1080 px at 92 px.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. Archivo Black and JetBrains Mono are bundled with HyperFrames, so no font file is needed.
+  WHEN TO USE: a one-line display title that enters with a pop and then keeps moving slowly, so the frame is
+    never still. For a title that wraps to two lines, the nowrap rule has to change first.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The scene is a template: the host mounts its style, markup and script together. -->
+    <template>
+      <style>
+        /* Design tokens, copied from the export so this scene stands alone. */
+        :root { --lumen-ink: #F2F4FF; --lumen-dim: #9AA3C7; --lumen-accent: #7DF9C5; }
+        /* Scene root: fills the square and sets the ink color and the display face. */
+        #root { position: absolute; inset: 0; color: #F2F4FF; font-family: "Archivo Black", sans-serif; }
+        /* The top-left mono label. */
+        .title-chrome { position: absolute; left: 48px; top: 40px; font-family: "JetBrains Mono", monospace; font-size: 22px; letter-spacing: .14em; color: #9AA3C7; }
+        /* The inner span: the element that gets the slow widen. */
+        #title-inner { display: block; }
+        /* The title box: a full-frame flex row that centers the text at 92 px. */
+        #title-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 92px; letter-spacing: -0.02em; white-space: nowrap; }
+      </style>
+      <!-- Scene markup: the root with the chrome label and the title box. -->
+      <div id="root" data-composition-id="title" data-width="1080" data-height="1080">
+        <div class="title-chrome">LUMEN · 02/04</div>
+        <div id="title-text" data-layout-allow-overflow><span id="title-inner">DESIGN → VIDEO</span></div>
+      </div>
+      <script>
+        /* Timeline: paused, so the host seeks it; two tweens follow. */
+        const tl = gsap.timeline({ paused: true });
+        /* The entrance pop: the title fades in and settles from scale 1.15 to 1. */
+        tl.fromTo("#title-text", { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 0.1);
+        // A slow widen as scale on an inner span: letterSpacing would snap to whole pixels and stutter.
+        tl.fromTo("#title-inner", { scale: 1 }, { scale: 1.04, duration: 2.4, ease: "none" }, 0.6);
+        /* Registration under the composition id. */
+        window.__timelines["title"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

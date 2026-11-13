@@ -1,0 +1,213 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/captions.html (composition id "captions"), written by scripts/paper-flash-build.py
+  WHAT: one caption card at a time, in step with the voice: white caps with a black outline and a short
+    hard shadow, 78% down the frame, each card held until the next. Eighty-one cards (#cw-0 to #cw-80) over the
+    40.24 s film: the first starts at 0.19 s and the last ends at 40.24 s. The host mounts it over the whole film
+    from index.html (the captions-slot, z-index 7).
+  STRUCTURE: mounted over the whole film (z-index 7, a captions track); one .caption-word#cw-N per card whose
+    data-start/data-duration run from its first word to the next card, on tracks 0, 1 and 2 in turn. Each card has
+    one 0.07 s tween at its own data-start (opacity 0.35 and scale 0.94 to 1), so it comes in dim and a touch small
+    and is full white about two frames later. The font size steps down for longer cards: 112 px for most, 98 px for
+    cw-30, cw-57, cw-61 and cw-74, and 82 px for the last card, cw-80.
+  CUSTOMIZE: the cards and their text are captions.txt (one "N TEXT" line per card: N transcript words); the face is
+    cut.json fonts.caption. change the manifests (shots.json, cut.json, captions.txt) and build again, never this file:
+    it is rewritten on every build. The seam timings are RISE, HOLD, FALL, TEAR, ZOOM_IN, ZOOM_OUT
+    at the head of scripts/paper-flash-build.py. The values the build writes here must change together: top (1440px)
+    and height (130px) with line-height (130px), so the caps stay centred in their box; the inline font-size of each
+    card (112, 98 or 82 px); the 16px outline in -webkit-text-stroke and the hard shadow in text-shadow; and the 0.35
+    start opacity, 0.94 start scale and 0.07 s length of each tween, which set how a card arrives.
+  MEDIA: no media file is bundled. The one slot is the caption font. The @font-face at the top of the style block
+    declares "Lilita One" with src local("Lilita One"), so the cards are set in Lilita One when it is installed on the
+    machine, and in the sans-serif of the font stack when it is not. No picture, video or sound is in this file. To
+    plug in your own font, add a url source before the local one in that @font-face, for example
+    src: url("fonts/your-caption-font.woff2") format("woff2"), local("Lilita One"); with the path of your file.
+  WHEN TO USE: a vertical Short (1080x1920) cut fast on the spoken words, in the paper flash transitions style
+    (references/paper-flash-transitions.md). For a calm or long-form film use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Styles: the caption font, the frame, and the look of one caption card. */
+        @font-face { font-family: "Lilita One"; font-style: normal; font-weight: 400; font-display: block; src: local("Lilita One"); }
+        /* One word at a time, 78% down the frame: white caps, a black outline, a short hard shadow. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        .caption-word { position: absolute; left: 40px; width: 1000px; top: 1440px; height: 130px; max-width: 1000px; line-height: 130px; text-align: center; white-space: nowrap;
+          font-family: "Lilita One", sans-serif; font-weight: 400; letter-spacing: 0.03em; color: #ffffff;
+          -webkit-text-stroke: 16px #000000; paint-order: stroke fill; text-shadow: 0 7px 0 #000000, 0 10px 14px rgba(0, 0, 0, 0.55); }
+      </style>
+      <!-- The caption cards: one .caption-word per card, each shown at its own data-start. -->
+      <div id="root" data-composition-id="captions" data-width="1080" data-height="1920">
+        <div id="cw-0" class="clip caption-word" data-layout-allow-occlusion data-start="0.191" data-duration="0.348" data-track-index="0" style="font-size:112px">BANYAK</div>
+        <div id="cw-1" class="clip caption-word" data-layout-allow-occlusion data-start="0.541" data-duration="0.252" data-track-index="1" style="font-size:112px">YANG</div>
+        <div id="cw-2" class="clip caption-word" data-layout-allow-occlusion data-start="0.795" data-duration="0.31" data-track-index="2" style="font-size:112px">NGIRA</div>
+        <div id="cw-3" class="clip caption-word" data-layout-allow-occlusion data-start="1.107" data-duration="0.31" data-track-index="0" style="font-size:112px">MICIN</div>
+        <div id="cw-4" class="clip caption-word" data-layout-allow-occlusion data-start="1.419" data-duration="0.31" data-track-index="1" style="font-size:112px">BIKIN</div>
+        <div id="cw-5" class="clip caption-word" data-layout-allow-occlusion data-start="1.731" data-duration="0.456" data-track-index="2" style="font-size:112px">BODOH</div>
+        <div id="cw-6" class="clip caption-word" data-layout-allow-occlusion data-start="2.189" data-duration="0.291" data-track-index="0" style="font-size:112px">PADAHAL</div>
+        <div id="cw-7" class="clip caption-word" data-layout-allow-occlusion data-start="2.482" data-duration="0.28" data-track-index="1" style="font-size:112px">NGGAK</div>
+        <div id="cw-8" class="clip caption-word" data-layout-allow-occlusion data-start="2.764" data-duration="0.154" data-track-index="2" style="font-size:112px">ADA</div>
+        <div id="cw-9" class="clip caption-word" data-layout-allow-occlusion data-start="2.92" data-duration="0.262" data-track-index="0" style="font-size:112px">BUKTI</div>
+        <div id="cw-10" class="clip caption-word" data-layout-allow-occlusion data-start="3.184" data-duration="0.784" data-track-index="1" style="font-size:112px">ILMIAHNYA</div>
+        <div id="cw-11" class="clip caption-word" data-layout-allow-occlusion data-start="4.451" data-duration="0.672" data-track-index="2" style="font-size:112px">MICIN</div>
+        <div id="cw-12" class="clip caption-word" data-layout-allow-occlusion data-start="5.125" data-duration="0.593" data-track-index="0" style="font-size:112px">ITU</div>
+        <div id="cw-13" class="clip caption-word" data-layout-allow-occlusion data-start="5.72" data-duration="0.704" data-track-index="1" style="font-size:112px">MSG</div>
+        <div id="cw-14" class="clip caption-word" data-layout-allow-occlusion data-start="6.426" data-duration="0.461" data-track-index="2" style="font-size:112px">ISINYA</div>
+        <div id="cw-15" class="clip caption-word" data-layout-allow-occlusion data-start="6.889" data-duration="0.91" data-track-index="0" style="font-size:112px">GLUTAMAT</div>
+        <div id="cw-16" class="clip caption-word" data-layout-allow-occlusion data-start="7.801" data-duration="0.286" data-track-index="1" style="font-size:112px">ZAT YANG</div>
+        <div id="cw-17" class="clip caption-word" data-layout-allow-occlusion data-start="8.089" data-duration="0.29" data-track-index="2" style="font-size:112px">BIKIN</div>
+        <div id="cw-18" class="clip caption-word" data-layout-allow-occlusion data-start="8.381" data-duration="0.472" data-track-index="0" style="font-size:112px">MAKANAN</div>
+        <div id="cw-19" class="clip caption-word" data-layout-allow-occlusion data-start="8.855" data-duration="0.401" data-track-index="1" style="font-size:112px">TERASA</div>
+        <div id="cw-20" class="clip caption-word" data-layout-allow-occlusion data-start="9.258" data-duration="0.752" data-track-index="2" style="font-size:112px">GURIH</div>
+        <div id="cw-21" class="clip caption-word" data-layout-allow-occlusion data-start="10.306" data-duration="0.23" data-track-index="0" style="font-size:112px">GLUTAMAT</div>
+        <div id="cw-22" class="clip caption-word" data-layout-allow-occlusion data-start="10.538" data-duration="0.26" data-track-index="1" style="font-size:112px">INI</div>
+        <div id="cw-23" class="clip caption-word" data-layout-allow-occlusion data-start="10.8" data-duration="0.29" data-track-index="2" style="font-size:112px">ADA</div>
+        <div id="cw-24" class="clip caption-word" data-layout-allow-occlusion data-start="11.092" data-duration="0.442" data-track-index="0" style="font-size:112px">ALAMI</div>
+        <div id="cw-25" class="clip caption-word" data-layout-allow-occlusion data-start="11.536" data-duration="0.905" data-track-index="1" style="font-size:112px">DI TOMAT</div>
+        <div id="cw-26" class="clip caption-word" data-layout-allow-occlusion data-start="12.443" data-duration="0.341" data-track-index="2" style="font-size:112px">KEJU</div>
+        <div id="cw-27" class="clip caption-word" data-layout-allow-occlusion data-start="12.786" data-duration="0.849" data-track-index="0" style="font-size:112px">JAMUR</div>
+        <div id="cw-28" class="clip caption-word" data-layout-allow-occlusion data-start="13.637" data-duration="0.296" data-track-index="1" style="font-size:112px">BAHKAN</div>
+        <div id="cw-29" class="clip caption-word" data-layout-allow-occlusion data-start="13.935" data-duration="0.943" data-track-index="2" style="font-size:112px">DI ASI</div>
+        <div id="cw-30" class="clip caption-word" data-layout-allow-occlusion data-start="15.4" data-duration="1.076" data-track-index="0" style="font-size:98px">YANG PERTAMA</div>
+        <div id="cw-31" class="clip caption-word" data-layout-allow-occlusion data-start="16.478" data-duration="0.17" data-track-index="1" style="font-size:112px">NEMUIN</div>
+        <div id="cw-32" class="clip caption-word" data-layout-allow-occlusion data-start="16.65" data-duration="0.448" data-track-index="2" style="font-size:112px">SEORANG</div>
+        <div id="cw-33" class="clip caption-word" data-layout-allow-occlusion data-start="17.1" data-duration="0.508" data-track-index="0" style="font-size:112px">PROFESOR</div>
+        <div id="cw-34" class="clip caption-word" data-layout-allow-occlusion data-start="17.61" data-duration="0.478" data-track-index="1" style="font-size:112px">JEPANG</div>
+        <div id="cw-35" class="clip caption-word" data-layout-allow-occlusion data-start="18.09" data-duration="0.448" data-track-index="2" style="font-size:112px">TAHUN</div>
+        <div id="cw-36" class="clip caption-word" data-layout-allow-occlusion data-start="18.54" data-duration="1.258" data-track-index="0" style="font-size:112px">1908</div>
+        <div id="cw-37" class="clip caption-word" data-layout-allow-occlusion data-start="19.8" data-duration="0.158" data-track-index="1" style="font-size:112px">DARI</div>
+        <div id="cw-38" class="clip caption-word" data-layout-allow-occlusion data-start="19.96" data-duration="0.238" data-track-index="2" style="font-size:112px">KALDU</div>
+        <div id="cw-39" class="clip caption-word" data-layout-allow-occlusion data-start="20.2" data-duration="0.308" data-track-index="0" style="font-size:112px">RUMPUT</div>
+        <div id="cw-40" class="clip caption-word" data-layout-allow-occlusion data-start="20.51" data-duration="0.388" data-track-index="1" style="font-size:112px">LAUT</div>
+        <div id="cw-41" class="clip caption-word" data-layout-allow-occlusion data-start="20.9" data-duration="0.668" data-track-index="2" style="font-size:112px">SOAL</div>
+        <div id="cw-42" class="clip caption-word" data-layout-allow-occlusion data-start="21.57" data-duration="0.228" data-track-index="0" style="font-size:112px">PUSING</div>
+        <div id="cw-43" class="clip caption-word" data-layout-allow-occlusion data-start="21.8" data-duration="0.278" data-track-index="1" style="font-size:112px">HABIS</div>
+        <div id="cw-44" class="clip caption-word" data-layout-allow-occlusion data-start="22.08" data-duration="0.388" data-track-index="2" style="font-size:112px">MAKAN</div>
+        <div id="cw-45" class="clip caption-word" data-layout-allow-occlusion data-start="22.47" data-duration="0.418" data-track-index="0" style="font-size:112px">MICIN</div>
+        <div id="cw-46" class="clip caption-word" data-layout-allow-occlusion data-start="22.89" data-duration="0.188" data-track-index="1" style="font-size:112px">ITU</div>
+        <div id="cw-47" class="clip caption-word" data-layout-allow-occlusion data-start="23.08" data-duration="0.528" data-track-index="2" style="font-size:112px">BERAWAL</div>
+        <div id="cw-48" class="clip caption-word" data-layout-allow-occlusion data-start="23.61" data-duration="0.308" data-track-index="0" style="font-size:112px">DARI</div>
+        <div id="cw-49" class="clip caption-word" data-layout-allow-occlusion data-start="23.92" data-duration="0.338" data-track-index="1" style="font-size:112px">SATU</div>
+        <div id="cw-50" class="clip caption-word" data-layout-allow-occlusion data-start="24.26" data-duration="0.348" data-track-index="2" style="font-size:112px">SURAT</div>
+        <div id="cw-51" class="clip caption-word" data-layout-allow-occlusion data-start="24.61" data-duration="0.538" data-track-index="0" style="font-size:112px">PEMBACA</div>
+        <div id="cw-52" class="clip caption-word" data-layout-allow-occlusion data-start="25.15" data-duration="0.388" data-track-index="1" style="font-size:112px">TAHUN</div>
+        <div id="cw-53" class="clip caption-word" data-layout-allow-occlusion data-start="25.54" data-duration="1.108" data-track-index="2" style="font-size:112px">1968</div>
+        <div id="cw-54" class="clip caption-word" data-layout-allow-occlusion data-start="26.65" data-duration="0.448" data-track-index="0" style="font-size:112px">DAN</div>
+        <div id="cw-55" class="clip caption-word" data-layout-allow-occlusion data-start="27.1" data-duration="0.495" data-track-index="1" style="font-size:112px">UJI</div>
+        <div id="cw-56" class="clip caption-word" data-layout-allow-occlusion data-start="27.597" data-duration="0.181" data-track-index="2" style="font-size:112px">ILMIAH</div>
+        <div id="cw-57" class="clip caption-word" data-layout-allow-occlusion data-start="27.78" data-duration="0.628" data-track-index="0" style="font-size:98px">SETELAHNYA</div>
+        <div id="cw-58" class="clip caption-word" data-layout-allow-occlusion data-start="28.41" data-duration="0.458" data-track-index="1" style="font-size:112px">NGGAK</div>
+        <div id="cw-59" class="clip caption-word" data-layout-allow-occlusion data-start="28.87" data-duration="0.622" data-track-index="2" style="font-size:112px">PERNAH</div>
+        <div id="cw-60" class="clip caption-word" data-layout-allow-occlusion data-start="29.494" data-duration="0.554" data-track-index="0" style="font-size:112px">KONSISTEN</div>
+        <div id="cw-61" class="clip caption-word" data-layout-allow-occlusion data-start="30.05" data-duration="1.388" data-track-index="1" style="font-size:98px">NGEBUKTIIN</div>
+        <div id="cw-62" class="clip caption-word" data-layout-allow-occlusion data-start="31.996" data-duration="0.231" data-track-index="2" style="font-size:112px">MALAH</div>
+        <div id="cw-63" class="clip caption-word" data-layout-allow-occlusion data-start="32.229" data-duration="0.537" data-track-index="0" style="font-size:112px">KANDUNGAN</div>
+        <div id="cw-64" class="clip caption-word" data-layout-allow-occlusion data-start="32.768" data-duration="0.417" data-track-index="1" style="font-size:112px">NATRIUM</div>
+        <div id="cw-65" class="clip caption-word" data-layout-allow-occlusion data-start="33.187" data-duration="0.297" data-track-index="2" style="font-size:112px">MICIN</div>
+        <div id="cw-66" class="clip caption-word" data-layout-allow-occlusion data-start="33.486" data-duration="0.237" data-track-index="0" style="font-size:112px">CUMA</div>
+        <div id="cw-67" class="clip caption-word" data-layout-allow-occlusion data-start="33.725" data-duration="0.417" data-track-index="1" style="font-size:112px">SEKITAR</div>
+        <div id="cw-68" class="clip caption-word" data-layout-allow-occlusion data-start="34.144" data-duration="0.536" data-track-index="2" style="font-size:112px">SEPERTIGA</div>
+        <div id="cw-69" class="clip caption-word" data-layout-allow-occlusion data-start="34.682" data-duration="0.298" data-track-index="0" style="font-size:112px">GARAM</div>
+        <div id="cw-70" class="clip caption-word" data-layout-allow-occlusion data-start="34.982" data-duration="0.806" data-track-index="1" style="font-size:112px">DAPUR</div>
+        <div id="cw-71" class="clip caption-word" data-layout-allow-occlusion data-start="36.251" data-duration="0.16" data-track-index="2" style="font-size:112px">JADI</div>
+        <div id="cw-72" class="clip caption-word" data-layout-allow-occlusion data-start="36.413" data-duration="0.407" data-track-index="0" style="font-size:112px">LO MASIH</div>
+        <div id="cw-73" class="clip caption-word" data-layout-allow-occlusion data-start="36.822" data-duration="0.172" data-track-index="1" style="font-size:112px">TIM</div>
+        <div id="cw-74" class="clip caption-word" data-layout-allow-occlusion data-start="36.996" data-duration="0.57" data-track-index="2" style="font-size:98px">ANTI MICIN</div>
+        <div id="cw-75" class="clip caption-word" data-layout-allow-occlusion data-start="37.568" data-duration="0.233" data-track-index="0" style="font-size:112px">ATAU</div>
+        <div id="cw-76" class="clip caption-word" data-layout-allow-occlusion data-start="37.803" data-duration="0.202" data-track-index="1" style="font-size:112px">TIM</div>
+        <div id="cw-77" class="clip caption-word" data-layout-allow-occlusion data-start="38.007" data-duration="0.254" data-track-index="2" style="font-size:112px">MICIN</div>
+        <div id="cw-78" class="clip caption-word" data-layout-allow-occlusion data-start="38.263" data-duration="0.284" data-track-index="0" style="font-size:112px">GARIS</div>
+        <div id="cw-79" class="clip caption-word" data-layout-allow-occlusion data-start="38.549" data-duration="0.805" data-track-index="1" style="font-size:112px">KERAS?</div>
+        <div id="cw-80" class="clip caption-word" data-layout-allow-occlusion data-start="39.356" data-duration="0.882" data-track-index="2" style="font-size:82px">TULIS DI KOMEN</div>
+      </div>
+      <script>
+        /* Each card: a 0.07 s fade and scale-in from dim and small to full white. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#cw-0", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 0.191);
+        tl.fromTo("#cw-1", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 0.541);
+        tl.fromTo("#cw-2", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 0.795);
+        tl.fromTo("#cw-3", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 1.107);
+        tl.fromTo("#cw-4", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 1.419);
+        tl.fromTo("#cw-5", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 1.731);
+        tl.fromTo("#cw-6", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 2.189);
+        tl.fromTo("#cw-7", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 2.482);
+        tl.fromTo("#cw-8", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 2.764);
+        tl.fromTo("#cw-9", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 2.92);
+        tl.fromTo("#cw-10", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 3.184);
+        tl.fromTo("#cw-11", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 4.451);
+        tl.fromTo("#cw-12", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 5.125);
+        tl.fromTo("#cw-13", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 5.72);
+        tl.fromTo("#cw-14", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 6.426);
+        tl.fromTo("#cw-15", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 6.889);
+        tl.fromTo("#cw-16", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 7.801);
+        tl.fromTo("#cw-17", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 8.089);
+        tl.fromTo("#cw-18", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 8.381);
+        tl.fromTo("#cw-19", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 8.855);
+        tl.fromTo("#cw-20", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 9.258);
+        tl.fromTo("#cw-21", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 10.306);
+        tl.fromTo("#cw-22", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 10.538);
+        tl.fromTo("#cw-23", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 10.8);
+        tl.fromTo("#cw-24", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 11.092);
+        tl.fromTo("#cw-25", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 11.536);
+        tl.fromTo("#cw-26", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 12.443);
+        tl.fromTo("#cw-27", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 12.786);
+        tl.fromTo("#cw-28", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 13.637);
+        tl.fromTo("#cw-29", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 13.935);
+        tl.fromTo("#cw-30", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 15.4);
+        tl.fromTo("#cw-31", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 16.478);
+        tl.fromTo("#cw-32", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 16.65);
+        tl.fromTo("#cw-33", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 17.1);
+        tl.fromTo("#cw-34", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 17.61);
+        tl.fromTo("#cw-35", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 18.09);
+        tl.fromTo("#cw-36", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 18.54);
+        tl.fromTo("#cw-37", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 19.8);
+        tl.fromTo("#cw-38", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 19.96);
+        tl.fromTo("#cw-39", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 20.2);
+        tl.fromTo("#cw-40", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 20.51);
+        tl.fromTo("#cw-41", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 20.9);
+        tl.fromTo("#cw-42", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 21.57);
+        tl.fromTo("#cw-43", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 21.8);
+        tl.fromTo("#cw-44", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 22.08);
+        tl.fromTo("#cw-45", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 22.47);
+        tl.fromTo("#cw-46", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 22.89);
+        tl.fromTo("#cw-47", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 23.08);
+        tl.fromTo("#cw-48", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 23.61);
+        tl.fromTo("#cw-49", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 23.92);
+        tl.fromTo("#cw-50", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 24.26);
+        tl.fromTo("#cw-51", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 24.61);
+        tl.fromTo("#cw-52", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 25.15);
+        tl.fromTo("#cw-53", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 25.54);
+        tl.fromTo("#cw-54", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 26.65);
+        tl.fromTo("#cw-55", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 27.1);
+        tl.fromTo("#cw-56", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 27.597);
+        tl.fromTo("#cw-57", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 27.78);
+        tl.fromTo("#cw-58", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 28.41);
+        tl.fromTo("#cw-59", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 28.87);
+        tl.fromTo("#cw-60", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 29.494);
+        tl.fromTo("#cw-61", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 30.05);
+        tl.fromTo("#cw-62", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 31.996);
+        tl.fromTo("#cw-63", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 32.229);
+        tl.fromTo("#cw-64", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 32.768);
+        tl.fromTo("#cw-65", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 33.187);
+        tl.fromTo("#cw-66", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 33.486);
+        tl.fromTo("#cw-67", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 33.725);
+        tl.fromTo("#cw-68", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 34.144);
+        tl.fromTo("#cw-69", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 34.682);
+        tl.fromTo("#cw-70", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 34.982);
+        tl.fromTo("#cw-71", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 36.251);
+        tl.fromTo("#cw-72", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 36.413);
+        tl.fromTo("#cw-73", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 36.822);
+        tl.fromTo("#cw-74", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 36.996);
+        tl.fromTo("#cw-75", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 37.568);
+        tl.fromTo("#cw-76", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 37.803);
+        tl.fromTo("#cw-77", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 38.007);
+        tl.fromTo("#cw-78", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 38.263);
+        tl.fromTo("#cw-79", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 38.549);
+        tl.fromTo("#cw-80", { opacity: 0.35, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.07, ease: "none" }, 39.356);
+        window.__timelines["captions"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

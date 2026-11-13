@@ -1,0 +1,344 @@
+[
+  {
+    "text": "June",
+    "start": 0.04,
+    "end": 0.46,
+    "id": "w0"
+  },
+  {
+    "text": "28,",
+    "start": 0.46,
+    "end": 1.39,
+    "id": "w1"
+  },
+  {
+    "text": "1914.",
+    "start": 1.39,
+    "end": 3.06,
+    "id": "w2"
+  },
+  {
+    "text": "Sarajevo,",
+    "start": 3.06,
+    "end": 3.93,
+    "id": "w3"
+  },
+  {
+    "text": "one",
+    "start": 3.93,
+    "end": 4.19,
+    "id": "w4"
+  },
+  {
+    "text": "wrong",
+    "start": 4.19,
+    "end": 4.63,
+    "id": "w5"
+  },
+  {
+    "text": "turn,",
+    "start": 4.63,
+    "end": 5.2,
+    "id": "w6"
+  },
+  {
+    "text": "is",
+    "start": 5.22,
+    "end": 5.31,
+    "id": "w7"
+  },
+  {
+    "text": "about",
+    "start": 5.31,
+    "end": 5.55,
+    "id": "w8"
+  },
+  {
+    "text": "to",
+    "start": 5.64,
+    "end": 5.7,
+    "id": "w9"
+  },
+  {
+    "text": "start",
+    "start": 5.7,
+    "end": 6.07,
+    "id": "w10"
+  },
+  {
+    "text": "a",
+    "start": 6.1,
+    "end": 6.12,
+    "id": "w11"
+  },
+  {
+    "text": "world",
+    "start": 6.12,
+    "end": 6.7,
+    "id": "w12"
+  },
+  {
+    "text": "war.",
+    "start": 6.7,
+    "end": 7.16,
+    "id": "w13"
+  },
+  {
+    "text": "In",
+    "start": 7.16,
+    "end": 7.22,
+    "id": "w14"
+  },
+  {
+    "text": "the",
+    "start": 7.22,
+    "end": 7.31,
+    "id": "w15"
+  },
+  {
+    "text": "backseat",
+    "start": 7.31,
+    "end": 7.76,
+    "id": "w16"
+  },
+  {
+    "text": "rides",
+    "start": 7.8,
+    "end": 8.13,
+    "id": "w17"
+  },
+  {
+    "text": "Archduke-France",
+    "start": 8.14,
+    "end": 9.26,
+    "id": "w18"
+  },
+  {
+    "text": "Ferdinand,",
+    "start": 9.26,
+    "end": 10.09,
+    "id": "w19"
+  },
+  {
+    "text": "heir",
+    "start": 10.09,
+    "end": 10.35,
+    "id": "w20"
+  },
+  {
+    "text": "to",
+    "start": 10.5,
+    "end": 10.54,
+    "id": "w21"
+  },
+  {
+    "text": "Austria-Hungary's",
+    "start": 10.54,
+    "end": 11.81,
+    "id": "w22"
+  },
+  {
+    "text": "throne.",
+    "start": 11.81,
+    "end": 12.56,
+    "id": "w23"
+  },
+  {
+    "text": "Along",
+    "start": 12.56,
+    "end": 12.68,
+    "id": "w24"
+  },
+  {
+    "text": "his",
+    "start": 12.68,
+    "end": 12.98,
+    "id": "w25"
+  },
+  {
+    "text": "route",
+    "start": 12.98,
+    "end": 13.12,
+    "id": "w26"
+  },
+  {
+    "text": "wait",
+    "start": 13.16,
+    "end": 13.43,
+    "id": "w27"
+  },
+  {
+    "text": "six",
+    "start": 13.43,
+    "end": 13.66,
+    "id": "w28"
+  },
+  {
+    "text": "young",
+    "start": 13.66,
+    "end": 13.99,
+    "id": "w29"
+  },
+  {
+    "text": "assassins.",
+    "start": 14.38,
+    "end": 14.95,
+    "id": "w30"
+  },
+  {
+    "text": "At",
+    "start": 15.06,
+    "end": 15.11,
+    "id": "w31"
+  },
+  {
+    "text": "the",
+    "start": 15.11,
+    "end": 15.32,
+    "id": "w32"
+  },
+  {
+    "text": "Latin",
+    "start": 15.36,
+    "end": 15.71,
+    "id": "w33"
+  },
+  {
+    "text": "bridge,",
+    "start": 15.87,
+    "end": 16.33,
+    "id": "w34"
+  },
+  {
+    "text": "the",
+    "start": 16.33,
+    "end": 16.56,
+    "id": "w35"
+  },
+  {
+    "text": "driver",
+    "start": 16.56,
+    "end": 17.02,
+    "id": "w36"
+  },
+  {
+    "text": "turns",
+    "start": 17.02,
+    "end": 17.4,
+    "id": "w37"
+  },
+  {
+    "text": "right.",
+    "start": 17.4,
+    "end": 18.04,
+    "id": "w38"
+  },
+  {
+    "text": "The",
+    "start": 18.04,
+    "end": 18.34,
+    "id": "w39"
+  },
+  {
+    "text": "wrong",
+    "start": 18.34,
+    "end": 18.48,
+    "id": "w40"
+  },
+  {
+    "text": "way,",
+    "start": 18.48,
+    "end": 19.19,
+    "id": "w41"
+  },
+  {
+    "text": "he",
+    "start": 19.22,
+    "end": 19.32,
+    "id": "w42"
+  },
+  {
+    "text": "breaks",
+    "start": 19.32,
+    "end": 19.92,
+    "id": "w43"
+  },
+  {
+    "text": "and",
+    "start": 19.96,
+    "end": 20.16,
+    "id": "w44"
+  },
+  {
+    "text": "the",
+    "start": 20.16,
+    "end": 20.4,
+    "id": "w45"
+  },
+  {
+    "text": "engine",
+    "start": 20.4,
+    "end": 20.79,
+    "id": "w46"
+  },
+  {
+    "text": "stalls",
+    "start": 21.18,
+    "end": 21.36,
+    "id": "w47"
+  },
+  {
+    "text": "a",
+    "start": 21.36,
+    "end": 21.44,
+    "id": "w48"
+  },
+  {
+    "text": "few",
+    "start": 21.44,
+    "end": 21.68,
+    "id": "w49"
+  },
+  {
+    "text": "steps",
+    "start": 21.68,
+    "end": 22.04,
+    "id": "w50"
+  },
+  {
+    "text": "from",
+    "start": 22.1,
+    "end": 22.4,
+    "id": "w51"
+  },
+  {
+    "text": "Gavrilo",
+    "start": 22.4,
+    "end": 22.96,
+    "id": "w52"
+  },
+  {
+    "text": "Princip.",
+    "start": 22.96,
+    "end": 23.84,
+    "id": "w53"
+  },
+  {
+    "text": "He",
+    "start": 23.84,
+    "end": 24,
+    "id": "w54"
+  },
+  {
+    "text": "fires",
+    "start": 24,
+    "end": 24.39,
+    "id": "w55"
+  },
+  {
+    "text": "twice.",
+    "start": 24.39,
+    "end": 24.84,
+    "id": "w56"
+  }
+]

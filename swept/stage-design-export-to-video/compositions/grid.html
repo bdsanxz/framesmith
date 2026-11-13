@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/grid.html (composition id "grid")
+  WHAT: The first scene, 3 seconds long, mounted at 0 s in index.html. On a dark ground a small mono label
+    "LUMEN 01/04" sits at the top left, and a five-column grid of 20 outlined mint cells fills the middle of
+    the frame. From 0.3 s the cells light up one after another, 0.1 s apart, each fading to a mint fill over
+    0.12 s, so the last cell lights at about 2.2 s. It is the export frame f1 turned into motion. The scene
+    plays no sound of its own.
+  STRUCTURE: the scene sits in a template element, and the host mounts its style, markup and script. Back to
+    front: #root holds the .grid-chrome label and #grid-cells, a CSS grid inset 160 px vertically and 120 px
+    horizontally. The script creates 20 span.grid-cell elements, ids grid-cell-0 to grid-cell-19, and adds one
+    fromTo tween per cell to the paused timeline "grid", taking the background from transparent mint to 85
+    percent mint.
+  CUSTOMIZE: the cell count (the loop bound, 20), the first start time (0.3) and the step between cells (0.1)
+    are in the loop. The lit color is rgba(125, 249, 197, 0.85) and the outline is 35 percent mint in
+    .grid-cell. The grid geometry is the #grid-cells inset and its 24 px gap; the column count is fixed at 5.
+    The label face is JetBrains Mono, one of the fonts HyperFrames bundles.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. The grid is drawn with CSS, and its label face, JetBrains Mono, is bundled with HyperFrames.
+  WHEN TO USE: a reveal of many small items in a grid, such as tiles, stats or options lighting one after
+    another. For fewer items, lower the loop bound; for another column count, change the grid template.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The scene is a template: the host mounts its style, markup and script together. -->
+    <template>
+      <style>
+        /* Design tokens, copied from the export so this scene stands alone. */
+        :root { --lumen-ink: #F2F4FF; --lumen-dim: #9AA3C7; --lumen-accent: #7DF9C5; }
+        /* Scene root: fills the square and sets the ink color and the display face. */
+        #root { position: absolute; inset: 0; color: #F2F4FF; font-family: "Archivo Black", sans-serif; }
+        /* The top-left mono label. */
+        .grid-chrome { position: absolute; left: 48px; top: 40px; font-family: "JetBrains Mono", monospace; font-size: 22px; letter-spacing: .14em; color: #9AA3C7; }
+        /* The cell grid: five columns, inset 160 px vertically and 120 px horizontally. */
+        #grid-cells { position: absolute; inset: 160px 120px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
+        /* One cell: a mint outline box with rounded corners. */
+        .grid-cell { display: block; border: 2px solid rgba(125,249,197,.35); border-radius: 12px; }
+      </style>
+      <!-- Scene markup: the root with the label and the empty cell grid that the script fills. -->
+      <div id="root" data-composition-id="grid" data-width="1080" data-height="1080">
+        <div class="grid-chrome">LUMEN · 01/04</div>
+        <div id="grid-cells"></div>
+      </div>
+      <script>
+        /* Timeline: paused, so the host seeks it; the loop below adds one tween per cell. */
+        const tl = gsap.timeline({ paused: true });
+        // From the export frame f1: a grid of twenty frames lighting up one by one.
+        const cells = document.getElementById("grid-cells");
+        for (let i = 0; i < 20; i++) { const c = document.createElement("span"); c.className = "grid-cell"; c.id = "grid-cell-" + i; cells.appendChild(c);
+          tl.fromTo(c, { backgroundColor: "rgba(125,249,197,0)" }, { backgroundColor: "rgba(125,249,197,0.85)", duration: 0.12, ease: "power2.out" }, 0.3 + i * 0.1); }
+        /* Registration under the composition id. */
+        window.__timelines["grid"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

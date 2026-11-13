@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main")
+  WHAT: The root of a 6 s, 1080x1080 unnarrated motion graphic about a "Projects" folder. It
+    mounts one sub-composition, compositions/desktop.html, at 0 s for 6 s. That file shows a
+    cursor landing on a folder, a double-click that opens its lid, and three documents fanning
+    out above it. The piece has no audio and no media files.
+  STRUCTURE: one track (data-track-index 0, kind graphics) holding one slot, #slot-desktop, which
+    loads compositions/desktop.html. The root #root (composition id "main", 1080x1080, 6 s) holds
+    only that slot. Its own timeline tl is empty and paused; it is registered as
+    window.__timelines["main"] so the renderer can seek it. All beats live in the sub-composition.
+  CUSTOMIZE: the length in data-duration="6" on #root and on #slot-desktop (keep them equal). The
+    canvas size is data-width and data-height (1080) on #root and #slot-desktop, plus the 1080px
+    rules on html, body and #root; change all of them together. The cream page color #F2E3B6 is set
+    in the html, body and #root rules.
+  MEDIA: No media file is bundled. The page has no photo, video, sound, font file or CSS image slot,
+    so it needs none. It loads only the GSAP 3.14.2 script from cdn.jsdelivr.net, which is code, not
+    media. The folder, cursor and documents are drawn with HTML, CSS and an SVG cursor.
+  WHEN TO USE: a short, silent object motion at a square 1080x1080 size, such as a click, an open
+    or a reveal. Pick another root when the piece needs narration, footage or several scenes.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1080" />
+    <title>Projects folder — the full prompt, built</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and fix the 1080 by 1080 canvas; the cream color is the page background. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1080px; overflow: hidden; background: #F2E3B6; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #F2E3B6; }
+    </style>
+  </head>
+  <body>
+    <!-- Spec: 6-second 1080×1080. One beat per sub-composition would split one continuous object, so the
+         folder lives in one scene file and each beat is a time range on its timeline (see prompt.txt). -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1080" data-height="1080">
+      <!-- Host slot: the only layer, mounting compositions/desktop.html from 0 s for 6 s. -->
+      <div id="slot-desktop" data-composition-id="desktop" data-composition-src="compositions/desktop.html"
+        data-start="0" data-duration="6" data-track-index="0" data-track-kind="graphics" data-width="1080" data-height="1080"></div>
+    </div>
+    <script>
+      /* Root timeline: empty and paused here; the beats live in compositions/desktop.html. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

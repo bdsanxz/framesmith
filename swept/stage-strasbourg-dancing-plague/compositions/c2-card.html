@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-card.html (composition id "c2-card")
+  WHAT: The chapter 2 title card: one short line of small white capitals, DARI SATU PENARI MENJADI
+    RATUSAN (from one dancer to hundreds), alone on a near-black ground. It lasts 4.2 s and plays at
+    the start of chapter 2; index.html mounts it at 180.76 s, with the card hit at 180.89 s. The
+    title fades in from 0.25 s to 0.75 s and fades out from 3.75 s to 4.10 s.
+  STRUCTURE: #root (full frame, background #0c0f10) holds one text element, #c2-title. The GSAP
+    timeline registered as "c2-card" fades #c2-title in at 0.25 s (0.5 s, power1.out) and out at
+    3.75 s (0.35 s, power1.in). There are no other tweens.
+  CUSTOMIZE: the title is the line inside #c2-title. Its look is set there: Arimo 700 at 38 px,
+    colour #e9edea, top 520 px, centred over the full 1920 px width. The background is #0c0f10 on
+    #root. To change the length, change data-duration in index.html (4.2) and keep the fade-out
+    inside it (3.75 plus 0.35 gives 4.10).
+  MEDIA: no media file is bundled. This file has one font slot and no picture, video, sound or CSS image.
+    1. The font, the @font-face for "Arimo" (weights 400 to 700), used by #c2-title. It was a bundled woff2
+       file (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is used if it is installed,
+       otherwise the text falls back to the sans-serif family in the same font-family list. To plug in your
+       font, add url("your-font.woff2") format("woff2") to the src list of that @font-face.
+    2. Sound: none in this file. The card hit at 180.89 s is placed by index.html, not here, so this file
+       needs no audio element.
+  WHEN TO USE: a chapter opener in the documentary-room style: one short caps line alone on black
+    to mark a new part of the film. Pick another card when the title needs two lines or a picture.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo") for the title; no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The chapter card: one short line of small white caps, alone on black. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0f10; }
+        #c2-title { position: absolute; left: 0; width: 1920px; top: 520px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 38px; line-height: 1.2; color: #e9edea; white-space: nowrap; }
+      </style>
+      <!-- The card frame, with the one title line inside it. -->
+      <div id="root" data-composition-id="c2-card" data-width="1920" data-height="1080">
+        <div id="c2-title">DARI SATU PENARI MENJADI RATUSAN</div>
+      </div>
+      <script>
+        /* Timeline: the title fades in, holds, then fades out from 3.75 s. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c2-title", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0.25);
+        tl.to("#c2-title", { opacity: 0, duration: 0.35, ease: "power1.in" }, 3.75);
+        window.__timelines["c2-card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 66,
-    "refused": 27,
-    "translated": 12
+    "approximated": 61,
+    "refused": 25,
+    "translated": 21
   },
   "duration": 19.5,
   "entries": [
@@ -33,10 +33,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #clip references remote asset \"data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #clip data: URI decoded to assets/data-clip.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 73,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -48,10 +48,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #clip-framed references remote asset \"data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #clip-framed data: URI decoded to assets/data-clip-framed.svg (537 bytes, percent-encoded)",
       "file": "index.html",
       "line": 90,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -126,12 +126,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #hw-t-under is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-hw-t-under.svg (119 bytes; xmlns added: true)",
       "file": "compositions/hw-title.html",
       "line": 113,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -186,14 +185,14 @@
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"IN\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"IN\" is outside the numeric grammar (unbound identifier \"IN\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-title.html",
       "line": 254,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "detail": "duration \"CONFIG.sweep.end - CONFIG.sweep.start\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-title.html",
       "line": 269,
       "verdict": "refused"
@@ -207,21 +206,21 @@
     },
     {
       "construct": "tl.to",
-      "detail": "position \"uAt\" is an expression; refusing the call site",
+      "detail": "position \"uAt\" is outside the numeric grammar (unbound identifier \"uAt\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-title.html",
       "line": 281,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"OUT\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"OUT\" is outside the numeric grammar (unbound identifier \"OUT\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-title.html",
       "line": 296,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"DUR - 0.02\" is an expression; refusing the call site",
+      "detail": "property \"visibility\" (value \"\\\"hidden\\\"\") has no KDL motion property; refusing the call site",
       "file": "compositions/hw-title.html",
       "line": 298,
       "verdict": "refused"
@@ -237,7 +236,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-mug-scribble has no own left/top; placed by flow approximation at (1190, 0)",
+      "detail": "element #hw-co-mug-scribble has no own left/top; placed by flow approximation at (1190, 420)",
       "file": "compositions/notes.html",
       "line": 135,
       "verdict": "approximated"
@@ -245,7 +244,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-mug-outline has no own left/top; placed by flow approximation at (1190, 0)",
+      "detail": "element #hw-co-mug-outline has no own left/top; placed by flow approximation at (1190, 420)",
       "file": "compositions/notes.html",
       "line": 136,
       "verdict": "approximated"
@@ -253,7 +252,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-mug-connector has no own left/top; placed by flow approximation at (1190, 0)",
+      "detail": "element #hw-co-mug-connector has no own left/top; placed by flow approximation at (1190, 420)",
       "file": "compositions/notes.html",
       "line": 140,
       "verdict": "approximated"
@@ -261,7 +260,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-mug-label has no own left/top; placed by flow approximation at (1190, 0)",
+      "detail": "element #hw-co-mug-label has no own left/top; placed by flow approximation at (1190, 420)",
       "file": "compositions/notes.html",
       "line": 143,
       "verdict": "approximated"
@@ -269,7 +268,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-lemon-scribble has no own left/top; placed by flow approximation at (975, 0)",
+      "detail": "element #hw-co-lemon-scribble has no own left/top; placed by flow approximation at (975, 620)",
       "file": "compositions/notes.html",
       "line": 152,
       "verdict": "approximated"
@@ -277,7 +276,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-lemon-outline has no own left/top; placed by flow approximation at (975, 0)",
+      "detail": "element #hw-co-lemon-outline has no own left/top; placed by flow approximation at (975, 620)",
       "file": "compositions/notes.html",
       "line": 153,
       "verdict": "approximated"
@@ -285,7 +284,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-lemon-connector has no own left/top; placed by flow approximation at (975, 0)",
+      "detail": "element #hw-co-lemon-connector has no own left/top; placed by flow approximation at (975, 620)",
       "file": "compositions/notes.html",
       "line": 157,
       "verdict": "approximated"
@@ -293,7 +292,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #hw-co-lemon-label has no own left/top; placed by flow approximation at (975, 0)",
+      "detail": "element #hw-co-lemon-label has no own left/top; placed by flow approximation at (975, 620)",
       "file": "compositions/notes.html",
       "line": 160,
       "verdict": "approximated"
@@ -339,6 +338,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-notes-134.svg (229 bytes; xmlns added: true)",
+      "file": "compositions/notes.html",
+      "line": 134,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #hw-co-mug-scribble is a layout container; carried as an empty text anchor for motion targeting",
@@ -355,12 +361,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-notes-139.svg (179 bytes; xmlns added: true)",
       "file": "compositions/notes.html",
       "line": 139,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -411,6 +416,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-notes-151.svg (233 bytes; xmlns added: true)",
+      "file": "compositions/notes.html",
+      "line": 151,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #hw-co-lemon-scribble is a layout container; carried as an empty text anchor for motion targeting",
@@ -427,12 +439,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-notes-156.svg (181 bytes; xmlns added: true)",
       "file": "compositions/notes.html",
       "line": 156,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -521,12 +532,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #hw-st-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-hw-st-svg.svg (112 bytes; xmlns added: true)",
       "file": "compositions/hw-scribble-transition.html",
       "line": 90,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -560,7 +570,7 @@
     },
     {
       "construct": "tl.to",
-      "detail": "position \"0.04 * i\" is an expression; refusing the call site",
+      "detail": "position \"0.04 * i\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-scribble-transition.html",
       "line": 163,
       "verdict": "refused"
@@ -581,7 +591,7 @@
     },
     {
       "construct": "tl.to",
-      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "detail": "position \"1.42 + 0.035 * i\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-scribble-transition.html",
       "line": 173,
       "verdict": "refused"
@@ -650,12 +660,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #hw-fr-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-hw-fr-svg.svg (116 bytes; xmlns added: true)",
       "file": "compositions/hw-frame.html",
       "line": 149,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -718,7 +727,7 @@
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"IN * 1.4\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"IN * 1.4\" is outside the numeric grammar (unbound identifier \"IN\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-frame.html",
       "line": 328,
       "verdict": "refused"
@@ -746,7 +755,7 @@
     },
     {
       "construct": "tl.to",
-      "detail": "position \"1.1 + i * 0.12\" is an expression; refusing the call site",
+      "detail": "position \"1.1 + i * 0.12\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-frame.html",
       "line": 338,
       "verdict": "refused"
@@ -760,21 +769,21 @@
     },
     {
       "construct": "tl.set",
-      "detail": "property \"transformOrigin\" (value \"\\\"50% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "target \"unit\" is not a DOM selector (\"unit\" is runtime state); naming the call site instead of guessing a clip",
       "file": "compositions/hw-frame.html",
       "line": 345,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"OUT\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"OUT\" is outside the numeric grammar (unbound identifier \"OUT\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/hw-frame.html",
       "line": 358,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"DUR - 0.02\" is an expression; refusing the call site",
+      "detail": "property \"visibility\" (value \"\\\"hidden\\\"\") has no KDL motion property; refusing the call site",
       "file": "compositions/hw-frame.html",
       "line": 360,
       "verdict": "refused"

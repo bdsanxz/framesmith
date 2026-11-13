@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/endcard.html (composition id "endcard")
+  WHAT: The last scene, 3 seconds long, mounted at 9 s in index.html. On a dark ground a mint ring (150 px
+    across, 20 px thick) scales in first, from 0.6 to 1 while fading in over 0.6 s from 0.3 s. Then the
+    word "lumen" in the display face rises 30 px and fades in from 0.5 s. The whole stack slowly pushes in
+    from scale 1 to 1.03 across the full 3 seconds, so the frame never sits still. The film ends on this card.
+    The scene plays no sound of its own.
+  STRUCTURE: the scene sits in a template element, and the host mounts its style, markup and script. Back
+    to front: #endcard-stack (a flex column centered on the frame, marked data-layout-allow-overflow) holds
+    #endcard-mark (the ring span) and #endcard-word (the wordmark). Timeline "endcard": the first tween
+    scales and fades the ring in at 0.3 s, the second lifts the word at 0.5 s, and the third is the slow push
+    on the whole stack from 0 s over 3 s with ease none.
+  CUSTOMIZE: the ring size and border (#endcard-mark: 150 px, border 20 px), the word size (96 px), the gap
+    between them (28 px), and the colors (the accent #7DF9C5 ring, the ink #F2F4FF text) are in the style.
+    The start times 0.3, 0.5 and 0, the scale 0.6 and the push target 1.03 are in the tl calls; the eases are
+    expo.out and none. The push should run for the scene's full length, so keep the host's data-duration at 3 s.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. The wordmark is text in the display face Archivo Black, which HyperFrames bundles, so no font file is
+    needed. The ring is drawn with CSS, not an image.
+  WHEN TO USE: a closing brand card with a mark and a name, held on screen with a slow push. For a brand that
+    is not a ring, change the mark element; for a card that must stay still, remove the push tween.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The scene is a template: the host mounts its style, markup and script together. -->
+    <template>
+      <style>
+        /* Design tokens, copied from the export so this scene stands alone. */
+        :root { --lumen-ink: #F2F4FF; --lumen-dim: #9AA3C7; --lumen-accent: #7DF9C5; }
+        /* Scene root: fills the square and sets the ink color and the display face. */
+        #root { position: absolute; inset: 0; color: #F2F4FF; font-family: "Archivo Black", sans-serif; }
+        /* The centered column that holds the ring and the wordmark. */
+        #endcard-stack { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+        /* The ring: a 150 px mint circle with a 20 px border. */
+        #endcard-mark { display: block; width: 150px; height: 150px; border-radius: 50%; border: 20px solid #7DF9C5; }
+        /* The wordmark: 96 px in the display face. */
+        #endcard-word { font-size: 96px; }
+      </style>
+      <!-- Scene markup: the root with the centered stack of ring and wordmark. -->
+      <div id="root" data-composition-id="endcard" data-width="1080" data-height="1080">
+        <div id="endcard-stack" data-layout-allow-overflow><span id="endcard-mark"></span><div id="endcard-word">lumen</div></div>
+      </div>
+      <script>
+        /* Timeline: paused, so the host seeks it; three tweens follow. */
+        const tl = gsap.timeline({ paused: true });
+        /* The ring pops in at 0.3 s, scaling from 0.6 to 1 while it fades in. */
+        tl.fromTo("#endcard-mark", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "expo.out" }, 0.3);
+        /* The wordmark rises 30 px and fades in from 0.5 s. */
+        tl.fromTo("#endcard-word", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 0.5);
+        /* The slow push: the whole stack scales from 1 to 1.03 across the full scene. */
+        tl.fromTo("#endcard-stack", { scale: 1 }, { scale: 1.03, duration: 3, ease: "none" }, 0);
+        /* Registration under the composition id. */
+        window.__timelines["endcard"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

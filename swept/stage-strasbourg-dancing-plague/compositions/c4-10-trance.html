@@ -1,0 +1,74 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-10-trance.html (composition id "c4-10-trance")
+  WHAT: About 8.7 seconds on trance, with no words on screen. It opens on a close view of
+    Ostendorfer's pilgrimage woodcut (ostendorfer-close.jpg), pushed slowly in. At 3.51 seconds
+    it cuts to a Hondius footbridge plate of 1642 (hon-left2.jpg), and at 6.29 seconds to a
+    Hondius dance picture (hon-feet2.jpg). Each picture is a hard cut and is pushed slowly in. It
+    plays from 486.34 seconds in index.html, on the narration "Dalam keadaan trans, rasa" (in a
+    state of trance, people feel), and lasts 8.74 seconds.
+  STRUCTURE: Three img layers in #root, each in its own .dr-shot wrapper, stacked in source
+    order: #c410trance-a at the back, then #c410trance-b and #c410trance-c. Layers b and c are set
+    to opacity 0 at the start and shown at their cut times with a 0.001 second tween. Timeline: a
+    scales 1.014 to 1.072 with a small x and y drift over 3.51 seconds; b scales 1.014 to 1.061
+    from 3.51 for 2.78 seconds; c scales 1.014 to 1.056 from 6.29 for 2.45 seconds. There is no
+    text, no marker and no transition.
+  CUSTOMIZE: Each picture's file is named by data-media on the img tags with ids c410trance-a-img,
+    c410trance-b-img and c410trance-c-img; set the src of each to swap in your own (see MEDIA). The cut times 3.51 and 6.29 seconds match the narration
+    words "Itu" (that) at 489.85 seconds and "menari" (dancing) at 492.63 seconds. Change those
+    numbers and the durations together if the narration timing changes. The push ends and offsets
+    are in the tl calls. The grade is the standard data-color-grading attribute on all three. The
+    8.74 second length must match data-duration of c4-10-trance-slot in index.html.
+  MEDIA: no media file is bundled. This file has three photo slots. It has no font in use, no text, no sound,
+    no video and no CSS image; the Arimo declaration is unused, so no font file is needed.
+    1. The close woodcut, img #c410trance-a-img (inside #c410trance-a, from the start to 3.51 seconds). It showed a
+       close view of Ostendorfer's pilgrimage woodcut (about 1520) (ostendorfer-close.jpg). It now shows a faint hatch
+       stand-in labeled "PHOTO: assets/generated/ostendorfer-close.jpg". To plug in your picture, set the img's src to
+       your file (for example assets/generated/ostendorfer-close.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The footbridge plate, img #c410trance-b-img (inside #c410trance-b, cut in at 3.51 seconds). It showed Hondius's
+       footbridge plate of 1642 (hon-left2.jpg). It now shows a stand-in labeled "PHOTO: assets/generated/hon-left2.jpg".
+       To plug in your picture, set the img's src to your file.
+    3. The dancers' plate, img #c410trance-c-img (inside #c410trance-c, cut in at 6.29 seconds). It showed Hondius's dance
+       picture of 1642 (hon-feet2.jpg). It now shows a stand-in labeled "PHOTO: assets/generated/hon-feet2.jpg". To plug in
+       your picture, set the img's src to your file.
+  WHEN TO USE: a short silent montage of details under a sentence about a state of mind. Pick
+    another layout when the beat needs a caption or a name.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Declares the Arimo font, read from the installed fonts with local("Arimo"); this file has no text, so the font is not drawn. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Dalam keadaan trans, rasa ..." (486.34 s): ostendorfer-close from the start; hon-left2 on "Itu" (489.85 s); hon-feet2 on "menari" (492.63 s). -->
+      <div id="root" data-composition-id="c4-10-trance" data-width="1920" data-height="1080">
+        <!-- Layer 1, at the back: the close woodcut, pushed from the start. -->
+        <div class="dr-shot" id="c410trance-a" data-layout-allow-overflow><img id="c410trance-a-img" src="data:image/svg+xml,%3C!--ostendorfer-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'915' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ostendorfer-close.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/ostendorfer-close.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Layer 2: the footbridge plate, hidden until its cut at 3.51 seconds. -->
+        <div class="dr-shot" id="c410trance-b" data-layout-allow-overflow><img id="c410trance-b-img" src="data:image/svg+xml,%3C!--hon-left2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-left2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-left2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Layer 3, at the front: the dancers' plate, hidden until its cut at 6.29 seconds. -->
+        <div class="dr-shot" id="c410trance-c" data-layout-allow-overflow><img id="c410trance-c-img" src="data:image/svg+xml,%3C!--hon-feet2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-feet2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-feet2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* Timeline setup: three pushes, with hard cuts at 3.51 and 6.29 seconds. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c410trance-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.072, x: 6, y: -2, duration: 3.51, ease: "none" }, 0.0);
+        tl.fromTo("#c410trance-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.061, x: -5, y: 3, duration: 2.78, ease: "none" }, 3.51);
+        gsap.set("#c410trance-b", { opacity: 0 });
+        tl.to("#c410trance-b", { opacity: 1, duration: 0.001 }, 3.51);
+        tl.fromTo("#c410trance-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.056, x: 4, y: 3, duration: 2.45, ease: "none" }, 6.29);
+        gsap.set("#c410trance-c", { opacity: 0 });
+        tl.to("#c410trance-c", { opacity: 1, duration: 0.001 }, 6.29);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-10-trance"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

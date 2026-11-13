@@ -1,0 +1,120 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/fore-01.html (composition id "fore-01"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: Stages laid IN FRONT of the presenter, beside him (z-index 5): the "background": "keep" version of a stage. With the room kept as filmed there is no cut-out to stand behind, so the stage word or its icon nodes
+    stand beside his head, on top of his shoulder, and stop short of him; that side of the frame dims a little.
+    The file runs 474.83 s from the host's 26.93 s mark, and its own timeline is in this file's seconds (below).
+  STRUCTURE: mounted by index.html at 26.93 s for 474.83 s; one .clip.stage per stage scene, placed from footage/CLIP.layers.json (where he is); tl brings the
+    lead line in, then the word (or each node) on the word he says it.
+    The scenes it holds (cut.json words, this file's seconds):
+      stage   words 61-68  at 0.00-4.43 s
+      stage   words 498-509  at 183.37-187.23 s
+      stage   words 602-617  at 238.43-244.03 s
+      stage   words 1199-1212  at 471.07-474.83 s
+  CUSTOMIZE: change cut.json and build again, never this file: it is rewritten on every build. A scene's
+    words ("w"), its text ("lines", "word", "label"), its side and pictures live there; the colours
+    are COLORS and the timings CHAPTER, END, LEAD at the head of scripts/deep-tracery-build.py.
+  MEDIA: no media file is bundled. This file has no photo, video or sound slot.
+    Bundled drawings (SVG, kept): the two icons of the nodes #b41-n0 (assets/icons/world.svg) and #b41-n1
+    (assets/icons/chart-line.svg), set as CSS masks in their inline style. They render as they are, are not
+    slots, and need nothing plugged in. To use your own icons, change the url('...') in both -webkit-mask-image
+    and mask-image to your own SVG file, keeping the same size and framing.
+    Fonts: the six @font-face rules use src: local(...) for Archivo (500, 700, 800), Instrument Serif (italic),
+    Bricolage Grotesque (800) and JetBrains Mono (500). An installed font is used; otherwise the text falls back to
+    sans-serif or monospace. To bundle a face, add src: url("fonts/NAME.woff2") format("woff2") to its @font-face.
+  WHEN TO USE: a presenter explainer: a talking head dressed with text and pictures timed to his own words, in the
+    deep tracery style (references/deep-tracery.md). For a narrated film without a presenter, use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; color: #f6fbfa; }
+        .clip { position: absolute; }
+        .w { display: inline-block; }
+        /* Shared rules (the family's full set; this file uses .stage, .all, .dim, .slead, .srow, .sword and .node).
+           .veil: the dark veil a text sits on; it falls on the backdrop only. */
+        .veil { inset: 0; }
+        .scrim { position: absolute; inset: 0; }
+        .veil.left .scrim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.92) 0%, rgba(5, 5, 5, 0.8) 36%, rgba(5, 5, 5, 0) 62%); }
+        .veil.right .scrim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.92) 0%, rgba(5, 5, 5, 0.8) 36%, rgba(5, 5, 5, 0) 62%); }
+        /* .float: a picture behind his shoulder (unused by the stages in this file). */
+        .float { top: 0; height: 1080px; }
+        .float .scrim { inset: auto; top: 0; height: 1080px; width: 1100px; }
+        .float.left .scrim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0) 100%); }
+        .float.right .scrim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0) 100%); }
+        .card { position: absolute; left: 0; right: 0; top: 0; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+        .pic { position: relative; width: 100%; overflow: hidden; }
+        .pic img { display: block; width: 100%; height: auto; }
+        .pic.photo, .pic.portrait { border-radius: 14px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6); }
+        .pic.portrait img { filter: saturate(0.9) contrast(1.05); }
+        .pic.page { border-radius: 12px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6); background: #ffffff; }
+        .pic.logo { filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.55)); }
+        .fmarks, .crop { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+        .fmark { position: absolute; background: #fbe406; mix-blend-mode: multiply; transform-origin: 0 50%; }
+        .unknown { width: 300px; height: 300px; border-radius: 50%; background: #f1f1ef; color: #101010; font-weight: 800; font-size: 210px; line-height: 300px; text-align: center; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.25), 0 24px 70px rgba(0, 0, 0, 0.6); }
+        .nametag { margin-top: -26px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .nametag .nm { background: #0b0b0b; color: #ffffff; font-weight: 800; font-size: 40px; line-height: 1; padding: 10px 18px; text-transform: uppercase; letter-spacing: 0.005em; }
+        .nametag .rl { background: #f3f3f1; color: #0b0b0b; font-weight: 500; font-size: 28px; line-height: 1; padding: 7px 14px 8px; }
+        /* A stage: one word stands beside him, on top of his shoulder. The room stays the room:
+           that side goes a little darker, no more. Cut out, he stands in front of all of it and the
+           word's end lies behind him; kept in his room, it is laid in front and stops short of him. */
+        .stage { inset: 0; }
+        .all, .dim { position: absolute; inset: 0; }
+        .stage.left .dim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.72) 0%, rgba(5, 5, 5, 0.5) 34%, rgba(5, 5, 5, 0) 60%); }
+        .stage.right .dim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.72) 0%, rgba(5, 5, 5, 0.5) 34%, rgba(5, 5, 5, 0) 60%); }
+        .slead { position: absolute; white-space: nowrap; font-weight: 500; font-size: 36px; line-height: 1.2; color: #a9e8e0; letter-spacing: -0.01em; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
+        .slead .em { font-weight: 800; font-style: italic; }
+        .srow { position: absolute; white-space: nowrap; }
+        .sword { display: block; font-weight: 800; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.86; white-space: nowrap; color: #f6fbfa; text-shadow: 0 3px 26px rgba(0, 0, 0, 0.5); }
+        /* .node: an icon node, a round badge (its icon is the i mask, its label the b text under it). */
+        .node { position: absolute; width: 108px; height: 108px; margin: -54px 0 0 -54px; border-radius: 50%; border: 1.6px solid rgba(246, 251, 250, 0.55); background: rgba(13, 15, 16, 0.72); display: flex; align-items: center; justify-content: center; }
+        .node i { display: block; width: 52px; height: 52px; background: #f6fbfa; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+        .node u { text-decoration: none; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 32px; }
+        .node b { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 26px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
+      </style>
+      <div id="root" data-composition-id="fore-01" data-width="1920" data-height="1080">
+        <!-- Markup: one .clip.stage per scene (#b4, #b34, #b41, #b73). Each holds .dim (the veil), .slead (the lead
+             words, one span per word #bNN-lMwK), and .srow with the big word or the .node icons. -->
+        <div id="b4" class="clip stage left" data-layout-allow-occlusion data-layout-allow-overflow data-start="0.0" data-duration="4.433" data-track-index="0"><div class="all"><div class="dim"></div><div class="slead" style="top:530px;right:694px"><span id="b4-l0w0" class="w">yang</span> <span id="b4-l0w1" class="w">harusnya</span> <span id="b4-l0w2" class="w">jadi</span> <span id="b4-l0w3" class="w">pidato</span> <span id="b4-l0w4" class="w">yang</span></div><div class="srow" style="top:584px;font-size:132px;right:1023px"><span id="b4-word" class="sword" data-layout-allow-overlap>PARIPURNA</span></div></div></div>
+        <div id="b34" class="clip stage left" data-layout-allow-occlusion data-layout-allow-overflow data-start="183.367" data-duration="3.866" data-track-index="0"><div class="all"><div class="dim"></div><div class="slead" style="top:522px;right:767px"><span id="b34-l0w0" class="w">itu</span> <span id="b34-l0w1" class="w">membuat</span> <span id="b34-l0w2" class="w">pidato</span> <span id="b34-l0w3" class="w">jadi</span> <span id="b34-l0w4" class="w">lebih</span></div><div class="srow" style="top:576px;font-size:132px;right:966px"><span id="b34-word" class="sword" data-layout-allow-overlap>ENGAGING</span></div></div></div>
+        <div id="b41" class="clip stage left" data-layout-allow-occlusion data-layout-allow-overflow data-start="238.433" data-duration="5.6" data-track-index="0"><div class="all"><div class="dim"></div><div class="slead" style="top:459px;right:715px"><span id="b41-l0w0" class="w">kenapa?</span> <span id="b41-l0w1" class="w">kata</span> <span id="b41-l0w2" class="w">dia</span></div><div id="b41-n0" class="node" style="left:601px;top:589px"><i style="-webkit-mask-image:url('assets/icons/world.svg');mask-image:url('assets/icons/world.svg')"></i><b>geopolitik</b></div><div id="b41-n1" class="node" style="left:831px;top:589px"><i style="-webkit-mask-image:url('assets/icons/chart-line.svg');mask-image:url('assets/icons/chart-line.svg')"></i><b>geoekonomi</b></div></div></div>
+        <div id="b73" class="clip stage left" data-layout-allow-occlusion data-layout-allow-overflow data-start="471.067" data-duration="3.766" data-track-index="1"><div class="all"><div class="dim"></div><div class="slead" style="top:531px;right:665px"><span id="b73-l0w0" class="w">supaya</span> <span id="b73-l0w1" class="w">kita</span> <span id="b73-l0w2" class="w">sadar,</span> <span id="b73-l0w3" class="w">ini</span></div><div class="srow" style="top:585px;font-size:122px;right:918px"><span id="b73-word" class="sword" data-layout-allow-overlap>SPEAK DOANG</span></div></div></div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it. Each stage fades its veil in, brings its lead
+        // words in on the times he says them, then the big word or the icon nodes, and fades its .all out at its end.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each. Both are defined here
+        // for the build's shared helpers; this file uses W only.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        tl.fromTo("#b4 .dim", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 0.0);
+        W([["b4-l0w0", 0.029], ["b4-l0w1", 1.257], ["b4-l0w2", 1.817], ["b4-l0w3", 2.004], ["b4-l0w4", 2.394]]);
+        tl.fromTo("#b4-word", { opacity: 0, x: 70, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" }, 2.455);
+        tl.to("#b4 .all", { opacity: 0, duration: 0.2, ease: "none" }, 4.213);
+        tl.fromTo("#b34 .dim", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 183.367);
+        W([["b34-l0w0", 183.449], ["b34-l0w1", 183.612], ["b34-l0w2", 183.949], ["b34-l0w3", 184.287], ["b34-l0w4", 184.667]]);
+        tl.fromTo("#b34-word", { opacity: 0, x: 70, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" }, 185.487);
+        tl.to("#b34 .all", { opacity: 0, duration: 0.2, ease: "none" }, 187.013);
+        tl.fromTo("#b41 .dim", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 238.433);
+        W([["b41-l0w0", 238.437], ["b41-l0w1", 239.402], ["b41-l0w2", 239.743]]);
+        tl.fromTo("#b41-n0", { opacity: 0, x: 70, scale: 0.85 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 239.879);
+        tl.fromTo("#b41-n1", { opacity: 0, x: 70, scale: 0.85 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 240.619);
+        tl.to("#b41 .all", { opacity: 0, duration: 0.2, ease: "none" }, 243.813);
+        tl.fromTo("#b73 .dim", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 471.067);
+        W([["b73-l0w0", 471.097], ["b73-l0w1", 471.237], ["b73-l0w2", 471.527], ["b73-l0w3", 472.42]]);
+        tl.fromTo("#b73-word", { opacity: 0, x: 70, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" }, 472.491);
+        tl.to("#b73 .all", { opacity: 0, duration: 0.2, ease: "none" }, 474.613);
+        window.__timelines["fore-01"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

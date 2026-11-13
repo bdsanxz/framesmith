@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-04-three-kinds.html (composition id "c4-04-three-kinds")
+  WHAT: About 7.7 seconds on a printed page. It starts on the top of page 18 of Justus Hecker's
+    1832 Die Tanzwuth (hecker-kinds-top.jpg), with a two-line white caption that names
+    Paracelsus, Hecker and the page. At 3.65 seconds it cuts to the page itself
+    (hecker-kinds.jpg), where four yellow marker bars sweep across its lines one after another,
+    at 4.48, 5.72, 5.72 and 7.05 seconds, while the picture is pushed slowly in. It plays from
+    427.10 seconds in index.html, on the narration sentence that begins "Ia membagi penyakit
+    menari", and lasts 7.7 seconds.
+  STRUCTURE: Two layers in #root, back to front: #c404threekinds-a (the top of the page, with
+    the caption #c404threekinds-a-cap) and #c404threekinds-b (the page with four marker bars,
+    ids -b-m1 to -b-m4, hidden until 3.65 seconds). Timeline: a scales 1.014 to 1.075 with a
+    drift over 3.65 seconds, and the caption is set to opacity 0 at 3.65 seconds; b scales 1.0
+    to 1.060 from 3.65 for 4.05 seconds and is shown at 3.65 with no fade; each marker scales
+    its width from 0 to full over 0.55, 0.55, 0.40 and 0.55 seconds, starting at 4.48, 5.72,
+    5.72 and 7.05 seconds. The markers sit inside layer b, so they move with its push.
+  CUSTOMIZE: The caption text is the content of #c404threekinds-a-cap, placed 40 px from the
+    top by an inline style. Each marker has an inline left, top, width and height in frame
+    pixels on a 1920 by 1080 frame; these were measured on hecker-kinds.jpg, so move them when
+    the picture changes. The marker colour is rgba(255, 214, 64, 0.55) in .dr-mark, blended
+    with multiply. The four start times and durations are in the tl lines. The grade is the
+    lighter page grade on both pictures: contrast 0.06, saturation -0.3, exposure -0.12,
+    temperature 0.06, vignette 0.25, grain 0.06. The 7.7 second length must match data-duration
+    of c4-04-three-kinds-slot in index.html.
+  MEDIA: no media file is bundled. This file has two photo slots and one font slot. It has no sound, no
+    video and no CSS image. The four yellow marker bars are plain boxes, not files.
+    1. The top of the page, img #c404threekinds-a-img (inside #c404threekinds-a, shown from the start to 3.65
+       seconds, with the caption #c404threekinds-a-cap). It showed the top of page 18 of Justus Hecker's 1832
+       Die Tanzwuth (hecker-kinds-top.jpg). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/hecker-kinds-top.jpg". To plug in your picture, set the img's src to your file
+       (for example assets/generated/hecker-kinds-top.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The marked page, img #c404threekinds-b-img (inside #c404threekinds-b, cut in at 3.65 seconds, with the
+       bars #c404threekinds-b-m1 to #c404threekinds-b-m4). It showed the page itself (hecker-kinds.jpg). It now
+       shows a stand-in labeled "PHOTO: assets/generated/hecker-kinds.jpg". To plug in your page, set the img's
+       src to your file. The bars were placed over the lines of that page, so check them against your picture
+       and move or remove them as needed (see CUSTOMIZE).
+    3. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap for the caption. It was a
+       bundled woff2 file (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is used if it
+       is installed, otherwise the sans-serif fallback of the font stack. To plug in your font, add
+       url("your-font.woff2") format("woff2") to the src list of that @font-face. The caption names the source,
+       so change it together with the picture.
+  WHEN TO USE: quoting a printed page: show the page, then mark its words in the order they are
+    said. Pick another layout when the page has no known line positions to mark, or when the
+    marked words cannot be checked against the source.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The Arimo font used by the caption is read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The marker: one yellow bar per text line, in frame pixels, multiplied onto the page. */
+        .dr-mark { position: absolute; height: 40px; background: rgba(255, 214, 64, 0.55); mix-blend-mode: multiply; transform-origin: 0 50%; }
+      </style>
+      <!-- "Ia membagi penyakit menari ..." (427.10 s): hecker-kinds-top + caption from the start; hecker-kinds on "yang" (430.75 s). -->
+      <div id="root" data-composition-id="c4-04-three-kinds" data-width="1920" data-height="1080">
+        <!-- Layer 1: the top of the page, pushed from the start, with its caption. -->
+        <div class="dr-shot" id="c404threekinds-a" data-layout-allow-overflow><img id="c404threekinds-a-img" src="data:image/svg+xml,%3C!--hecker-kinds-top.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'896' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hecker-kinds-top.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hecker-kinds-top.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.12,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /></div>
+        <div class="dr-cap" id="c404threekinds-a-cap" style="top: 40px;">Paracelsus tentang tarian Santo Vitus, diringkas Justus Hecker<br />Die Tanzwuth, 1832, hlm. 18</div>
+        <!-- Layer 2: the page with its four marker bars, shown from 3.65 seconds. -->
+        <div class="dr-shot" id="c404threekinds-b" data-layout-allow-overflow><img id="c404threekinds-b-img" src="data:image/svg+xml,%3C!--hecker-kinds.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hecker-kinds.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hecker-kinds.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.12,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /><div class="dr-mark" id="c404threekinds-b-m1" style="left: 570px; top: 222px; width: 1350px; height: 64px;"></div><div class="dr-mark" id="c404threekinds-b-m2" style="left: 790px; top: 400px; width: 800px; height: 62px;"></div><div class="dr-mark" id="c404threekinds-b-m3" style="left: 870px; top: 490px; width: 560px; height: 62px;"></div><div class="dr-mark" id="c404threekinds-b-m4" style="left: 270px; top: 580px; width: 1650px; height: 64px;"></div></div>
+      </div>
+      <script>
+        /* Timeline setup: the top page's push, the caption's removal and the cut to the marked page at 3.65 seconds. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c404threekinds-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.075, x: 6, y: -2, duration: 3.65, ease: "none" }, 0.0);
+        tl.to("#c404threekinds-a-cap", { opacity: 0, duration: 0.001 }, 3.65);
+        /* Each marker bar sweeps across its line from left to right, one after another. */
+        tl.fromTo("#c404threekinds-b-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 4.48);
+        tl.fromTo("#c404threekinds-b-m2", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 5.72);
+        tl.fromTo("#c404threekinds-b-m3", { scaleX: 0 }, { scaleX: 1, duration: 0.40, ease: "power1.inOut" }, 5.72);
+        tl.fromTo("#c404threekinds-b-m4", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power1.inOut" }, 7.05);
+        tl.fromTo("#c404threekinds-b", { scale: 1.0, x: 5, y: -3 }, { scale: 1.060, x: -5, y: 3, duration: 4.05, ease: "none" }, 3.65);
+        gsap.set("#c404threekinds-b", { opacity: 0 });
+        tl.to("#c404threekinds-b", { opacity: 1, duration: 0.001 }, 3.65);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-04-three-kinds"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

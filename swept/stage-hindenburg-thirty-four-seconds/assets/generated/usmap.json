@@ -1,0 +1,28 @@
+{
+ "size": [
+  1920,
+  1080
+ ],
+ "pins": {
+  "Amarillo": [
+   809.6,
+   656.9
+  ]
+ },
+ "focus_box": [
+  236,
+  90,
+  1684,
+  990
+ ],
+ "highlights": {
+  "Texas": [
+   660,
+   609,
+   1049,
+   991
+  ]
+ },
+ "scale_px_per_unit": 2007.16,
+ "projection": "albers"
+}

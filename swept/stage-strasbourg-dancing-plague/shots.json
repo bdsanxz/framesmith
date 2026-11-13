@@ -1,0 +1,9 @@
+{"width": 1920, "height": 1080, "fps": 30, "out": "footage", "handle": 0.2,
+ "shots": [
+  {"id": "v01", "start": 15.94, "end": 18.21, "source": ".footage/src/candles.mp4", "in_point": 7.6, "subject": "candles burning in the dark"},
+  {"id": "v02", "start": 144.72, "end": 146.74, "source": ".footage/src/clouds.mp4", "in_point": 2.0, "subject": "clouds crossing the sky"},
+  {"id": "v03", "start": 223.97, "end": 226.47, "source": ".footage/src/church.mp4", "in_point": 1.0, "subject": "the nave of a gothic church"},
+  {"id": "v04", "start": 366.24, "end": 369.96, "source": ".footage/src/church.mp4", "in_point": 5.0, "subject": "the nave of a gothic church"},
+  {"id": "v05", "start": 386.92, "end": 390.62, "source": ".footage/src/candles.mp4", "in_point": 9.4, "subject": "candles burning in the dark"},
+  {"id": "v06", "start": 445.54, "end": 448.6, "source": ".footage/src/sun.mp4", "in_point": 16.0, "subject": "sunlight through the branches of trees"}
+ ]}

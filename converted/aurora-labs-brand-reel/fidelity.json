@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 61,
-    "refused": 17,
-    "translated": 21
+    "approximated": 66,
+    "refused": 11,
+    "translated": 22
   },
   "duration": 20.0,
   "entries": [
@@ -142,10 +142,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#wordmark-palette-swatches .swatch\" is compound; only `#id` and `.class` land",
+      "delta": "selector matched 5 clips; stagger 0.0600s expanded to per-element start offsets",
+      "detail": "tl.fromTo on \"#wordmark-palette-swatches .swatch\" at start=1.4000 duration=0.6000",
       "file": "compositions/wordmark-palette.html",
       "line": 87,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -257,10 +258,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#type-specimen-copy .type-specimen-label\" is compound; only `#id` and `.class` land",
+      "delta": "selector matched 2 clips; stagger 0.5000s expanded to per-element start offsets",
+      "detail": "tl.fromTo on \"#type-specimen-copy .type-specimen-label\" at start=5.6000 duration=0.6000",
       "file": "compositions/type-specimen.html",
       "line": 78,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -271,10 +273,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"0% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"0% 50%\\\"\" snapped to clip origin \"left center\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#type-specimen-rule\" at start=6.0000 duration=0.6000",
       "file": "compositions/type-specimen.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -495,17 +498,19 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"0% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"0% 50%\\\"\" snapped to clip origin \"left center\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#ui-card-fill\" at start=11.0000 duration=1.4000",
       "file": "compositions/ui-card.html",
       "line": 101,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#ui-card-steps .ui-card-step\" is compound; only `#id` and `.class` land",
+      "delta": "selector matched 3 clips; stagger 0.1200s expanded to per-element start offsets",
+      "detail": "tl.fromTo on \"#ui-card-steps .ui-card-step\" at start=11.8000 duration=0.6000",
       "file": "compositions/ui-card.html",
       "line": 103,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -594,12 +599,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #logo-close-mark is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-logo-close-mark.svg (418 bytes; xmlns added: true)",
       "file": "compositions/logo-close.html",
       "line": 57,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -633,10 +637,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"50% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"50% 50%\\\"\" snapped to clip origin \"center\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#logo-close-core\" at start=16.6000 duration=0.6000",
       "file": "compositions/logo-close.html",
       "line": 73,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",

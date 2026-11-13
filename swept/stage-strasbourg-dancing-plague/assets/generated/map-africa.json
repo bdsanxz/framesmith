@@ -1,0 +1,25 @@
+{
+ "size": [
+  1920,
+  1080
+ ],
+ "pins": {
+  "Kashasha": [
+   756.9,
+   330.3
+  ],
+  "Dar": [
+   1227.5,
+   665.7
+  ]
+ },
+ "focus_box": [
+  147,
+  21,
+  1773,
+  1059
+ ],
+ "highlights": {},
+ "scale_px_per_unit": 3581.03,
+ "projection": "mercator"
+}

@@ -1,0 +1,605 @@
+{
+ "version": 1,
+ "engine": "adopted from narration.mp3",
+ "lead": 0.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "一九一四年六月廿八號，薩拉熱窩。",
+   "key": "f4eb87549e26b873",
+   "start": 0.0,
+   "duration": 3.62,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "一",
+     "start": 0.04,
+     "end": 0.257
+    },
+    {
+     "text": "九",
+     "start": 0.257,
+     "end": 0.475
+    },
+    {
+     "text": "一",
+     "start": 0.475,
+     "end": 0.693
+    },
+    {
+     "text": "四",
+     "start": 0.693,
+     "end": 0.91
+    },
+    {
+     "text": "年",
+     "start": 0.91,
+     "end": 0.973
+    },
+    {
+     "text": "六",
+     "start": 0.973,
+     "end": 1.215
+    },
+    {
+     "text": "月",
+     "start": 1.215,
+     "end": 1.278
+    },
+    {
+     "text": "廿",
+     "start": 1.278,
+     "end": 1.502
+    },
+    {
+     "text": "八",
+     "start": 1.502,
+     "end": 1.727
+    },
+    {
+     "text": "號，",
+     "start": 1.727,
+     "end": 1.78
+    },
+    {
+     "text": "薩",
+     "start": 2.433,
+     "end": 2.433
+    },
+    {
+     "text": "拉",
+     "start": 2.433,
+     "end": 2.489
+    },
+    {
+     "text": "熱",
+     "start": 2.606,
+     "end": 2.677
+    },
+    {
+     "text": "窩。",
+     "start": 2.677,
+     "end": 3.439
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "轉錯一個彎，就會引發一場世界大戰。",
+   "key": "c7dc12b78bf4f77e",
+   "start": 3.62,
+   "duration": 3.495,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "轉",
+     "start": 0.19,
+     "end": 0.241
+    },
+    {
+     "text": "錯",
+     "start": 0.241,
+     "end": 0.292
+    },
+    {
+     "text": "一",
+     "start": 0.292,
+     "end": 0.476
+    },
+    {
+     "text": "個",
+     "start": 0.476,
+     "end": 0.66
+    },
+    {
+     "text": "彎，",
+     "start": 0.66,
+     "end": 1.117
+    },
+    {
+     "text": "就",
+     "start": 1.499,
+     "end": 1.55
+    },
+    {
+     "text": "會",
+     "start": 1.55,
+     "end": 1.642
+    },
+    {
+     "text": "引",
+     "start": 1.755,
+     "end": 1.847
+    },
+    {
+     "text": "發",
+     "start": 1.847,
+     "end": 1.99
+    },
+    {
+     "text": "一",
+     "start": 2.123,
+     "end": 2.246
+    },
+    {
+     "text": "場",
+     "start": 2.256,
+     "end": 2.45
+    },
+    {
+     "text": "世",
+     "start": 2.461,
+     "end": 2.665
+    },
+    {
+     "text": "界",
+     "start": 2.665,
+     "end": 2.87
+    },
+    {
+     "text": "大",
+     "start": 2.89,
+     "end": 3.074
+    },
+    {
+     "text": "戰。",
+     "start": 3.156,
+     "end": 3.33
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "後座坐住斐迪南大公，佢係奧匈帝國嘅皇位繼承人。",
+   "key": "03388bacc103fc9f",
+   "start": 7.115,
+   "duration": 4.68,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "後",
+     "start": 0.15,
+     "end": 0.196
+    },
+    {
+     "text": "座",
+     "start": 0.196,
+     "end": 0.438
+    },
+    {
+     "text": "坐",
+     "start": 0.438,
+     "end": 0.57
+    },
+    {
+     "text": "住",
+     "start": 0.57,
+     "end": 0.631
+    },
+    {
+     "text": "斐",
+     "start": 0.762,
+     "end": 1.106
+    },
+    {
+     "text": "迪",
+     "start": 1.106,
+     "end": 1.501
+    },
+    {
+     "text": "南",
+     "start": 1.521,
+     "end": 1.642
+    },
+    {
+     "text": "大",
+     "start": 1.642,
+     "end": 1.703
+    },
+    {
+     "text": "公，",
+     "start": 1.784,
+     "end": 1.788
+    },
+    {
+     "text": "佢",
+     "start": 2.492,
+     "end": 2.492
+    },
+    {
+     "text": "係",
+     "start": 2.492,
+     "end": 2.542
+    },
+    {
+     "text": "奧",
+     "start": 2.542,
+     "end": 2.634
+    },
+    {
+     "text": "匈",
+     "start": 2.745,
+     "end": 2.977
+    },
+    {
+     "text": "帝",
+     "start": 3.109,
+     "end": 3.321
+    },
+    {
+     "text": "國",
+     "start": 3.321,
+     "end": 3.423
+    },
+    {
+     "text": "嘅",
+     "start": 3.423,
+     "end": 3.736
+    },
+    {
+     "text": "皇",
+     "start": 3.736,
+     "end": 3.868
+    },
+    {
+     "text": "位",
+     "start": 3.868,
+     "end": 3.939
+    },
+    {
+     "text": "繼",
+     "start": 3.939,
+     "end": 4.04
+    },
+    {
+     "text": "承",
+     "start": 4.04,
+     "end": 4.353
+    },
+    {
+     "text": "人。",
+     "start": 4.353,
+     "end": 4.477
+    }
+   ]
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "佢嘅路線沿途，有六個年輕刺客埋伏緊。",
+   "key": "9f5052343e245fee",
+   "start": 11.795,
+   "duration": 3.29,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "佢",
+     "start": 0.21,
+     "end": 0.223
+    },
+    {
+     "text": "嘅",
+     "start": 0.223,
+     "end": 0.328
+    },
+    {
+     "text": "路",
+     "start": 0.328,
+     "end": 0.432
+    },
+    {
+     "text": "線",
+     "start": 0.432,
+     "end": 0.536
+    },
+    {
+     "text": "沿",
+     "start": 0.536,
+     "end": 0.849
+    },
+    {
+     "text": "途，",
+     "start": 0.849,
+     "end": 1.162
+    },
+    {
+     "text": "有",
+     "start": 1.162,
+     "end": 1.228
+    },
+    {
+     "text": "六",
+     "start": 1.332,
+     "end": 1.37
+    },
+    {
+     "text": "個",
+     "start": 1.37,
+     "end": 1.465
+    },
+    {
+     "text": "年",
+     "start": 1.484,
+     "end": 1.579
+    },
+    {
+     "text": "輕",
+     "start": 1.579,
+     "end": 1.654
+    },
+    {
+     "text": "刺",
+     "start": 1.73,
+     "end": 1.996
+    },
+    {
+     "text": "客",
+     "start": 1.996,
+     "end": 2.081
+    },
+    {
+     "text": "埋",
+     "start": 2.081,
+     "end": 2.413
+    },
+    {
+     "text": "伏",
+     "start": 2.526,
+     "end": 2.849
+    },
+    {
+     "text": "緊。",
+     "start": 2.849,
+     "end": 3.085
+    }
+   ]
+  },
+  {
+   "id": "s05",
+   "file": "assets/narration/s05.mp3",
+   "text": "到咗拉丁橋，司機向右轉。轉錯咗。",
+   "key": "8a77630af8d94d2c",
+   "start": 15.085,
+   "duration": 4.795,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "到",
+     "start": 0.213,
+     "end": 0.243
+    },
+    {
+     "text": "咗",
+     "start": 0.243,
+     "end": 0.595
+    },
+    {
+     "text": "拉",
+     "start": 0.595,
+     "end": 0.652
+    },
+    {
+     "text": "丁",
+     "start": 0.776,
+     "end": 1.233
+    },
+    {
+     "text": "橋，",
+     "start": 1.233,
+     "end": 1.909
+    },
+    {
+     "text": "司",
+     "start": 1.909,
+     "end": 1.957
+    },
+    {
+     "text": "機",
+     "start": 1.957,
+     "end": 2.043
+    },
+    {
+     "text": "向",
+     "start": 2.147,
+     "end": 2.366
+    },
+    {
+     "text": "右",
+     "start": 2.49,
+     "end": 2.747
+    },
+    {
+     "text": "轉。",
+     "start": 2.747,
+     "end": 3.128
+    },
+    {
+     "text": "轉",
+     "start": 3.8,
+     "end": 3.8
+    },
+    {
+     "text": "錯",
+     "start": 3.8,
+     "end": 3.8
+    },
+    {
+     "text": "咗。",
+     "start": 3.8,
+     "end": 4.578
+    }
+   ]
+  },
+  {
+   "id": "s06",
+   "file": "assets/narration/s06.mp3",
+   "text": "佢一踩掣，架車就熄咗火，距離普林西普只係幾步。",
+   "key": "8ab833686e478666",
+   "start": 19.88,
+   "duration": 4.775,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "佢",
+     "start": 0.231,
+     "end": 0.316
+    },
+    {
+     "text": "一",
+     "start": 0.42,
+     "end": 0.535
+    },
+    {
+     "text": "踩",
+     "start": 0.535,
+     "end": 0.972
+    },
+    {
+     "text": "掣，",
+     "start": 0.972,
+     "end": 1.088
+    },
+    {
+     "text": "架",
+     "start": 1.461,
+     "end": 1.524
+    },
+    {
+     "text": "車",
+     "start": 1.524,
+     "end": 1.534
+    },
+    {
+     "text": "就",
+     "start": 1.639,
+     "end": 1.753
+    },
+    {
+     "text": "熄",
+     "start": 1.753,
+     "end": 2.095
+    },
+    {
+     "text": "咗",
+     "start": 2.105,
+     "end": 2.438
+    },
+    {
+     "text": "火，",
+     "start": 2.919,
+     "end": 2.919
+    },
+    {
+     "text": "距",
+     "start": 2.919,
+     "end": 3.0
+    },
+    {
+     "text": "離",
+     "start": 3.104,
+     "end": 3.266
+    },
+    {
+     "text": "普",
+     "start": 3.266,
+     "end": 3.323
+    },
+    {
+     "text": "林",
+     "start": 3.447,
+     "end": 3.58
+    },
+    {
+     "text": "西",
+     "start": 3.59,
+     "end": 3.742
+    },
+    {
+     "text": "普",
+     "start": 3.751,
+     "end": 3.904
+    },
+    {
+     "text": "只",
+     "start": 4.008,
+     "end": 4.075
+    },
+    {
+     "text": "係",
+     "start": 4.075,
+     "end": 4.237
+    },
+    {
+     "text": "幾",
+     "start": 4.237,
+     "end": 4.332
+    },
+    {
+     "text": "步。",
+     "start": 4.408,
+     "end": 4.567
+    }
+   ]
+  },
+  {
+   "id": "s07",
+   "file": "assets/narration/s07.mp3",
+   "text": "佢開咗兩槍。",
+   "key": "076b8da0e34ccae8",
+   "start": 24.655,
+   "duration": 1.285,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "佢",
+     "start": 0.196,
+     "end": 0.267
+    },
+    {
+     "text": "開",
+     "start": 0.267,
+     "end": 0.328
+    },
+    {
+     "text": "咗",
+     "start": 0.44,
+     "end": 0.674
+    },
+    {
+     "text": "兩",
+     "start": 0.807,
+     "end": 0.838
+    },
+    {
+     "text": "槍。",
+     "start": 0.838,
+     "end": 1.225
+    }
+   ]
+  }
+ ],
+ "duration": 25.94
+}

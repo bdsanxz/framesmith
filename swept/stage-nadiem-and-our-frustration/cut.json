@@ -1,0 +1,2168 @@
+{
+  "title": "NADIEM & FRUSTRASI KITA",
+  "design": "tracery",
+  "lang": "id",
+  "aroll": {
+    "src": "footage/aroll.mp4",
+    "face": [
+      0.53,
+      0.29
+    ],
+    "look": {
+      "brightness": 0.7,
+      "contrast": 1.14,
+      "saturate": 0.8
+    },
+    "background": "replace",
+    "backdrop": "assets/backdrop.jpg",
+    "volume": 1
+  },
+  "fonts": {
+    "sans": {
+      "family": "Archivo",
+      "files": {
+        "500": "assets/fonts/archivo-latin.woff2",
+        "700": "assets/fonts/archivo-latin.woff2",
+        "800": "assets/fonts/archivo-latin.woff2"
+      }
+    },
+    "serif": {
+      "family": "Instrument Serif",
+      "files": {
+        "400i": "assets/fonts/instrument-serif-italic-latin.woff2"
+      }
+    },
+    "slab": {
+      "family": "Bricolage Grotesque",
+      "files": {
+        "800": "assets/fonts/bricolage-grotesque-latin.woff2"
+      }
+    },
+    "mono": {
+      "family": "JetBrains Mono",
+      "files": {
+        "500": "assets/fonts/jetbrains-mono-latin.woff2"
+      }
+    }
+  },
+  "chapters": [
+    {
+      "at": 31,
+      "title": "APA YANG SEBENARNYA DITUNTUT JAKSA KE NADIEM?"
+    },
+    {
+      "at": 145,
+      "title": "KENAPA KITA SEFRUSTRASI INI?"
+    },
+    {
+      "at": 329,
+      "title": "KALAU SEMUA PUNYA KOMENTAR, SIAPA YANG DIDENGAR?"
+    },
+    {
+      "at": 508,
+      "title": "EMANGNYA KITA NGERTI HUKUM?"
+    },
+    {
+      "at": 828,
+      "title": "TERKENAL ATAU KOMPETEN: SIAPA YANG LAYAK DIDENGAR?"
+    },
+    {
+      "at": 1110,
+      "title": "KALAU YANG KOMPETEN PUN BEDA PENDAPAT, KITA PERCAYA SIAPA?"
+    }
+  ],
+  "end": {
+    "at": 1447,
+    "name": "Pandji Pragiwaksono",
+    "handles": [
+      "YouTube  @pandji.pragiwaksono"
+    ]
+  },
+  "music": {
+    "src": "assets/audio/bed.mp3",
+    "from": 0
+  },
+  "scenes": [
+    {
+      "type": "say",
+      "w": [
+        5,
+        13
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "kita akan ngomongin"
+        ],
+        [
+          "bold",
+          "betapa frustrasinya"
+        ],
+        [
+          "serif",
+          "kita sebagai bangsa"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        14,
+        19
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/nadiem-makarim.jpg",
+      "name": "NADIEM MAKARIM",
+      "role": "eks Mendikbudristek",
+      "width": 500
+    },
+    {
+      "type": "page",
+      "w": [
+        20,
+        25
+      ],
+      "img": "assets/pages/kompastv-tuntutan-18-tahun-top.png",
+      "meta": "assets/pages/kompastv-tuntutan-18-tahun-top.json",
+      "marks": "meta",
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        31,
+        36
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "baru saja"
+        ],
+        [
+          "caps",
+          "Indonesia terhebohkan"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        37,
+        48
+      ],
+      "img": "assets/pages/cnn-tuntutan-18-tahun.png",
+      "meta": "assets/pages/cnn-tuntutan-18-tahun.json",
+      "marks": "meta",
+      "mark_at": 43,
+      "zoom_at": 46,
+      "label": "TUNTUTAN JAKSA",
+      "source": "cnnindonesia.com"
+    },
+    {
+      "type": "clip",
+      "before": 49,
+      "len": 8.0,
+      "src": "footage/c01.mp4",
+      "tag": "KompasTV, 16 Mei 2026",
+      "subs": [
+        [
+          0.02,
+          2.0,
+          "Menjatuhkan pidana"
+        ],
+        [
+          2.0,
+          4.32,
+          "terhadap terdakwa Nadiem Anwar Makarim"
+        ],
+        [
+          4.32,
+          5.25,
+          "oleh karena itu"
+        ],
+        [
+          5.25,
+          6.56,
+          "dengan pidana penjara"
+        ],
+        [
+          6.56,
+          7.9,
+          "selama 18 tahun"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        49,
+        64
+      ],
+      "img": "assets/pages/detik-uang-pengganti-5-6-triliun.png",
+      "meta": "assets/pages/detik-uang-pengganti-5-6-triliun.json",
+      "marks": "meta",
+      "mark_at": 53,
+      "zoom_at": 59,
+      "label": "UANG PENGGANTI: Rp 5,68 TRILIUN",
+      "source": "news.detik.com",
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        65,
+        75
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "kalau nggak sanggup"
+        ],
+        [
+          "caps",
+          "membayar angka itu"
+        ]
+      ]
+    },
+    {
+      "type": "big",
+      "w": [
+        76,
+        80
+      ],
+      "figure": "9",
+      "unit": "TAHUN PENJARA",
+      "label": "substitusinya"
+    },
+    {
+      "type": "page",
+      "w": [
+        81,
+        93
+      ],
+      "img": "assets/pages/antara-nadiem-tidak-punya-uang.png",
+      "meta": "assets/pages/antara-nadiem-tidak-punya-uang.json",
+      "marks": "meta",
+      "mark_at": 87,
+      "label": "KATA NADIEM",
+      "source": "antaranews.com"
+    },
+    {
+      "type": "clip",
+      "before": 94,
+      "len": 5.1,
+      "src": "footage/c02.mp4",
+      "tag": "KompasTV, 16 Mei 2026",
+      "subs": [
+        [
+          0.02,
+          1.54,
+          "Dan uang pengganti itu adalah"
+        ],
+        [
+          1.54,
+          3.86,
+          "jauh di atas harta kekayaan"
+        ],
+        [
+          3.86,
+          5.0,
+          "yang saya punya"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        94,
+        99
+      ],
+      "ground": "white",
+      "lines": [
+        [
+          "caps",
+          "18 plus 9"
+        ],
+        [
+          "bar",
+          "jadinya berapa?"
+        ]
+      ]
+    },
+    {
+      "type": "big",
+      "w": [
+        100,
+        104
+      ],
+      "figure": "27",
+      "unit": "TAHUN",
+      "label": "Nadiem dituntut penjara",
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        105,
+        108
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "dan kita semua"
+        ],
+        [
+          "capsserif",
+          "frustrasi"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        109,
+        121
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "karena kita nggak merasa"
+        ],
+        [
+          "bold",
+          "itu tuntutan"
+        ],
+        [
+          "serif",
+          "yang adil"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        131,
+        144
+      ],
+      "img": "assets/pages/goodstats-sentimen-warganet.png",
+      "meta": "assets/pages/goodstats-sentimen-warganet.json",
+      "marks": "meta",
+      "mark_at": 133,
+      "source": "data.goodstats.id"
+    },
+    {
+      "type": "say",
+      "w": [
+        145,
+        153
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "kenapa kita frustrasi?"
+        ],
+        [
+          "caps",
+          "nggak bisa ngapa-ngapain"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        154,
+        164
+      ],
+      "src": "footage/b10.mp4",
+      "lines": [
+        [
+          "caps",
+          "gue ataupun"
+        ],
+        [
+          "red",
+          "konten kreator lain"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        165,
+        180
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/brand-youtube.svg",
+          "label": "YouTube",
+          "at": 170
+        },
+        {
+          "icon": "assets/icons/brand-instagram.svg",
+          "label": "Instagram",
+          "at": 173
+        },
+        {
+          "icon": "assets/icons/messages.svg",
+          "label": "banyak komentar",
+          "at": 177
+        }
+      ],
+      "label": "PUNYA BANYAK OPINI"
+    },
+    {
+      "type": "say",
+      "w": [
+        181,
+        190
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "tapi pada akhirnya"
+        ],
+        [
+          "bold",
+          "yang gue punya"
+        ],
+        [
+          "serif",
+          "hanya komentar"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        191,
+        195
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "gue *nggak bisa* mengubah apa-apa"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        196,
+        205
+      ],
+      "src": "footage/b04.mp4",
+      "lines": [
+        [
+          "caps",
+          "kayak lagi nonton"
+        ],
+        [
+          "red",
+          "tim kesayangan lo"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        206,
+        220
+      ],
+      "src": "footage/b01.mp4",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "lu merasa wasit"
+        ],
+        [
+          "red",
+          "nggak adil"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        221,
+        230
+      ],
+      "src": "footage/b08.mp4",
+      "lines": [
+        [
+          "caps",
+          "kita berkomentar"
+        ],
+        [
+          "caps",
+          "berdebat di sosial media"
+        ]
+      ],
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        231,
+        240
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "semua komentar ini"
+        ],
+        [
+          "capsserif",
+          "cuma jadi komentar"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        241,
+        245
+      ],
+      "ground": "dark",
+      "lines": [
+        [
+          "caps",
+          "nggak bisa jadi apa-apa"
+        ],
+        [
+          "serif",
+          "kenapa?"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        246,
+        254
+      ],
+      "src": "footage/b06.mp4",
+      "lines": [
+        [
+          "caps",
+          "karena kita di luar"
+        ],
+        [
+          "red",
+          "nggak ikut bermain"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        260,
+        274
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "orang di dalam lapangan bilang :"
+        ],
+        [
+          "bold",
+          "lu tuh nggak ngerti"
+        ],
+        [
+          "serif",
+          "permainan"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        275,
+        299
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/x.svg",
+          "label": "bukan wasit",
+          "at": 277
+        },
+        {
+          "icon": "assets/icons/license.svg",
+          "label": "nggak punya lisensi",
+          "at": 286
+        },
+        {
+          "icon": "assets/icons/school.svg",
+          "label": "nggak pernah melatih diri",
+          "at": 291
+        }
+      ],
+      "label": "LU TUH BUKAN WASIT",
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        300,
+        315
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "apa yang membuat lu merasa"
+        ],
+        [
+          "bold",
+          "opini lu lebih benar"
+        ],
+        [
+          "serif",
+          "daripada gua di lapangan?"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        316,
+        322
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "itulah yang membuat kita *frustrasi*"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        323,
+        328
+      ],
+      "src": "footage/b12.mp4",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "itu juga terjadi"
+        ],
+        [
+          "red",
+          "di sidangnya Nadiem"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        330,
+        335
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "kita semua punya *komentar*"
+        ]
+      ]
+    },
+    {
+      "type": "versus",
+      "w": [
+        336,
+        348
+      ],
+      "left": {
+        "label": "Nadiem dipenjara",
+        "value": "pro"
+      },
+      "right": {
+        "label": "Nadiem dipenjara",
+        "value": "nggak pro"
+      },
+      "op": "vs"
+    },
+    {
+      "type": "say",
+      "w": [
+        349,
+        358
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "ada yang nggak merasa"
+        ],
+        [
+          "bold",
+          "kasusnya punya"
+        ],
+        [
+          "serif",
+          "basis yang kuat"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        359,
+        372
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "tapi emang nggak suka"
+        ],
+        [
+          "caps",
+          "sama Nadiem dan kebijakannya"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        384,
+        390
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "tapi semua ini"
+        ],
+        [
+          "capsserif",
+          "adalah komentar"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        391,
+        404
+      ],
+      "src": "footage/b02.mp4",
+      "lines": [
+        [
+          "caps",
+          "mau berteriak"
+        ],
+        [
+          "red",
+          "mau ngomong segala macam"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        405,
+        412
+      ],
+      "ground": "white",
+      "lines": [
+        [
+          "caps",
+          "di luar lapangan"
+        ],
+        [
+          "bar",
+          "di luar persidangan"
+        ]
+      ],
+      "seam_out": "flash"
+    },
+    {
+      "type": "float",
+      "w": [
+        416,
+        426
+      ],
+      "side": "left",
+      "kind": "page",
+      "img": "assets/pages/kompastv-tuntutan-18-tahun.png",
+      "meta": "assets/pages/kompastv-tuntutan-18-tahun.json",
+      "marks": "meta",
+      "width": 700
+    },
+    {
+      "type": "say",
+      "w": [
+        427,
+        435
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "yang pro tuntutan akan bilang :"
+        ],
+        [
+          "bold",
+          "lu mau ngomong apa"
+        ],
+        [
+          "serif",
+          "juga nggak ngaruh"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        436,
+        440
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "karena lu"
+        ],
+        [
+          "capsserif",
+          "nggak ngerti"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        441,
+        454
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/microphone.svg",
+          "label": "pelawak",
+          "at": 445
+        },
+        {
+          "icon": "assets/icons/music.svg",
+          "label": "pemusik",
+          "at": 450
+        },
+        {
+          "icon": "assets/icons/brand-youtube.svg",
+          "label": "youtuber",
+          "at": 454
+        }
+      ],
+      "label": "APA IYA?"
+    },
+    {
+      "type": "broll",
+      "w": [
+        455,
+        467
+      ],
+      "src": "footage/b11.mp4",
+      "lines": [
+        [
+          "caps",
+          "lebih ngerti para hakim,"
+        ],
+        [
+          "red",
+          "jaksa, pengacara?"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        468,
+        479
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "apa iya lu bisa merasa"
+        ],
+        [
+          "bold",
+          "lu punya hak"
+        ],
+        [
+          "serif",
+          "lebih didengar?"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        480,
+        487
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "padahal pendidikan lu *nggak ke arah sana*"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        490,
+        507
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "dan memang harus diakuin"
+        ],
+        [
+          "caps",
+          "ikut berkomentar"
+        ],
+        [
+          "capsserif",
+          "tanpa ngerti hukum"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        508,
+        514
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "kita bisa bilang, *nggak masuk akal*"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        515,
+        530
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "masa 27 tahun,"
+        ],
+        [
+          "bold",
+          "hukumannya lebih sedikit"
+        ],
+        [
+          "serif",
+          "padahal kejahatannya lebih tinggi"
+        ]
+      ]
+    },
+    {
+      "type": "clip",
+      "before": 531,
+      "len": 7.1,
+      "src": "footage/c03.mp4",
+      "tag": "KompasTV, 16 Mei 2026",
+      "subs": [
+        [
+          0.03,
+          1.54,
+          "Kenapa tuntutan saya lebih besar"
+        ],
+        [
+          1.54,
+          2.9,
+          "daripada pembunuh?"
+        ],
+        [
+          3.26,
+          4.76,
+          "Penuntutan saya"
+        ],
+        [
+          4.76,
+          5.46,
+          "lebih besar"
+        ],
+        [
+          5.46,
+          7.0,
+          "daripada teroris?"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        541,
+        555
+      ],
+      "src": "footage/b13.mp4",
+      "lines": [
+        [
+          "caps",
+          "tapi emang lu ngerti"
+        ],
+        [
+          "red",
+          "undang-undang ini?"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        556,
+        570
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "lu nggak ngerti kan?"
+        ],
+        [
+          "capsserif",
+          "emang bener kita nggak ngerti"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        575,
+        580
+      ],
+      "side": "left",
+      "kind": "unknown",
+      "name": "ORANG-ORANG",
+      "role": "ngomong sama gue"
+    },
+    {
+      "type": "say",
+      "w": [
+        581,
+        593
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "“gimana Bang Pandji?"
+        ],
+        [
+          "bold",
+          "Nadiem dipenjara"
+        ],
+        [
+          "serif",
+          "18 tahun plus 9”"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        594,
+        603
+      ],
+      "img": "assets/pages/detik-beda-tuntutan-vonis-tuntutan.png",
+      "meta": "assets/pages/detik-beda-tuntutan-vonis-tuntutan.json",
+      "marks": "meta",
+      "mark_at": 598,
+      "label": "BARU SIDANG TUNTUTAN",
+      "source": "detik.com"
+    },
+    {
+      "type": "page",
+      "w": [
+        604,
+        617
+      ],
+      "img": "assets/pages/kompas-pleidoi-2-juni.png",
+      "meta": "assets/pages/kompas-pleidoi-2-juni.json",
+      "marks": "meta",
+      "mark_at": 606,
+      "label": "2 JUNI: SIDANG PEMBELAAN",
+      "source": "kompas.com",
+      "seam_out": "flash"
+    },
+    {
+      "type": "card",
+      "w": [
+        629,
+        637
+      ],
+      "ground": "white",
+      "lines": [
+        [
+          "caps",
+          "bukan."
+        ],
+        [
+          "bar",
+          "itu baru sidang tuntutannya"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        638,
+        650
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/scale.svg",
+          "label": "lewat proses sidang",
+          "at": 638
+        },
+        {
+          "icon": "assets/icons/speakerphone.svg",
+          "label": "jaksa menuntut",
+          "at": 642
+        },
+        {
+          "icon": "assets/icons/gavel.svg",
+          "label": "vonis: nanti",
+          "at": 649
+        }
+      ],
+      "label": "TUNTUTANNYA 18 TAHUN"
+    },
+    {
+      "type": "float",
+      "w": [
+        663,
+        675
+      ],
+      "side": "left",
+      "kind": "page",
+      "img": "assets/pages/kompas-nadiem-tidak-punya-uang-top.png",
+      "meta": "assets/pages/kompas-nadiem-tidak-punya-uang-top.json",
+      "marks": "meta",
+      "width": 700
+    },
+    {
+      "type": "page",
+      "w": [
+        676,
+        685
+      ],
+      "img": "assets/pages/detik-beda-tuntutan-vonis-vonis.png",
+      "meta": "assets/pages/detik-beda-tuntutan-vonis-vonis.json",
+      "marks": "meta",
+      "mark_at": 678,
+      "label": "VONIS = PUTUSAN HAKIM",
+      "source": "detik.com",
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        686,
+        690
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "bedain itu aja"
+        ],
+        [
+          "capsserif",
+          "nggak bisa"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        691,
+        711
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "jadi apa iya"
+        ],
+        [
+          "bold",
+          "kita punya hak didengar"
+        ],
+        [
+          "serif",
+          "di saat ngerti hukum aja nggak?"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        719,
+        735
+      ],
+      "img": "assets/pages/antara-kerugian-negara-vs-uang-diterima.png",
+      "meta": "assets/pages/antara-kerugian-negara-vs-uang-diterima.json",
+      "marks": "meta",
+      "mark_at": 727,
+      "label": "YANG DIDUGA DITERIMA",
+      "source": "antaranews.com"
+    },
+    {
+      "type": "page",
+      "w": [
+        736,
+        750
+      ],
+      "img": "assets/pages/hukumonline-uang-pengganti-vs-kerugian-negara.png",
+      "meta": "assets/pages/hukumonline-uang-pengganti-vs-kerugian-negara.json",
+      "marks": "also",
+      "mark_at": 738,
+      "label": "KERUGIAN NEGARA: Rp 2,1 TRILIUN",
+      "source": "hukumonline.com"
+    },
+    {
+      "type": "versus",
+      "w": [
+        751,
+        765
+      ],
+      "left": {
+        "label": "yang diduga diterima",
+        "value": "Rp 809 M"
+      },
+      "right": {
+        "label": "kerugian negara",
+        "value": "Rp 2,1 T"
+      },
+      "op": "vs",
+      "line": "ini *bukan* angka yang sama",
+      "source": "antaranews.com, hukumonline.com",
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        766,
+        778
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "yang merasa tuntutan itu *benar*"
+        ],
+        [
+          "low",
+          "bisa bilang :"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        779,
+        789
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "tapi lu nggak ngerti apa-apa"
+        ],
+        [
+          "caps",
+          "ngerti hukum aja nggak"
+        ]
+      ]
+    },
+    {
+      "type": "stage",
+      "w": [
+        792,
+        805
+      ],
+      "lead": "dan kita",
+      "word": "FRUSTRASI",
+      "lines": [
+        [
+          "low",
+          "dari kacamata kita, *itu nggak masuk akal*"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        806,
+        818
+      ],
+      "img": "assets/pages/skysports-handball-var-top.png",
+      "meta": "assets/pages/skysports-handball-var-top.json",
+      "marks": "meta",
+      "mark_at": 812,
+      "source": "skysports.com"
+    },
+    {
+      "type": "broll",
+      "w": [
+        819,
+        827
+      ],
+      "src": "footage/b03.mp4",
+      "lines": [
+        [
+          "caps",
+          "di VAR juga"
+        ],
+        [
+          "red",
+          "kelihatan handball"
+        ]
+      ],
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        837,
+        848
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "wasit akan bilang :"
+        ],
+        [
+          "bold",
+          "kerja lu apa"
+        ],
+        [
+          "serif",
+          "sebenarnya?"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        849,
+        868
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/certificate.svg",
+          "label": "kerjanya di bidang ini",
+          "at": 853
+        },
+        {
+          "icon": "assets/icons/school.svg",
+          "label": "sekolahnya di bidang ini",
+          "at": 859
+        },
+        {
+          "icon": "assets/icons/check.svg",
+          "label": "dia kompeten",
+          "at": 864
+        }
+      ],
+      "label": "LU KOMPETENSINYA APA?",
+      "seam_out": "flash"
+    },
+    {
+      "type": "page",
+      "w": [
+        881,
+        899
+      ],
+      "img": "assets/pages/wikipedia-death-of-expertise.png",
+      "meta": "assets/pages/wikipedia-death-of-expertise.json",
+      "marks": "meta",
+      "mark_at": 885,
+      "zoom_at": 892,
+      "label": "THE DEATH OF EXPERTISE",
+      "source": "en.wikipedia.org",
+      "seam_out": "burn"
+    },
+    {
+      "type": "say",
+      "w": [
+        903,
+        910
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "bukan berarti dia terkenal"
+        ],
+        [
+          "caps",
+          "omongannya benar"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        930,
+        950
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "dan bukan berarti yang nggak terkenal"
+        ],
+        [
+          "bold",
+          "nggak perlu didengerin"
+        ],
+        [
+          "serif",
+          "kalau dia kompeten"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        956,
+        971
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "akhirnya"
+        ],
+        [
+          "caps",
+          "apapun aktivisme kita"
+        ],
+        [
+          "capsserif",
+          "nggak bisa mengubah apa-apa"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        972,
+        979
+      ],
+      "ground": "white",
+      "lines": [
+        [
+          "caps",
+          "kita di luar"
+        ],
+        [
+          "bar",
+          "mereka di dalam"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        982,
+        994
+      ],
+      "src": "footage/b05.mp4",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "ada aja yang dibayar"
+        ],
+        [
+          "red",
+          "ada aja yang disogok"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        995,
+        1006
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "tapi itu hal yang berbeda"
+        ],
+        [
+          "low",
+          "*itu akan ketahuan* kemudian hari"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1007,
+        1019
+      ],
+      "style": "side",
+      "side": "right",
+      "lines": [
+        [
+          "lead",
+          "lu nggak bisa hanya karena"
+        ],
+        [
+          "bold",
+          "nggak suka"
+        ],
+        [
+          "serif",
+          "dengan tuntutannya"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1022,
+        1031
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "lu nggak suka, terus"
+        ],
+        [
+          "caps",
+          "“pasti dibayar”"
+        ],
+        [
+          "capsserif",
+          "nggak bisa juga"
+        ]
+      ]
+    },
+    {
+      "type": "stage",
+      "w": [
+        1043,
+        1049
+      ],
+      "lead": "nggak punya",
+      "word": "KEADILAN",
+      "lines": [
+        [
+          "low",
+          "*sejak dalam pikiran*"
+        ]
+      ]
+    },
+    {
+      "type": "flow",
+      "w": [
+        1050,
+        1065
+      ],
+      "steps": [
+        {
+          "icon": "assets/icons/eye.svg",
+          "label": "objektif",
+          "at": 1057
+        },
+        {
+          "icon": "assets/icons/scale.svg",
+          "label": "adil",
+          "at": 1063
+        }
+      ],
+      "label": "KITA MESTI PUNYA KEMAMPUAN",
+      "seam_out": "burn"
+    },
+    {
+      "type": "broll",
+      "w": [
+        1066,
+        1085
+      ],
+      "src": "footage/b07.mp4",
+      "lines": [
+        [
+          "caps",
+          "“wasit dibayar nih”"
+        ],
+        [
+          "red",
+          "nggak bisa kayak gitu"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1086,
+        1100
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "ada pembuktiannya nanti"
+        ],
+        [
+          "bold",
+          "tanpa bukti"
+        ],
+        [
+          "serif",
+          "lu nggak bisa menuduh"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        1101,
+        1107
+      ],
+      "ground": "dark",
+      "lines": [
+        [
+          "caps",
+          "peluangnya ada"
+        ],
+        [
+          "serif",
+          "tapi belum tentu"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        1124,
+        1136
+      ],
+      "side": "right",
+      "kind": "portrait",
+      "img": "assets/pic/ferry-irwandi.jpg",
+      "name": "FERRY IRWANDI",
+      "role": "konten kreator",
+      "width": 480
+    },
+    {
+      "type": "say",
+      "w": [
+        1137,
+        1144
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "yaudah kalau gitu"
+        ],
+        [
+          "bold",
+          "kita dengerin"
+        ],
+        [
+          "serif",
+          "orang-orang yang kompeten"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        1164,
+        1174
+      ],
+      "side": "right",
+      "kind": "portrait",
+      "img": "assets/pic/mahfud-md.jpg",
+      "name": "MAHFUD MD",
+      "role": "eks Menko Polhukam",
+      "width": 480
+    },
+    {
+      "type": "clip",
+      "before": 1175,
+      "len": 7.2,
+      "src": "footage/c05.mp4",
+      "tag": "Metro TV, 7 Januari 2026",
+      "subs": [
+        [
+          0.0,
+          0.73,
+          "Nah begini,"
+        ],
+        [
+          0.73,
+          2.54,
+          "kalau dalam hukum pidana itu,"
+        ],
+        [
+          2.54,
+          4.34,
+          "orang dianggap korupsi itu"
+        ],
+        [
+          4.34,
+          5.66,
+          "tidak harus menerima"
+        ],
+        [
+          5.66,
+          7.1,
+          "keuntungan sendiri."
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        1175,
+        1181
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/rhenald-kasali.jpg",
+      "name": "PROF. RHENALD KASALI",
+      "role": "Guru Besar FEB UI",
+      "width": 480
+    },
+    {
+      "type": "float",
+      "w": [
+        1182,
+        1194
+      ],
+      "side": "right",
+      "kind": "portrait",
+      "img": "assets/pic/hotman-paris.jpg",
+      "name": "HOTMAN PARIS",
+      "role": "pengacara",
+      "width": 480
+    },
+    {
+      "type": "page",
+      "w": [
+        1206,
+        1216
+      ],
+      "img": "assets/pages/cnn-hotman-jangan-pelit.png",
+      "meta": "assets/pages/cnn-hotman-jangan-pelit.json",
+      "marks": "meta",
+      "mark_at": 1209,
+      "label": "KATA HOTMAN PARIS",
+      "source": "cnnindonesia.com"
+    },
+    {
+      "type": "clip",
+      "before": 1228,
+      "len": 6.9,
+      "src": "footage/c04.mp4",
+      "tag": "KompasTV, 18 Mei 2026"
+    },
+    {
+      "type": "page",
+      "w": [
+        1217,
+        1227
+      ],
+      "img": "assets/pages/detik-hotman-buktikan-tidak-korupsi.png",
+      "meta": "assets/pages/detik-hotman-buktikan-tidak-korupsi.json",
+      "marks": "meta",
+      "mark_at": 1222,
+      "source": "detik.com",
+      "seam_out": "burn"
+    },
+    {
+      "type": "stage",
+      "w": [
+        1237,
+        1251
+      ],
+      "hold": 0.6,
+      "lead": "kita dengerin aja opini",
+      "nodes": [
+        {
+          "icon": "assets/icons/certificate.svg",
+          "label": "kompeten",
+          "at": 1243
+        },
+        {
+          "icon": "assets/icons/device-tv.svg",
+          "label": "terkenal",
+          "at": 1247
+        }
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1252,
+        1259
+      ],
+      "style": "caps",
+      "lines": [
+        [
+          "caps",
+          "tapi itu sama kayak"
+        ],
+        [
+          "capsserif",
+          "sepak bola juga"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1276,
+        1285
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "karena nggak tahu sepak bola,"
+        ],
+        [
+          "bold",
+          "kita percaya"
+        ],
+        [
+          "serif",
+          "sama orang-orang kayak…"
+        ]
+      ]
+    },
+    {
+      "type": "float",
+      "w": [
+        1286,
+        1287
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/gary-neville.jpg",
+      "name": "GARY NEVILLE",
+      "width": 460
+    },
+    {
+      "type": "float",
+      "w": [
+        1288,
+        1289
+      ],
+      "side": "right",
+      "kind": "portrait",
+      "img": "assets/pic/micah-richards.jpg",
+      "name": "MICAH RICHARDS",
+      "width": 460
+    },
+    {
+      "type": "float",
+      "w": [
+        1290,
+        1294
+      ],
+      "side": "left",
+      "kind": "portrait",
+      "img": "assets/pic/thierry-henry.jpg",
+      "name": "THIERRY HENRY",
+      "width": 460
+    },
+    {
+      "type": "say",
+      "w": [
+        1295,
+        1305
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "pundit-pundit *yang terkenal* ini"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        1306,
+        1321
+      ],
+      "img": "assets/pages/planetfootball-neville-carragher-debate.png",
+      "meta": "assets/pages/planetfootball-neville-carragher-debate.json",
+      "marks": "meta",
+      "mark_at": 1318,
+      "label": "ITU PUN MEREKA BERSEBERANGAN",
+      "source": "planetfootball.com"
+    },
+    {
+      "type": "clip",
+      "before": 1306,
+      "len": 5.4,
+      "src": "footage/c06.mp4",
+      "tag": "Sky Sports, 1 September 2024",
+      "subs": [
+        [
+          0.11,
+          0.86,
+          "Look, there's no doubt.",
+          "Nggak diragukan lagi."
+        ],
+        [
+          0.86,
+          2.32,
+          "I don't agree with the nerve bit",
+          "Gue nggak setuju soal nyali tadi"
+        ],
+        [
+          2.38,
+          3.88,
+          "He used the word \"bottled\"",
+          "Dia pakai kata \"bottled\""
+        ],
+        [
+          3.96,
+          5.3,
+          "that's why we were arguing",
+          "makanya kita berdebat"
+        ]
+      ]
+    },
+    {
+      "type": "versus",
+      "w": [
+        1322,
+        1336
+      ],
+      "left": {
+        "label": "pendapat Mahfud MD",
+        "value": ""
+      },
+      "right": {
+        "label": "pendapat Prof. Rhenald, Hotman",
+        "value": ""
+      },
+      "op": "vs",
+      "line": "*berseberangan*",
+      "seam_out": "flash"
+    },
+    {
+      "type": "card",
+      "w": [
+        1337,
+        1342
+      ],
+      "ground": "white",
+      "lines": [
+        [
+          "caps",
+          "terus kita mau"
+        ],
+        [
+          "bar",
+          "percaya sama siapa?"
+        ]
+      ]
+    },
+    {
+      "type": "stage",
+      "w": [
+        1369,
+        1386
+      ],
+      "lead": "itu membuat kita frustrasi, karena kita",
+      "word": "TAKUT",
+      "lines": [
+        [
+          "low",
+          "kayak apa *putusannya nanti?*"
+        ]
+      ]
+    },
+    {
+      "type": "page",
+      "w": [
+        1391,
+        1400
+      ],
+      "img": "assets/pages/kompas-ibam-dituntut-15-tahun.png",
+      "meta": "assets/pages/kompas-ibam-dituntut-15-tahun.json",
+      "marks": "meta",
+      "mark_at": 1396,
+      "label": "IBAM: TUNTUTAN 15 TAHUN + 7,5 TAHUN",
+      "source": "kompas.com"
+    },
+    {
+      "type": "page",
+      "w": [
+        1401,
+        1405
+      ],
+      "img": "assets/pages/cnn-ibam-divonis-4-tahun.png",
+      "meta": "assets/pages/cnn-ibam-divonis-4-tahun.json",
+      "marks": "meta",
+      "label": "VONIS: 4 TAHUN",
+      "source": "cnnindonesia.com"
+    },
+    {
+      "type": "big",
+      "w": [
+        1406,
+        1406
+      ],
+      "figure": "27",
+      "unit": "TAHUN",
+      "label": "tuntutannya : 18 plus 9",
+      "seam_out": "flash"
+    },
+    {
+      "type": "say",
+      "w": [
+        1407,
+        1413
+      ],
+      "style": "low",
+      "lines": [
+        [
+          "low",
+          "tapi kita nggak tahu, *vonisnya berapa*"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1414,
+        1427
+      ],
+      "style": "chip",
+      "lines": [
+        [
+          "chip",
+          "apapun komentar kita"
+        ],
+        [
+          "caps",
+          "18 juta yang nonton"
+        ],
+        [
+          "capsserif",
+          "juga nggak ngaruh"
+        ]
+      ]
+    },
+    {
+      "type": "broll",
+      "w": [
+        1428,
+        1434
+      ],
+      "src": "footage/b14.mp4",
+      "gray": true,
+      "lines": [
+        [
+          "caps",
+          "karena ujung-ujungnya"
+        ],
+        [
+          "red",
+          "di persidangan"
+        ]
+      ]
+    },
+    {
+      "type": "card",
+      "w": [
+        1438,
+        1441
+      ],
+      "ground": "dark",
+      "lines": [
+        [
+          "caps",
+          "suram banget dong"
+        ],
+        [
+          "serif",
+          "Indonesia?"
+        ]
+      ]
+    },
+    {
+      "type": "say",
+      "w": [
+        1442,
+        1447
+      ],
+      "style": "side",
+      "side": "left",
+      "lines": [
+        [
+          "lead",
+          "sekilas kelihatannya iya,"
+        ],
+        [
+          "bold",
+          "tapi sebenarnya"
+        ],
+        [
+          "serif",
+          "nggak."
+        ]
+      ]
+    }
+  ]
+}

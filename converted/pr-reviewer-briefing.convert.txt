@@ -1,9 +1,8 @@
-framesmith convert refused for pr-reviewer-briefing: 8 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/pr-reviewer-briefing/fidelity.json.
+framesmith convert refused for pr-reviewer-briefing: 7 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/pr-reviewer-briefing/fidelity.json.
   compositions/code-diff.html:867 [tl.set] target "parts.scene" is not a DOM selector ("parts.scene" is runtime state); naming the call site instead of guessing a clip
   compositions/code-diff.html:868 [tl.to] target "parts.scene" is not a DOM selector ("parts.scene" is runtime state); naming the call site instead of guessing a clip
-  compositions/code-diff.html:871 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/code-diff.html:871 [tl.fromTo] position "atDel + k * 0.08" is outside the numeric grammar (unbound identifier "atDel" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
   compositions/code-diff.html:880 [tl.set] target "el" is not a DOM selector ("el" is runtime state); naming the call site instead of guessing a clip
-  compositions/code-diff.html:881 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/code-diff.html:881 [tl.fromTo] position "atAdd + k * 0.12" is outside the numeric grammar (unbound identifier "atAdd" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
   compositions/code-diff.html:913 [tl.duration] timeline call "duration" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
-  compositions/code-diff.html:914 [tl.to] duration "dur" is not a non-negative number; refusing the call site
-  compositions/frames/08-handoff.html:74 [tl.fromTo] target "[\"#pr-handoff-name\", \"#pr-handoff-role\"]" is not a DOM selector ("[\"#pr-handoff-name\", \"#pr-handoff-role\"]" is runtime state); naming the call site instead of guessing a clip
+  compositions/code-diff.html:914 [tl.to] duration "dur" is outside the numeric grammar (unbound identifier "dur" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site

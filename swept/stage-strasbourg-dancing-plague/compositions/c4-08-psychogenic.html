@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-08-psychogenic.html (composition id "c4-08-psychogenic")
+  WHAT: About 9.8 seconds on the explanation of mass psychogenic illness. It opens on a
+    screenshot of the Europe PMC record of Waller's Lancet article (epmc.jpg), zoomed in at
+    the start and pushed further in, with a yellow marker bar that sweeps across one line at
+    2.4 seconds. At 3.98 seconds it cuts to a crowd of dancers (pro-group4.jpg), and at 6.67
+    seconds to a second dance picture (hon-right.jpg), both pushed slowly in. It plays from
+    464.62 seconds in index.html, on the narration "Penjelasan Waller sendiri adalah" (Waller's
+    own explanation is), and lasts 9.78 seconds.
+  STRUCTURE: Three layers in #root, back to front: #c408psychogenic-a (the record, holding the
+    marker #c408psychogenic-a-m1), #c408psychogenic-b and #c408psychogenic-c. Timeline: a
+    scales 1.34 to 1.460 over 3.98 seconds, with its transform origin set to 900 330 px before
+    the push; the marker scales in from 0 to full width over 0.5 seconds starting at 2.4
+    seconds; b scales 1.014 to 1.060 from 3.98 for 2.69 seconds and is shown at 3.98 with no
+    fade; c scales 1.014 to 1.066 from 6.67 for 3.11 seconds and is shown at 6.67. The marker is
+    inside layer a, so it moves with the record's push.
+  CUSTOMIZE: The marker is an inline left 548 px, top 276 px, width 704 px, height 44 px, in frame
+    pixels, placed over one line of epmc.jpg; move it if the screenshot changes. Its start at 2.4
+    seconds and its 0.5 second sweep are in the tl call. The starting zoom of 1.34 and the origin
+    900 330 px set the framing of the record, so change them to show another part of the page.
+    The cut times are 3.98 and 6.67 seconds, and the 9.78 second length must match data-duration
+    of c4-08-psychogenic-slot in index.html. The record has the lighter page grade (contrast
+    0.06, saturation -0.3, exposure -0.12, temperature 0.06, vignette 0.25, grain 0.06); the two
+    dancer pictures have the standard grade.
+  MEDIA: no media file is bundled. This file has three photo slots. It has no sound, no video and no CSS
+    image. The yellow marker (#c408psychogenic-a-m1) is a plain box, not a file. The Arimo font is declared,
+    but no element in this file uses it, so no font file is needed.
+    1. The record screenshot, img #c408psychogenic-a-img (inside #c408psychogenic-a, from the start, zoomed in
+       at 1.34 and pushed to 1.46). It showed a screenshot of the Europe PMC record of Waller's Lancet article
+       (epmc.jpg), which has no abstract. It is shown as a citation and is not open-licence material; replace it
+       if the release needs open licences. It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/epmc.jpg". To plug in your screenshot, set the img's src to your file (for example
+       assets/generated/epmc.jpg). The data-media attribute only names the expected path; it loads nothing. The
+       img's data-color-grading still grades your picture. If the new record has its line in another place, move
+       the marker over that line (see CUSTOMIZE).
+    2. The first dancers, img #c408psychogenic-b-img (inside #c408psychogenic-b, cut in at 3.98 seconds). It showed
+       a crowd of dancers, Hondius's procession plate of 1642 (pro-group4.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/pro-group4.jpg". To plug in your picture, set the img's src to your file.
+    3. The second dance picture, img #c408psychogenic-c-img (inside #c408psychogenic-c, cut in at 6.67 seconds). It
+       showed Hondius's footbridge plate of 1642 (hon-right.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/hon-right.jpg". To plug in your picture, set the img's src to your file.
+  WHEN TO USE: quoting a source record with one line marked, then showing pictures for the claim
+    it supports. Pick another layout when the source is a long text that the viewer must read.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Declares the Arimo font, read from the installed fonts with local("Arimo"); this file has no text, so the font is not drawn. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The marker: one yellow bar per text line, in frame pixels, multiplied onto the page. */
+        .dr-mark { position: absolute; height: 40px; background: rgba(255, 214, 64, 0.55); mix-blend-mode: multiply; transform-origin: 0 50%; }
+      </style>
+      <!-- "Penjelasan Waller sendiri adalah ..." (464.62 s): epmc from the start; pro-group4 on "gangguan" (468.60 s); hon-right on "keyakinan" (471.29 s). -->
+      <div id="root" data-composition-id="c4-08-psychogenic" data-width="1920" data-height="1080">
+        <!-- Layer 1: the record screenshot, with its marker bar on one line. -->
+        <div class="dr-shot" id="c408psychogenic-a" data-layout-allow-overflow><img id="c408psychogenic-a-img" src="data:image/svg+xml,%3C!--epmc.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'668' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/epmc.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/epmc.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.12,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /><div class="dr-mark" id="c408psychogenic-a-m1" style="left: 548px; top: 276px; width: 704px; height: 44px;"></div></div>
+        <!-- Layer 2: the first dancers' picture, shown from 3.98 seconds. -->
+        <div class="dr-shot" id="c408psychogenic-b" data-layout-allow-overflow><img id="c408psychogenic-b-img" src="data:image/svg+xml,%3C!--pro-group4.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pro-group4.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/pro-group4.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Layer 3, at the front: the second dancers' picture, shown from 6.67 seconds. -->
+        <div class="dr-shot" id="c408psychogenic-c" data-layout-allow-overflow><img id="c408psychogenic-c-img" src="data:image/svg+xml,%3C!--hon-right.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-right.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-right.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* Timeline setup: the marker sweep, the record's push, then the two later cuts. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c408psychogenic-a-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.50, ease: "power1.inOut" }, 2.4);
+        /* Sets the zoom origin of the record before its push. */
+        gsap.set("#c408psychogenic-a", { transformOrigin: "900px 330px" });
+        tl.fromTo("#c408psychogenic-a", { scale: 1.34, x: -6, y: 2 }, { scale: 1.460, x: 6, y: -2, duration: 3.98, ease: "none" }, 0.0);
+        tl.fromTo("#c408psychogenic-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.060, x: -5, y: 3, duration: 2.69, ease: "none" }, 3.98);
+        gsap.set("#c408psychogenic-b", { opacity: 0 });
+        tl.to("#c408psychogenic-b", { opacity: 1, duration: 0.001 }, 3.98);
+        tl.fromTo("#c408psychogenic-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.066, x: 4, y: 3, duration: 3.11, ease: "none" }, 6.67);
+        gsap.set("#c408psychogenic-c", { opacity: 0 });
+        tl.to("#c408psychogenic-c", { opacity: 1, duration: 0.001 }, 6.67);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-08-psychogenic"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

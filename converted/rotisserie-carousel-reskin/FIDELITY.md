@@ -1,14 +1,13 @@
 # Fidelity report: rotisserie-carousel-reskin → main
 
-- translated: 3
+- translated: 4
 - approximated (with deltas): 19
-- refused: 3
+- refused: 2
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/rotary.html`:107 [tl.fromTo] property "filter" (value "\"blur(0px)\"") has no KDL motion property; refusing the call site
-- `compositions/rotary.html`:110 [tl.to] position "t" is an expression; refusing the call site
-- `compositions/rotary.html`:111 [tl.to] position "t" is an expression; refusing the call site
+- `compositions/rotary.html`:110 [tl.to] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/rotary.html`:111 [tl.to] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 
 ## Approximated (measured deltas)
 
@@ -35,5 +34,6 @@
 ## Translated
 
 - `compositions/rotary.html`:105 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/rotary.html`:107 [tl.fromTo] tl.fromTo on ["#rotary-fixed-a", "#rotary-fixed-b"] at start=0.1000 duration=0.5000
 - `compositions/rotary.html`:114 [tl.fromTo] tl.fromTo on "#rotary-row" at start=0.0000 duration=5.5000
 - `index.html`:42 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek

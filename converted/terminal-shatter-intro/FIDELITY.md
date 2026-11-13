@@ -1,16 +1,14 @@
 # Fidelity report: terminal-shatter-intro → main
 
-- translated: 6
+- translated: 8
 - approximated (with deltas): 26
-- refused: 5
+- refused: 3
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/terminal-type.html`:78 [tl.set] position "0.5 + i * 0.06" is an expression; refusing the call site
-- `compositions/terminal-type.html`:83 [tl.to] duration "blink / 2" is not a non-negative number; refusing the call site
-- `compositions/terminal-shatter.html`:110 [tl.fromTo] position "rand() * 0.12" is an expression; refusing the call site
-- `compositions/kinetic-title.html`:60 [tl.fromTo] target "word" is not a DOM selector ("word" is runtime state); naming the call site instead of guessing a clip
-- `compositions/kinetic-title.html`:63 [tl.fromTo] target "[\"#kinetic-title-l1\", \"#kinetic-title-l2\"]" is not a DOM selector ("[\"#kinetic-title-l1\", \"#kinetic-title-l2\"]" is runtime state); naming the call site instead of guessing a clip
+- `compositions/terminal-type.html`:78 [tl.set] position "0.5 + i * 0.06" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/terminal-shatter.html`:110 [tl.fromTo] position "rand() * 0.12" is outside the numeric grammar (unbound identifier "rand" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/kinetic-title.html`:60 [tl.fromTo] position "at" is outside the numeric grammar (unbound identifier "at" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 
 ## Approximated (measured deltas)
 
@@ -45,7 +43,9 @@
 
 - `compositions/terminal-type.html`:66 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/terminal-type.html`:68 [tl.fromTo] tl.fromTo on "#terminal-type-window" at start=0.0000 duration=0.5000
+- `compositions/terminal-type.html`:83 [tl.to] tl.to on "#terminal-type-cursor" at start=0.0000 duration=0.2500
 - `compositions/terminal-shatter.html`:86 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/terminal-shatter.html`:119 [tl.fromTo] tl.fromTo on flash at start=4.0000 duration=0.2500
 - `compositions/kinetic-title.html`:55 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/kinetic-title.html`:63 [tl.fromTo] tl.fromTo on ["#kinetic-title-l1", "#kinetic-title-l2"] at start=6.8000 duration=1.2000
 - `index.html`:59 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek

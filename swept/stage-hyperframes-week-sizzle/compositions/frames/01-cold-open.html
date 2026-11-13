@@ -1,0 +1,63 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/frames/01-cold-open.html (composition id "cold-open")
+  WHAT: The opening 2.02 seconds of the sizzle on a flat sage ground. Three heavy words pop in one
+    after another: "THIS", then "WEEK IN", then "HYPERFRAMES" on a lime pill. Each word zooms in
+    from 125 percent on a beat, and the whole stack drifts slowly toward 101.5 percent. index.html
+    mounts it as frame-01 at 0 s, so it plays over the first two kicks of the bed. The file plays no sound
+    of its own; the music bed is mounted by index.html.
+  STRUCTURE: Back to front: #cold-open-ground (flat #C9D6C2 fill, clip, 2.02 s) and #cold-open-stage
+    (a centered flex column holding three .cold-open-word spans). Timeline: #cold-open-w1 at 0 s,
+    #cold-open-w2 at 0.534 s, #cold-open-hf at 1.533 s; each goes from opacity 0 and scale 1.25 to
+    opacity 1 and scale 1 over 0.18 s (expo.out). #cold-open-stage scales 1 to 1.015 over 2.02 s
+    (linear) from 0 s.
+  CUSTOMIZE: Words: the text of the three spans in the markup. Colors: #C9D6C2 ground, #1E2A1C ink
+    text, #B6F23A lime pill behind #cold-open-hf. Size: font-size 190px on .cold-open-word; the gap
+    between lines is 8px on #cold-open-stage. Timing: the start times 0, 0.534 and 1.533 in the
+    script are audiomap beats; keep them unless the music changes. data-duration="2.02" on the
+    ground must match the stage zoom and the host duration in index.html.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS
+    image slot. The words are set in Inter, which HyperFrames bundles, so no font file is needed.
+  WHEN TO USE: The first beat of a beat-synced title, where a few heavy words land on the kick and
+    the first grid beats. Pick another opening for a slow or narrated start.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root and layout: fills the frame and centers the word stack. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Inter", sans-serif; }
+        #cold-open-ground { position: absolute; inset: 0; background: #C9D6C2; }
+        #cold-open-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+        /* Heavy display type for each word; words start hidden at opacity 0. */
+        .cold-open-word { display: block; font-weight: 900; font-size: 190px; line-height: 0.92; letter-spacing: -0.04em; color: #1E2A1C; opacity: 0; }
+        /* The HYPERFRAMES word sits on a lime pill. */
+        #cold-open-hf { color: #1E2A1C; background: #B6F23A; padding: 0 28px; }
+      </style>
+      <div id="root" data-composition-id="cold-open" data-width="1920" data-height="1080">
+        <!-- Background layer: a flat sage fill for the whole 2.02 second frame. -->
+        <div id="cold-open-ground" class="clip" data-start="0" data-duration="2.02"></div>
+        <!-- Text stage: the three words stacked in the center of the frame. -->
+        <div id="cold-open-stage" data-layout-allow-overflow>
+          <span id="cold-open-w1" class="cold-open-word" data-layout-allow-overlap>THIS</span>
+          <span id="cold-open-w2" class="cold-open-word" data-layout-allow-overlap>WEEK IN</span>
+          <span id="cold-open-hf" class="cold-open-word" data-layout-allow-overlap>HYPERFRAMES</span>
+        </div>
+      </div>
+      <script>
+        /* Paused timeline for this frame, registered under its composition id below. */
+        const tl = gsap.timeline({ paused: true });
+        // Anchors (frame-local = track time): kick @0, grid beats @0.534 and @1.533.
+        /* Word reveals: each word pops in from scale 1.25 at its own anchor time. */
+        [["#cold-open-w1", 0], ["#cold-open-w2", 0.534], ["#cold-open-hf", 1.533]].forEach(([id, t]) => {
+          tl.fromTo(id, { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.18, ease: "expo.out" }, t);
+        });
+        /* Slow zoom across the whole stage for the full 2.02 seconds. */
+        tl.fromTo("#cold-open-stage", { scale: 1 }, { scale: 1.015, duration: 2.02, ease: "none" }, 0);
+        /* Register the timeline under its composition id so the host can play it. */
+        window.__timelines["cold-open"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

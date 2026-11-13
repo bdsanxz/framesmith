@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-07-disease.html (composition id "c1-07-disease")
+  WHAT: A beat on the diseases that weighed on the city: leprosy, plague and the new disease syphilis.
+    A picture of the dance of death holds from the start, a close picture of the same dance cuts in
+    at 2.17 s, and at 5.2 s a woodcut of Brant's broadsheet on
+    syphilis takes over, with the caption "Selebaran Sebastian Brant tentang sifilis" (Brant's
+    broadsheet on syphilis) and "Basel, 1496". It runs 7.86 s; index.html mounts it as
+    c1-07-disease-slot at 128.68 s.
+  STRUCTURE: three .dr-shot wrappers in document order: #c107disease-a (the dance of death), -b (its
+    close shot) and -c (the syphilis woodcut). The caption #c107disease-c-cap sits after -c, so it
+    stays above the picture. The paused GSAP timeline, registered as
+    window.__timelines["c1-07-disease"], pushes the first picture from 0 s (scale 1.014 to 1.052 over
+    2.17 s); at 2.17 s it shows the close shot and pushes it (to 1.065 over 3.03 s); at 5.2 s it
+    shows the syphilis picture and its caption and pushes the picture (to 1.059 over 2.66 s).
+  CUSTOMIZE: the caption text is in the markup: "Selebaran Sebastian Brant tentang sifilis" on the
+    first line and "Basel, 1496" on the second. Its place is left 207 px and top 800 px in .dr-cap.
+    The cut times 2.17 and 5.2 and the push amounts are in the tweens. The syphilis picture's grade
+    adds exposure -0.25 in its data-color-grading, so the white caption reads over the pale print;
+    the other two use the standard grade. The last tween ends at 7.86 s, which must match the
+    data-duration that index.html gives c1-07-disease-slot.
+  MEDIA: no media file is bundled. This file has three photo slots and one font slot. It has no sound
+    and no CSS image.
+    1. The dance of death, img #c107disease-a-img (inside #c107disease-a, on screen from the start). It
+       showed the dance of death from the Nuremberg Chronicle (1493). It now shows a faint hatch stand-in
+       labeled "PHOTO: assets/generated/deathdance.jpg". To plug in your picture, set the img's src to
+       your file (for example assets/generated/deathdance.jpg). The data-media attribute only names the
+       expected path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The close shot, img #c107disease-b-img (inside #c107disease-b, which cuts in at 2.17 s). It showed
+       a close picture of the same dance of death. It now shows a stand-in labeled
+       "PHOTO: assets/generated/deathdance-close.jpg". To plug in your picture, set the img's src to your file.
+    3. The syphilis woodcut, img #c107disease-c-img (inside #c107disease-c, which cuts in at 5.2 s, with
+       the caption #c107disease-c-cap). It showed the woodcut of Brant's broadsheet on syphilis (Basel,
+       1496). It now shows a stand-in labeled "PHOTO: assets/generated/syphilis.jpg". To plug in your
+       picture, set the img's src to your file.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap. It was a bundled font
+       file. It now reads local("Arimo"): the face is used if it is installed, otherwise the sans-serif
+       fallback of the font stack. To plug in your font, add url("your-font.woff2") format("woff2") to the
+       src list of that @font-face.
+  WHEN TO USE: a beat that lists diseases of the time and shows a dance of death with a dated
+    caption. Pick another composition when the beat names no disease or no dated source.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+      </style>
+      <!-- "Penyakit ikut menekan Kusta ..." (128.68 s): deathdance from the start; deathdance-close on "Kusta" (130.85 s); syphilis + caption on "dan" (133.88 s). -->
+      <div id="root" data-composition-id="c1-07-disease" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c107disease-a" data-layout-allow-overflow><img id="c107disease-a-img" src="data:image/svg+xml,%3C!--deathdance.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/deathdance.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/deathdance.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The close shot of the dance of death, cut in at 2.17 s. -->
+        <div class="dr-shot" id="c107disease-b" data-layout-allow-overflow><img id="c107disease-b-img" src="data:image/svg+xml,%3C!--deathdance-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'896' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/deathdance-close.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/deathdance-close.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c107disease-c" data-layout-allow-overflow><img id="c107disease-c-img" src="data:image/svg+xml,%3C!--syphilis.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/syphilis.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/syphilis.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c107disease-c-cap">Selebaran Sebastian Brant tentang sifilis<br />Basel, 1496</div>
+      </div>
+      <script>
+        /* The timeline: the first dance push, the close shot, then the syphilis woodcut and caption. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c107disease-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.052, x: 6, y: -2, duration: 2.17, ease: "none" }, 0.0);
+        tl.fromTo("#c107disease-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.065, x: -5, y: 3, duration: 3.03, ease: "none" }, 2.17);
+        gsap.set("#c107disease-b", { opacity: 0 });
+        tl.to("#c107disease-b", { opacity: 1, duration: 0.001 }, 2.17);
+        tl.fromTo("#c107disease-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.059, x: 4, y: 3, duration: 2.66, ease: "none" }, 5.2);
+        gsap.set("#c107disease-c", { opacity: 0 });
+        tl.to("#c107disease-c", { opacity: 1, duration: 0.001 }, 5.2);
+        gsap.set("#c107disease-c-cap", { opacity: 0 });
+        tl.to("#c107disease-c-cap", { opacity: 1, duration: 0.001 }, 5.2);
+        window.__timelines["c1-07-disease"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

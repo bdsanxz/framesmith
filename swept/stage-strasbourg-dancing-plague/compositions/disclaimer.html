@@ -1,0 +1,76 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/disclaimer.html (composition id "disclaimer")
+  WHAT: The opening card of the film, 8 s long, mounted by index.html at 0 s. On a dark blue-grey glow the
+    word DISCLAIMER sits in orange, followed by three centred lines in Indonesian: the content is built
+    from open sources (archives, articles and official publications), its aim is to inform and give
+    historical insight without blaming any party, and the source list is at the end of the video. A small
+    PLAY label sits at the top left and RUANG DOKUMENTER at the foot. The card fades up from black, holds,
+    and fades out from 7.4 s, so the cold open can cut in at 8.0 s. The file has no sound; index.html
+    raises the bed music under this card.
+  STRUCTURE: Layers back to front: #dc-bg (the background, holding #dc-glow, a radial blue gradient), #dc-play
+    (the PLAY label at top 66 px, left 276 px), and #dc-all (the text group: #dc-head at top 386 px,
+    #dc-body at top 462 px, #dc-mark at top 856 px). Timeline (gsap, paused): from 0 s for 0.6 s, #dc-bg
+    fades from 0 to 1. From 0.2 s for 0.5 s, #dc-all fades in. From 0 s for 8 s, #dc-glow scales 1 to 1.1
+    with ease none. At 7.4 s, #dc-all, #dc-bg and #dc-play fade to 0 over 0.5 s.
+  CUSTOMIZE: The words: the text of #dc-head (DISCLAIMER), #dc-body (three lines separated by br tags),
+    #dc-mark (RUANG DOKUMENTER) and #dc-play (PLAY). Sizes and places: heading 40px at top 386px in
+    #c56a3c; body 28px, line height 38px, left 310px, width 1300px, top 462px, colour #dcecf2; mark 14px
+    with 0.7em tracking at top 856px; PLAY 30px at left 276px, top 66px. The glow colours are the gradient
+    stops #1d4159, #172c39 and #10181c in #dc-glow, and the card ground is #10181c. Timing: the fade-in
+    and the fade-out at 7.4 s. The card must end before the cold open, whose slot starts at 8.0 s in
+    index.html (disclaimer-slot has data-duration 8.0).
+  MEDIA: No media file is bundled in this composition. It has one font slot and no photo, video, sound
+    or CSS image slot. The font slot is the Arimo face in the @font-face rule at the top of the style
+    block. It was the bundled file assets/fonts/arimo-latin.woff2; now the rule reads
+    src: local("Arimo"), so the card's text uses Arimo only when it is installed on the machine, and
+    otherwise falls back to the sans-serif in the font stack. To plug in: add
+    url("assets/fonts/arimo-latin.woff2") format("woff2") to the src list of that rule, or point it
+    at your own copy of Arimo.
+  WHEN TO USE: An opening card that states a documentary's sources and intent on a plain dark ground before the
+    story starts. Pick another file when the card needs a picture or a longer passage of text.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: the Arimo face is local only, and it sets all of the card's text. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The disclaimer card: a blue glow on near-black, an orange heading, four centred lines. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #10181c; }
+        #dc-bg { position: absolute; inset: 0; }
+        #dc-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 46% 52% at 50% 45%, #1d4159 0%, #172c39 45%, #10181c 100%); }
+        /* The small dim PLAY label at the top left, a plain player-style mark. */
+        #dc-play { position: absolute; left: 276px; top: 66px; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 30px; line-height: 1.2; letter-spacing: 0.04em; color: rgba(140, 180, 200, 0.62); white-space: nowrap; }
+        /* The text group: the heading, the three body lines and the mark, centred on the card. */
+        #dc-head { position: absolute; left: 0; width: 1920px; top: 386px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 40px; line-height: 1.2; color: #c56a3c; }
+        #dc-body { position: absolute; left: 310px; width: 1300px; top: 462px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 28px; line-height: 38px; letter-spacing: 0.02em; color: #dcecf2; }
+        #dc-mark { position: absolute; left: 0; width: 1920px; top: 856px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 14px; line-height: 1.2; letter-spacing: 0.7em; color: rgba(200, 222, 232, 0.8); white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="disclaimer" data-width="1920" data-height="1080">
+        <!-- The background: a blue radial glow on the near-black ground. -->
+        <div id="dc-bg"><div id="dc-glow"></div></div>
+        <!-- The PLAY label, which fades out with the card. -->
+        <div id="dc-play">PLAY ▶</div>
+        <!-- The text group, faded in after the background and faded out with it. -->
+        <div id="dc-all">
+          <div id="dc-head">DISCLAIMER</div>
+          <div id="dc-body">Konten ini disusun dari sumber terbuka: arsip, artikel, dan publikasi resmi.<br />Tujuannya memberi informasi dan wawasan sejarah, bukan menyudutkan pihak mana pun.<br />Daftar sumber ada di bagian akhir video.</div>
+          <div id="dc-mark">RUANG DOKUMENTER</div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // Up from black, held, and out to black just before the cold open cuts in.
+        tl.fromTo("#dc-bg", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power1.out" }, 0);
+        tl.fromTo("#dc-all", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0.2);
+        /* The glow grows slowly across the whole 8 s card. */
+        tl.fromTo("#dc-glow", { scale: 1 }, { scale: 1.1, duration: 8, ease: "none" }, 0);
+        tl.to(["#dc-all", "#dc-bg", "#dc-play"], { opacity: 0, duration: 0.5, ease: "power1.in" }, 7.4);
+        /* Registration: the host finds this timeline by the id disclaimer. */
+        window.__timelines["disclaimer"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

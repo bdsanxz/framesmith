@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/lottie-play.html (composition id "lottie-play")
+  WHAT: The last 2.5 seconds of the film. A 640 by 640 px stage in the middle of the frame plays
+    assets/tile-pulse.json through lottie-web: one tile that starts at 30 percent size, grows to
+    100 percent at 1 s into the clip, shrinks to 60 percent by 2 s, and turns 180 degrees over
+    those 2 s (30 fps, 60 frames). Mounted by index.html as #slot-play, start 2.5, duration 2.5.
+    The runtime seeks the player to each time, so the animation starts at the host's start.
+  STRUCTURE: #root is absolutely positioned and centers #lottie-play-stage, an empty 640 by 640 box
+    that lottie-web fills with SVG. The script loads the animation with renderer svg, loop false,
+    autoplay false, and the local path assets/tile-pulse.json. It pushes the player onto
+    window.__hfLottie, then creates a paused GSAP timeline with no tweens, registered as
+    window.__timelines["lottie-play"]. Nothing calls play().
+  CUSTOMIZE: The stage size is #lottie-play-stage (640 by 640 px). Keep that box fixed in size,
+    since the player fills it. To play another Lottie file, change the path in loadAnimation, keep
+    the file local under assets/, and keep loop false and autoplay false. The composition has no
+    background of its own, so the ground comes from the host page (#0f1115 in index.html).
+  MEDIA: No media file is bundled. The one slot is the Lottie file, assets/tile-pulse.json (a
+    400 by 400 artboard, 60 frames at 30 fps, one tile that grows, shrinks and turns), which ships
+    here because it is data, not media, so the tile plays in the 640 by 640 stage (#lottie-play-stage)
+    as it is. It is loaded by relative path at runtime by loadAnimation in the script. To use your
+    own file, place a Lottie JSON at the project's assets/tile-pulse.json, or change the path string in loadAnimation to
+    your file's path, keeping loop false and autoplay false. This file has no photo, video, sound,
+    font or CSS image slot, so none is needed for those. The lottie-web 5.12.2 script is loaded
+    from cdnjs; it is code, not media.
+  WHEN TO USE: Playing a Lottie file inside a scene at a set start time, with the runtime seeking
+    it. Pick a plain GSAP tween instead when there is no Lottie file to play.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <!-- Loads lottie-web 5.12.2 from cdnjs; the player below is created with it. -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+      <style>
+        /* Centers the stage on the frame; the Lottie is drawn inside it. */
+        #root { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+        /* Fixed 640 by 640 px box that the SVG is drawn into; its size stays constant. */
+        #lottie-play-stage { width: 640px; height: 640px; }
+      </style>
+      <!-- Scene root with the empty stage that the player fills. -->
+      <div id="root" data-composition-id="lottie-play" data-width="1920" data-height="1080">
+        <div id="lottie-play-stage"></div>
+      </div>
+      <script>
+        // The Lottie runtime adapter seeks every player registered on window.__hfLottie.
+        /* Creates the player: SVG renderer, not looping, not autoplaying, loaded from a local JSON file. */
+        const anim = lottie.loadAnimation({
+          container: document.getElementById("lottie-play-stage"),
+          renderer: "svg", loop: false, autoplay: false,   // always set loop; never autoplay
+          path: "assets/tile-pulse.json",                    // local file, never a remote URL
+        });
+        /* Registers the player so the runtime can seek it to any time with goToAndStop. */
+        window.__hfLottie = window.__hfLottie || [];
+        window.__hfLottie.push(anim);
+        /* Paused timeline with no tweens; it is registered so the host can seek this composition. */
+        const tl = gsap.timeline({ paused: true });
+        window.__timelines["lottie-play"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

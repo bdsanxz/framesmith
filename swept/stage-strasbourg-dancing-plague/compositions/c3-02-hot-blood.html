@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-02-hot-blood.html (composition id "c3-02-hot-blood")
+  WHAT: Beat 2 of chapter 3, on the illness of hot blood. The narration (Indonesian "Mereka menyebutnya
+    penyakit alami ...") says the people called it a natural illness. Three stills are cut in one
+    after another, each with a slow push: the first from 0 s, the second at 2.82 s, the third at
+    6.23 s. The beat runs 9.78 s; index.html mounts it at 300.74 s, under narration clip voice-s32.
+  STRUCTURE: Three stacked layers in #root, back to front: #c302hotblood-a (lassman.jpg),
+    #c302hotblood-b (heart.jpg) and #c302hotblood-c (dance.jpg). Each is a .dr-shot wrapper with an
+    img inside. The timeline (window.__timelines["c3-02-hot-blood"]) pushes layer a from scale 1.014
+    to 1.062 over 2.82 s; it cuts in layer b at 2.82 s and pushes it to 1.071 over 3.41 s; it cuts in
+    layer c at 6.23 s and pushes it to 1.073 over 3.55 s. The cuts are opacity tweens of 0.001 s, so
+    they are hard.
+  CUSTOMIZE: Each still's file is named by data-media on #c302hotblood-a-img, -b-img and -c-img; set the src
+    of each to swap in your own (see MEDIA). The push sizes
+    are the scale values in the three fromTo calls (1.062, 1.071, 1.073). Each cut time (2.82 and 6.23)
+    must equal the end of the layer before it, and the total is data-duration 9.78 in index.html. The
+    grade is the data-color-grading JSON on each img; change saturation -0.32 or vignette 0.2 there to
+    change all three together.
+  MEDIA: no media file is bundled. This file has three photo slots. It has no sound, no video and no CSS
+    image. The Arimo font is declared, but no element in this file uses it, so no font file is needed.
+    1. The first still, img #c302hotblood-a-img (inside #c302hotblood-a, shown 0 to 2.82 s). It showed a
+       bloodletting figure from Gersdorff (Strasbourg, 1530 edition) (lassman.jpg). It now shows a faint hatch
+       stand-in labeled "PHOTO: assets/generated/lassman.jpg". To plug in your still, set the img's src to your
+       file (for example assets/generated/lassman.jpg). The data-media attribute only names the expected path;
+       it loads nothing. The img's data-color-grading still grades your still.
+    2. The heart, img #c302hotblood-b-img (inside #c302hotblood-b, cut in at 2.82 s). It showed a heart picture
+       (heart.jpg). It now shows a stand-in labeled "PHOTO: assets/generated/heart.jpg". To plug in your still,
+       set the img's src to your file.
+    3. The dance, img #c302hotblood-c-img (inside #c302hotblood-c, cut in at 6.23 s). It showed a peasant couple
+       dancing (dance.jpg), Duerer's Peasant Couple Dancing (1514). It now shows a stand-in labeled
+       "PHOTO: assets/generated/dance.jpg". To plug in your still, set the img's src to your file.
+  WHEN TO USE: a short run of pictures, each cut in on a new idea the narration names, with a slow push
+    so the film does not sit still. Pick another pattern for a diagram (c3-03) or a single captioned
+    picture (c3-01).
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font, Arimo, is declared with local("Arimo") and used by no text in this beat; no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root is the 1920 by 1080 frame in dark slate (#0f1518), behind every layer. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Mereka menyebutnya penyakit alami, ..." (300.74 s): lassman from the start; heart on "akibat" (303.56 s); dance on "Obatnya" (306.97 s). -->
+      <div id="root" data-composition-id="c3-02-hot-blood" data-width="1920" data-height="1080">
+        <!-- Layers 1 to 3 are stacked in order; each still is cut in over the one before it. -->
+        <div class="dr-shot" id="c302hotblood-a" data-layout-allow-overflow><img id="c302hotblood-a-img" src="data:image/svg+xml,%3C!--lassman.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/lassman.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/lassman.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c302hotblood-b" data-layout-allow-overflow><img id="c302hotblood-b-img" src="data:image/svg+xml,%3C!--heart.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/heart.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/heart.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c302hotblood-c" data-layout-allow-overflow><img id="c302hotblood-c-img" src="data:image/svg+xml,%3C!--dance.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/dance.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/dance.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1, 0 to 2.82 s: the first still pushes in; phase 2 cuts in the heart at 2.82 s; phase 3 cuts in the dance at 6.23 s. */
+        tl.fromTo("#c302hotblood-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.062, x: 6, y: -2, duration: 2.82, ease: "none" }, 0.0);
+        tl.fromTo("#c302hotblood-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.071, x: -5, y: 3, duration: 3.41, ease: "none" }, 2.82);
+        gsap.set("#c302hotblood-b", { opacity: 0 });
+        tl.to("#c302hotblood-b", { opacity: 1, duration: 0.001 }, 2.82);
+        tl.fromTo("#c302hotblood-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.073, x: 4, y: 3, duration: 3.55, ease: "none" }, 6.23);
+        gsap.set("#c302hotblood-c", { opacity: 0 });
+        tl.to("#c302hotblood-c", { opacity: 1, duration: 0.001 }, 6.23);
+        window.__timelines["c3-02-hot-blood"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

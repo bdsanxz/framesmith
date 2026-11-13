@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/frames/01-hook.html (composition id "pr-hook")
+  WHAT: The opening 4s of the 14s reviewer briefing, mounted at 0s on track 0 by index.html. On
+    a warm cream page, a small orange kicker "HEYGEN-COM/HYPERFRAMES · PR 2026" fades up, then the
+    large serif headline "Before you scroll four hundred lines, give me sixty seconds." rises in,
+    then a monospace line gives the size of the change: +407 in green and -40 in red across 6
+    files. The whole stage drifts 2 percent larger over the 4s.
+  STRUCTURE: #root holds #pr-hook-ground (a flat cream layer, clip 0 to 4s) and #pr-hook-stage (a
+    full-frame centred column with 160px side padding and a 40px gap) with three children:
+    #pr-hook-kicker (28px orange monospace, letter-spaced), #pr-hook-line (150px serif ink,
+    max-width 1500px) and #pr-hook-meta (30px grey monospace), which holds #pr-hook-plus and
+    #pr-hook-minus. Timeline: the kicker fades in and rises 20px at 0.2s (0.6s, power3.out); the
+    headline rises 36px at 0.4s (0.9s, power3.out); the meta line rises 20px at 1.2s (0.6s,
+    power3.out); and #pr-hook-stage scales from 1 to 1.02 over 4s with ease none, from 0.
+  CUSTOMIZE: The headline is the text of #pr-hook-line; the kicker is the repository and PR label.
+    The counts are the text of #pr-hook-plus and #pr-hook-minus, and the tail "6 files, producer,
+    cli" is plain text in #pr-hook-meta, so change all three to match the real PR. Colours from the
+    code-editorial palette: cream #FAF9F5 ground, ink #141413, orange #CC785C kicker, #3F7F4F added,
+    #A6452F removed, #5E5D59 meta. Timing: the reveal starts 0.2, 0.4 and 1.2, and the 4s push.
+    The 4s must match the host data-duration in index.html and the ground clip. Fonts named are
+    "JetBrains Mono" and "EB Garamond", set by family name only (see MEDIA for how to supply a file).
+  MEDIA: no media file is bundled, and this frame has no photo, video, sound or CSS image. It is a
+    flat cream ground with type only. Its two font families are named in font-family rules with no
+    @font-face rule and no font file, so the browser uses an installed copy or falls back to a
+    generic monospace or serif face. To use a font file of your own, add an @font-face rule to this
+    frame's style block with the family name and a url("FILE.woff2") source (put the file next to
+    the page, or at the path you choose). Nothing else needs a file.
+  WHEN TO USE: An opening that states a PR's hook in one sentence, with the size of the change as
+    proof, before any code appears. Pick another opener when the piece has no single line to
+    hook on, or when the first beat should be a picture rather than text.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root: full-frame and clipped, so the stage scale never spills past the canvas. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        /* Ground: a flat cream layer that fills the frame for the 4s clip. */
+        #pr-hook-ground { position: absolute; inset: 0; background: #FAF9F5; }
+        /* Stage: a centred column of kicker, headline and meta line, with 160px side padding. */
+        #pr-hook-stage { position: absolute; inset: 0; padding: 0 160px; display: flex; flex-direction: column; justify-content: center; gap: 40px; }
+        /* Kicker: a small, letter-spaced orange monospace line above the headline. */
+        #pr-hook-kicker { font-family: "JetBrains Mono", monospace; font-size: 28px; font-weight: 500; letter-spacing: 0.16em; color: #CC785C; }
+        /* Headline: large serif ink text, the main hook of the briefing. */
+        #pr-hook-line { font-family: "EB Garamond", serif; font-size: 150px; font-weight: 400; line-height: 1.02; letter-spacing: -0.022em; color: #141413; max-width: 1500px; }
+        /* Meta line: grey monospace text giving the size of the change; the counts are coloured below. */
+        #pr-hook-meta { font-family: "JetBrains Mono", monospace; font-size: 30px; color: #5E5D59; }
+        /* Diff counts: green for added lines, red for removed lines. */
+        #pr-hook-plus { color: #3F7F4F; }
+        #pr-hook-minus { color: #A6452F; }
+      </style>
+      <!-- Root stage for this frame, sized 1920x1080 for the host. -->
+      <div id="root" data-composition-id="pr-hook" data-width="1920" data-height="1080">
+        <!-- Background clip, 0 to 4s, in the frame's own time. -->
+        <div id="pr-hook-ground" class="clip" data-start="0" data-duration="4"></div>
+        <!-- Text stage: kicker, headline and meta line, each revealed by the timeline. -->
+        <div id="pr-hook-stage" data-layout-allow-overflow>
+          <div id="pr-hook-kicker">✱ HEYGEN-COM/HYPERFRAMES · PR 2026</div>
+          <div id="pr-hook-line">Before you scroll four hundred lines, give me sixty seconds.</div>
+          <div id="pr-hook-meta"><span id="pr-hook-plus">+407</span> / <span id="pr-hook-minus">−40</span> · 6 files · producer, cli</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: one paused GSAP timeline that the host seeks. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#pr-hook-kicker", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.2);
+        tl.fromTo("#pr-hook-line", { opacity: 0, y: 36 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, 0.4);
+        tl.fromTo("#pr-hook-meta", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 1.2);
+        /* Slow push: the whole stage drifts from scale 1 to 1.02 across the 4s clip. */
+        tl.fromTo("#pr-hook-stage", { scale: 1 }, { scale: 1.02, duration: 4, ease: "none" }, 0);
+        /* Register the timeline under the composition id so the host can find and seek it. */
+        window.__timelines["pr-hook"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

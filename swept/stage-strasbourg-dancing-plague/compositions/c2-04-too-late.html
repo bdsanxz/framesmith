@@ -1,0 +1,61 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-04-too-late.html (composition id "c2-04-too-late")
+  WHAT: The fourth beat of chapter 2, 6.02 s, from 214.78 s in index.html, narrated by segment s22
+    (opening "Tetapi sudah terlambat", but it was already too late). Two pictures with no text:
+    pro-left from 0 to 2.18 s, then hon-wide from 2.18 s to the end. Each picture pushes slowly, and
+    the cut between them is an opacity change.
+  STRUCTURE: #root holds two .dr-shot wrappers, #c204toolate-a and #c204toolate-b. Picture a pushes
+    from scale 1.014 to 1.052 over 2.18 s. At 2.18 s picture b is cut in by opacity and pushes from
+    1.014 to 1.078 over 3.84 s. There is no caption, figure or lower third.
+  CUSTOMIZE: each picture's file is named by data-media on its img (pro-left.jpg, hon-wide.jpg); set the
+    src to swap in your own (see MEDIA). The cut time 2.18
+    appears in two tweens and must stay where the narration changes picture; the last tween must end
+    inside data-duration (6.02 in index.html). Grades are in data-color-grading. To add a caption, copy
+    the .dr-cap rule and an element from c2-02-third-day.html; this file defines only the .dr-shot rules.
+  MEDIA: no media file is bundled. This file has two photo slots. It has no sound, no video and no CSS
+    image. It declares the Arimo font, but no element uses it, so no font file is needed.
+    1. The first picture, img #c204toolate-a-img (inside #c204toolate-a, shown 0 to 2.18 s). It showed
+       pro-left.jpg. It now shows a faint hatch stand-in labeled "PHOTO: assets/generated/pro-left.jpg".
+       To plug in your picture, set the img's src to your file (for example assets/generated/pro-left.jpg).
+       The data-media attribute only names the expected path; it loads nothing. The img's
+       data-color-grading still grades your picture.
+    2. The second picture, img #c204toolate-b-img (inside #c204toolate-b, shown from 2.18 s to the end). It
+       showed hon-wide.jpg. It now shows a stand-in labeled "PHOTO: assets/generated/hon-wide.jpg". To plug
+       in your picture, set the img's src to your file.
+    If you add text later, the Arimo face needs its file: add url("your-font.woff2") format("woff2") to the
+    src list of its @font-face, which is currently local("Arimo") and falls back to the sans-serif stack.
+  WHEN TO USE: a short silent beat of two pictures, with the narration carrying the sense. Pick another
+    pattern when a source or figure must appear on screen.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, declared here but used by no text in this beat. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Tetapi sudah terlambat Dalam ..." (214.78 s): pro-left from the start; hon-wide on "Dalam" (216.96 s). -->
+      <div id="root" data-composition-id="c2-04-too-late" data-width="1920" data-height="1080">
+        <!-- Picture a: the first picture, shown from 0 s. -->
+        <div class="dr-shot" id="c204toolate-a" data-layout-allow-overflow><img id="c204toolate-a-img" src="data:image/svg+xml,%3C!--pro-left.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pro-left.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/pro-left.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Picture b: the second picture, cut in at 2.18 s. -->
+        <div class="dr-shot" id="c204toolate-b" data-layout-allow-overflow><img id="c204toolate-b-img" src="data:image/svg+xml,%3C!--hon-wide.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-wide.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-wide.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* Timeline: a pushes slowly, then b is cut in at 2.18 s and pushes to the end. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c204toolate-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.052, x: 6, y: -2, duration: 2.18, ease: "none" }, 0.0);
+        tl.fromTo("#c204toolate-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.078, x: -5, y: 3, duration: 3.84, ease: "none" }, 2.18);
+        gsap.set("#c204toolate-b", { opacity: 0 });
+        tl.to("#c204toolate-b", { opacity: 1, duration: 0.001 }, 2.18);
+        window.__timelines["c2-04-too-late"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

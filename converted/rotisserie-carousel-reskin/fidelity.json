@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 19,
-    "refused": 3,
-    "translated": 3
+    "refused": 2,
+    "translated": 4
   },
   "duration": 5.5,
   "entries": [
@@ -160,21 +160,21 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on [\"#rotary-fixed-a\", \"#rotary-fixed-b\"] at start=0.1000 duration=0.5000",
       "file": "compositions/rotary.html",
       "line": 107,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rotary.html",
       "line": 110,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/rotary.html",
       "line": 111,
       "verdict": "refused"

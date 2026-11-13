@@ -64,7 +64,7 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/01-cold-open.html",
       "line": 54,
       "verdict": "refused"
@@ -181,28 +181,28 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"downbeats[i]\" is an expression; refusing the call site",
+      "detail": "position \"downbeats[i]\" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/02-cards.html",
       "line": 79,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"downbeats[i]\" is an expression; refusing the call site",
+      "detail": "position \"downbeats[i]\" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/02-cards.html",
       "line": 80,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"snares[i]\" is an expression; refusing the call site",
+      "detail": "position \"snares[i]\" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/02-cards.html",
       "line": 81,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"downbeats[i]\" is an expression; refusing the call site",
+      "detail": "position \"downbeats[i]\" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/02-cards.html",
       "line": 82,
       "verdict": "refused"
@@ -271,14 +271,14 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/03-roll-counter.html",
       "line": 66,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/frames/03-roll-counter.html",
       "line": 67,
       "verdict": "refused"

@@ -1,0 +1,166 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/labels.html (composition id "labels")
+  WHAT: The words layer of the film, 24 seconds long, on a transparent 1920 by 1080 canvas. index.html mounts it
+    at 0, so its seconds are the film's seconds. It shows a title plate (0 to 3 s), then one stage at a time:
+    01 Source (3 to 6 s), 02 Correct (6 to 10 s, with AFTER and BEFORE tags and a seam that follows the wipe),
+    03 Grade (10 to 13.5 s), 04 Look (13.5 to 18 s, four preset tags over the grid), 05 Finish (18 to 21 s) and an
+    end plate (21 to 24 s). Each stage shows a plate with its number, name and one line of why, plus a payload line
+    that states the real numbers used in the grade.
+  STRUCTURE: Layers in DOM order, each a .group that is hidden by its CSS opacity 0 except #g-title: #g-title
+    (the title plate), #g-source, #g-correct (with #seam, a 4px vertical line), #g-grade, #g-look (four tags),
+    #g-finish and #g-end. The script sets each group to opacity 1 at its start and back to 0 at its end, using
+    the stage window list. Tweens: #title-plate rises and fades from 0.9 s; #g-source cards from 3.1 and 3.4 s;
+    #seam moves from x 0 to 960 at 6.2 s for 1.2 s and on to x 1690 at 7.8 s for 1.4 s; #g-correct cards from
+    6.1 and 6.5 s; #g-grade cards from 10.1 and 10.4 s; the look tags pop in from 13.6 s, 0.15 s apart;
+    #g-finish cards from 18.1 and 18.4 s; #end-plate from 21.6 s. The timeline is registered as
+    window.__timelines["labels"].
+  CUSTOMIZE: The text is literal in each group: the title and its flow line, the stage names and why lines, the
+    payload lines, the four look tags, and the end plate. Payload lines and tags state the numbers from the grade
+    in index.html, so change them together with those values. The stage list of [name, start, end] pairs in the
+    script (0, 3, 6, 10, 13.5, 18, 21 and 24 s) must match the data-start and data-duration times of the video
+    layers in index.html. Colors: text #f4efe8, numbers and tags #ffb35c, payload #9fe3ee, plates
+    rgba(13, 11, 9, 0.82). Stage cards sit at left 64px and top 56px; payloads at bottom 56px. The seam's end
+    positions 960 and 1690 match the corrected wipe in index.html.
+  MEDIA: No media file is bundled, and this file has no photo, video, sound or CSS image; the words are text.
+    Inter and JetBrains Mono are named by family only, with no @font-face rule and no font file, so they render
+    when installed and otherwise fall back to generic sans-serif and monospace faces. To use a font file of your
+    own, add an @font-face rule with the family name and a url("FILE.woff2") source to this file's style block.
+  WHEN TO USE: On-screen labels for a stage-by-stage grading film over one clip, where text must switch at the
+    exact frames of the video stages. Pick a simpler text layer when the words do not need to track video stages.
+-->
+<!-- Every on-screen word of the film, on one transparent graphics layer over the graded media.
+     Each stage group (except the title) is hidden in CSS and switched on/off at its stage boundaries. -->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root of the words layer: fills the canvas, sets the default font and text color. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #f4efe8; }
+        /* Stage groups: full-canvas layers that stay hidden until the timeline shows them. */
+        .group { position: absolute; inset: 0; opacity: 0; }
+        /* The title group is visible from the start; the other groups begin at opacity 0. */
+        #g-title { opacity: 1; }
+        /* Labels sit on dark plates so they read over any grade. */
+        /* Plate: the dark rounded box that every label sits on, so text reads over any grade. */
+        .plate { position: absolute; background: rgba(13, 11, 9, 0.82); border-radius: 14px; padding: 22px 30px; }
+        /* Stage card: the number, name and why lines at the top left. */
+        .stage { left: 64px; top: 56px; }
+        /* Stage number: the orange monospace 01 to 05 label. */
+        .stage .num { font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 700; color: #ffb35c; letter-spacing: 0.12em; }
+        /* Stage name: the large heavy title of the stage. */
+        .stage .name { font-size: 52px; font-weight: 800; line-height: 1.05; margin-top: 6px; }
+        /* Stage why: one short line, in a lighter grey, that says what the stage does. */
+        .stage .why { font-size: 26px; color: #d9d1c5; margin-top: 10px; max-width: 760px; line-height: 1.3; }
+        /* Payload line: cyan monospace text at the bottom left, showing the real grade numbers. */
+        .payload { left: 64px; bottom: 56px; font-family: "JetBrains Mono", monospace; font-size: 24px; color: #9fe3ee; padding: 16px 24px; }
+        /* Tag: a small monospace label, such as AFTER, BEFORE or a preset name. */
+        .tag { position: absolute; font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 700; letter-spacing: 0.14em;
+          background: rgba(13, 11, 9, 0.82); color: #f4efe8; padding: 10px 16px; border-radius: 8px; }
+        /* Seam: a thin vertical line that follows the edge of the correction wipe. */
+        #seam { position: absolute; top: 0; bottom: 0; left: 0; width: 4px; margin-left: -2px; background: #f4efe8; }
+        /* Title plate: centered on the canvas for the opening title. */
+        #title-plate { left: 50%; top: 50%; width: 1100px; margin-left: -550px; margin-top: -150px; text-align: center; padding: 40px 48px; }
+        /* Title heading: the large opening line. */
+        #title-plate h1 { font-size: 96px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+        /* Title flow line: the orange monospace stage order under the heading. */
+        #title-plate p { font-family: "JetBrains Mono", monospace; font-size: 28px; color: #ffb35c; margin-top: 22px; letter-spacing: 0.06em; }
+        /* End plate: top left, holding the closing words. */
+        #end-plate { left: 64px; top: 56px; width: 760px; }
+        /* End heading: the two-line closing statement. */
+        #end-plate h2 { font-size: 64px; font-weight: 800; line-height: 1.05; }
+        /* End text: the explanation under the closing heading. */
+        #end-plate p { font-size: 26px; color: #d9d1c5; margin-top: 14px; line-height: 1.35; }
+      </style>
+      <!-- Composition root for the labels: 1920 by 1080, with one group per stage as its children. -->
+      <div id="root" data-composition-id="labels" data-width="1920" data-height="1080">
+        <!-- Title group: visible from 0 to 3 seconds. -->
+        <div class="group" id="g-title">
+          <div class="plate" id="title-plate"><h1>Grade the footage</h1><p>source → correct → grade → look → finish</p></div>
+        </div>
+
+        <!-- Source group: the 01 Source card and its payload, shown from 3 to 6 seconds. -->
+        <div class="group" id="g-source">
+          <div class="plate stage"><div class="num">01</div><div class="name">Source</div>
+            <div class="why">Flat camera original: lifted blacks, dim whites, almost no saturation.</div></div>
+          <div class="plate payload">--analyze → Y 82–214 · SAT 8 / 255 · clip risk 0</div>
+        </div>
+
+        <!-- Correct group: the 02 Correct card, the seam and the AFTER and BEFORE tags, from 6 to 10 seconds. -->
+        <div class="group" id="g-correct">
+          <div id="seam"></div>
+          <div class="plate stage"><div class="num">02</div><div class="name">Correct</div>
+            <div class="why">Answer the numbers: set black and white points, then bring color back.</div></div>
+          <div class="tag" style="left:64px;top:330px">AFTER</div>
+          <div class="tag" style="right:64px;top:64px">BEFORE</div>
+          <div class="plate payload">adjust: contrast +0.3 · blacks +0.6 · highlights −0.15 · temperature −0.12 · saturation +0.5</div>
+        </div>
+
+        <!-- Grade group: the 03 Grade card and its payload, from 10 to 13.5 seconds. -->
+        <div class="group" id="g-grade">
+          <div class="plate stage"><div class="num">03</div><div class="name">Grade</div>
+            <div class="why">Teal into the shadows, amber into the highlights, and one HSL selection that quiets the greens.</div></div>
+          <div class="plate payload">wheels · secondaries[hue 120 ± 30 → sat −0.4]</div>
+        </div>
+
+        <!-- Look group: four preset tags, one over each tile of the 2 by 2 grid, from 13.5 to 18 seconds. -->
+        <div class="group" id="g-look">
+          <div class="tag" style="left:32px;top:32px">04 · WARM DAYLIGHT</div>
+          <div class="tag" style="left:992px;top:32px">MUTED EDITORIAL</div>
+          <div class="tag" style="left:32px;top:572px">DEEP CONTRAST</div>
+          <div class="tag" style="left:992px;top:572px">MONO CLEAN</div>
+        </div>
+
+        <!-- Finish group: the 05 Finish card and its payload, from 18 to 21 seconds. -->
+        <div class="group" id="g-finish">
+          <div class="plate stage"><div class="num">05</div><div class="name">Finish</div>
+            <div class="why">A project-local .cube faded in to 60%, then a little vignette and grain.</div></div>
+          <div class="plate payload">lut: assets/luts/teal-amber.cube · details: vignette 0.3 · grain 0.08</div>
+        </div>
+
+        <!-- End group: the closing plate, from 21 to 24 seconds. -->
+        <div class="group" id="g-end">
+          <div class="plate" id="end-plate"><h2>One clip.<br />Five grades.</h2>
+            <p>Every look here is a data-color-grading payload. The violet mug is one hue-vs-hue point.</p></div>
+        </div>
+      </div>
+      <script>
+        /* Setup: the paused timeline that the group switches and the card tweens are added to. */
+        const tl = gsap.timeline({ paused: true });
+        // Stage windows (seconds on this layer = seconds in the film; the host mounts it at 0).
+        [["#g-title", 0, 3], ["#g-source", 3, 6], ["#g-correct", 6, 10], ["#g-grade", 10, 13.5],
+         ["#g-look", 13.5, 18], ["#g-finish", 18, 21], ["#g-end", 21, 24]].forEach(([sel, a, b]) => {
+          if (a > 0) tl.set(sel, { opacity: 1 }, a);
+          if (b < 24) tl.set(sel, { opacity: 0 }, b);
+        });
+
+        /* Title plate rises 40px and fades in from 0.9 seconds. */
+        tl.from("#title-plate", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.9);
+        /* Source card slides in from the left at 3.1 seconds, and its payload rises at 3.4 seconds. */
+        tl.from("#g-source .stage", { x: -60, opacity: 0, duration: 0.5, ease: "power3.out" }, 3.1);
+        tl.from("#g-source .payload", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 3.4);
+
+        // The seam rides the corrected clip's wipe in the host (same times, same eases).
+        tl.fromTo("#seam", { x: 0 }, { x: 960, duration: 1.2, ease: "power2.inOut" }, 6.2);
+        tl.to("#seam", { x: 1690, duration: 1.4, ease: "sine.inOut" }, 7.8);
+        /* Correct card slides in from the left at 6.1 seconds, and its payload rises at 6.5 seconds. */
+        tl.from("#g-correct .stage", { x: -60, opacity: 0, duration: 0.5, ease: "power3.out" }, 6.1);
+        tl.from("#g-correct .payload", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 6.5);
+
+        /* Grade card slides in at 10.1 seconds, and its payload rises at 10.4 seconds. */
+        tl.from("#g-grade .stage", { x: -60, opacity: 0, duration: 0.5, ease: "power3.out" }, 10.1);
+        tl.from("#g-grade .payload", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 10.4);
+        /* The four look tags pop in one after another from 13.6 seconds, 0.15 seconds apart. */
+        tl.from("#g-look .tag", { y: -20, opacity: 0, duration: 0.4, stagger: 0.15, ease: "power3.out" }, 13.6);
+        /* Finish card slides in at 18.1 seconds, and its payload rises at 18.4 seconds. */
+        tl.from("#g-finish .stage", { x: -60, opacity: 0, duration: 0.5, ease: "power3.out" }, 18.1);
+        tl.from("#g-finish .payload", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 18.4);
+        /* End plate rises 40px and fades in at 21.6 seconds. */
+        tl.from("#end-plate", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, 21.6);
+        /* Registers this timeline under the id labels so the host can seek it. */
+        window.__timelines["labels"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

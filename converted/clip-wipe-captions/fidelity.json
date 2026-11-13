@@ -1,8 +1,8 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 64,
-    "refused": 9,
+    "approximated": 66,
+    "refused": 7,
     "translated": 32
   },
   "duration": 25.5,
@@ -242,10 +242,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"0% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"0% 100%\\\"\" snapped to clip origin \"left bottom\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#intro-tab\" at start=5.5800 duration=0.5000",
       "file": "compositions/frames/intro.html",
       "line": 83,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -446,10 +447,11 @@
     },
     {
       "construct": "tl.to",
-      "detail": "property \"filter\" (value \"\\\"blur(6px)\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "blur endpoint resolves from the clip's static blur 0 (converter does not read CSS filter); GSAP animates from the captured authored filter state, so early eval differs",
+      "detail": "tl.to on \"#anatomy-body\" at start=12.4600 duration=0.6000",
       "file": "compositions/frames/anatomy.html",
       "line": 90,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -744,42 +746,42 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"g.start\" is an expression; refusing the call site",
+      "detail": "position \"g.start\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/components/caption-clip-wipe.html",
       "line": 289,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "detail": "position \"w.start\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/components/caption-clip-wipe.html",
       "line": 296,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "position \"w.start + 0.1\" is an expression; refusing the call site",
+      "detail": "position \"w.start + 0.1\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/components/caption-clip-wipe.html",
       "line": 302,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "position \"w.end\" is an expression; refusing the call site",
+      "detail": "position \"w.end\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/components/caption-clip-wipe.html",
       "line": 304,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "detail": "position \"g.end - 0.2\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/components/caption-clip-wipe.html",
       "line": 308,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"g.end\" is an expression; refusing the call site",
+      "detail": "position \"g.end\" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/components/caption-clip-wipe.html",
       "line": 318,
       "verdict": "refused"

@@ -1,0 +1,196 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, composition id "main")
+  WHAT: The whole film, 68 s at 1920 by 1080, in the dark archival with animation style. It opens on
+    a dark locator map of Lakehurst, then cuts archive newsreel to the narration with gold tags and
+    subtitles, a number that counts up to 34, and a statement card about the passenger lounge. From
+    26.99 s to 51.2 s a paper-collage block explains the cause: a cut-out of Hugo Eckener, a paper map
+    of the USA with Texas filled, a red card with 7,000,000 cubic feet, and the landing field seen from
+    above with the ship and the storm. Back on film, the tail catches fire at 51.2 s, the survivors
+    count runs, and the film ends on the wreck with THE END OF AN AGE. Heard: the narration, a music bed, the blast
+    and fire roar, and short sound hits. None of them is bundled, so the film plays silently until they are added
+    (see MEDIA).
+  STRUCTURE: #root is the root composition, 68 s long. Track 1 mounts the scene compositions in order,
+    each in its own div with data-composition-src: map at 0 s, arrival 5.93, flame 12.81, stat 17.08,
+    statement 21.73, eckener 26.99, helium 34.03, hydrogen 39.99, field 45.17, fire 51.2, survivors
+    55.91, ending 61.29. Track 2 mounts paper (26.99 s for 24.21 s), the paper sheet laid over the
+    collage block. Track 3 mounts subs over the whole film. The narration clips voice-s01 to voice-s11
+    sit on track 10. Music: bed-a runs from 0 to 51.2 s and bed-b starts at 55.91 s for 12.09 s (track
+    11). The blast sfx-blast sits at 51.17 s and the fire roar amb-fire at 51.2 s (tracks 12 and 13),
+    and the short sound hits sit on tracks 14 to 16. The main GSAP timeline holds no tweens; each
+    scene registers its own timeline by id.
+  CUSTOMIZE: Scene order and timing are the data-start and data-duration pairs on each slot. A slot's
+    duration must equal its scene's own length (arrival is 6.88 s, which is 4.02 plus 2.86). The
+    narration clips are generated from narration.txt and carry a do-not-edit note, so re-cut them
+    rather than retiming them by hand. Music and effect levels are the data-volume attributes and the
+    data-automation lanes: bed-a holds volume 0.0363, bed-b swells to 0.0675 at about 10.5 s of its
+    clip and falls to 0 at its end, amb-fire holds 0.0102, and the blast is 0.5 with data-duck off.
+    The frame is 1920 by 1080 in the meta tag, the html and body rules, and each slot. The layer order
+    is set in the CSS: the paper layer at z-index 50 with multiply, the subtitles at z-index 60.
+  MEDIA: No media file is bundled. This file has no picture, video or font slot of its own: the scenes it mounts
+    are compositions with their own MEDIA notes, and the paper and subs layers have theirs too. Its own slots are
+    the 32 sound slots listed below. Each one is a commented SOUND SLOT that stood for an audio element, and none
+    plays until you add that element, so the film is silent until then.
+    Plug-in template for every sound slot: an audio element with id="ID", src set to your file, data-start="START", data-duration="DURATION", data-track-index="TRACK" and data-volume="VOLUME". Fill in the values from the slot's line below. Where a line
+    says media start N, also set data-media-start="N" so the clip begins at that point of your file. Where a line says
+    its volume lanes were in data-automation, those lanes are not kept, so data-volume is the only level.
+    The head loads GSAP 3.14.2 from cdn.jsdelivr.net, so it needs network access or a local copy of that version.
+    Narration, track 10, volume 1. Each clip is one segment of narration.txt, voiced by scripts/narrate.sh and placed
+    by scripts/narration-segments.py wire. The block between the narration markers is generated, so re-cut the clips
+    rather than retiming them by hand. Each slot was an audio element for the file named below:
+      #voice-s01: assets/narration/s01.mp3, from 0 s for 5.485 s. Now silent.
+      #voice-s02: assets/narration/s02.mp3, from 5.935 s for 6.423 s. Now silent.
+      #voice-s03: assets/narration/s03.mp3, from 12.808 s for 3.821 s. Now silent.
+      #voice-s04: assets/narration/s04.mp3, from 17.079 s for 4.205 s. Now silent.
+      #voice-s05: assets/narration/s05.mp3, from 21.734 s for 4.802 s. Now silent.
+      #voice-s06: assets/narration/s06.mp3, from 26.986 s for 6.594 s. Now silent.
+      #voice-s07: assets/narration/s07.mp3, from 34.03 s for 5.506 s. Now silent.
+      #voice-s08: assets/narration/s08.mp3, from 39.986 s for 4.738 s. Now silent.
+      #voice-s09: assets/narration/s09.mp3, from 45.174 s for 10.285 s. Now silent.
+      #voice-s10: assets/narration/s10.mp3, from 55.909 s for 4.93 s. Now silent.
+      #voice-s11: assets/narration/s11.mp3, from 61.289 s for 4.738 s. Now silent.
+    Music, the bed and the fire roar. Each one stood for the file named below, at track 11 for the beds and track 13
+    for the fire roar, volume 1.
+      #bed-a: assets/generated/src/bed.mp3, from 0 s for 51.2 s, track 11. Its volume lanes were in data-automation
+      and are not kept. It stops dead on the flash at 51.2 s. Now silent.
+      #bed-b: assets/generated/src/bed.mp3, from 55.91 s for 12.09 s, track 11, media start 60. Its volume lanes were
+      in data-automation and are not kept. Now silent.
+      #amb-fire: assets/generated/src/fire-roar.mp3, from 51.2 s for 10.09 s, track 13, media start 4. Its volume lanes
+      were in data-automation and are not kept. Now silent.
+    Blast, track 12, volume 0.5, file assets/generated/src/explosion.mp3:
+      #sfx-blast: from 51.17 s for 4.6 s. Now silent.
+    Effects and hits. The hits were measured by peak: whoosh 0.17, pop 0.12, impact-bass-1 0.12, typing onset 0.45.
+    Each impact was held low for 0.3 s and faded out by 1 s, so it lands under the voice. Each one below stood for the
+    file named, with the track, volume and any media start shown. Every one is now silent.
+      #sfx-fly: assets/sfx/whoosh.mp3, from 1.3 s for 0.57 s, track 14, volume 0.3.
+      #sfx-pin: assets/sfx/pop.mp3, from 3.16 s for 0.72 s, track 14, volume 0.5.
+      #sfx-type-1: assets/sfx/typing.mp3, from 3.2 s for 0.8 s, track 15, volume 0.3, media start 0.45.
+      #sfx-stat: assets/sfx/impact-bass-1.mp3, from 16.96 s for 1.0 s, track 14, volume 1. Its volume lanes were in
+      data-automation and are not kept.
+      #sfx-whip-1: assets/sfx/whoosh-short.mp3, from 27.02 s for 0.57 s, track 14, volume 0.5.
+      #sfx-stamp-1: assets/sfx/impact-bass-1.mp3, from 30.21 s for 1.0 s, track 14, volume 1. Lanes not kept.
+      #sfx-type-2: assets/sfx/typing.mp3, from 31.34 s for 1.05 s, track 15, volume 0.3, media start 0.45.
+      #sfx-pin-2: assets/sfx/pop.mp3, from 35.19 s for 0.72 s, track 14, volume 0.4.
+      #sfx-type-3: assets/sfx/typing.mp3, from 35.63 s for 1.0 s, track 15, volume 0.3, media start 0.45.
+      #sfx-stamp-2: assets/sfx/impact-bass-1.mp3, from 37.45 s for 1.0 s, track 14, volume 1. Lanes not kept.
+      #sfx-whip-2: assets/sfx/whoosh-short.mp3, from 40.22 s for 0.57 s, track 14, volume 0.5.
+      #sfx-slap: assets/sfx/pop.mp3, from 41.35 s for 0.72 s, track 16, volume 0.45.
+      #sfx-stamp-3: assets/sfx/impact-bass-1.mp3, from 41.75 s for 1.0 s, track 14, volume 1. Lanes not kept.
+      #sfx-type-4: assets/sfx/typing.mp3, from 42.44 s for 1.05 s, track 15, volume 0.3, media start 0.45.
+      #sfx-stamp-4: assets/sfx/impact-bass-1.mp3, from 46.33 s for 1.0 s, track 14, volume 1. Lanes not kept.
+      #sfx-whip-3: assets/sfx/whoosh-short.mp3, from 47.95 s for 0.57 s, track 16, volume 0.45.
+      #sfx-type-5: assets/sfx/typing.mp3, from 50.17 s for 0.5 s, track 15, volume 0.3, media start 0.45.
+    Example, for #voice-s01: an audio element with id="voice-s01", src set to your file, data-start="0", data-duration="5.485", data-track-index="10" and data-volume="1". The scene files mounted here have their own MEDIA notes for the
+    pictures, video and fonts. A clip that is missing plays nothing, so keep each file at the length its slot gives.
+  WHEN TO USE: A whole film built from scene compositions on one timeline, with narration cuts, music
+    levels and subtitles. Pick a single scene file when the moment is one shot or one card.
+-->
+<!-- "Dark archival with animation" (references/dark-archival-with-animation.md): a dark locator map,
+     archive film cut on the narration with gold tags and subtitles, a stat that counts up, a
+     statement card, then a paper-collage block (a person card, a paper map, a number card, an
+     animated diagram of the event) and back to the film for the climax. Scene starts are segment
+     starts in assets/transcript.json. Media: none bundled (see the GUIDE MEDIA note); the footage was cut from the
+     newsreel by ./make-footage.sh. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Hindenburg, thirty-four seconds</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset: no margins or padding, and border boxes everywhere. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* The page is the fixed 1920 by 1080 frame, black, with no scrolling. */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000000; }
+      /* The root composition fills the frame and clips everything that leaves it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000000; }
+      /* The shared paper layer sits above the collage scenes and multiplies onto them. */
+      #paper-slot { z-index: 50; mix-blend-mode: multiply; pointer-events: none; }
+      #subs-slot { z-index: 60; }
+    </style>
+  </head>
+  <body>
+    <!-- The root composition: 68 s at 1920 by 1080, with every scene slot, audio clip and subtitle track inside it. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="68" data-width="1920" data-height="1080">
+      <!-- Dark archival: map, film, stat, statement. -->
+      <div id="map-slot" data-composition-id="map" data-composition-src="compositions/map.html"
+        data-start="0" data-duration="5.93" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="arrival-slot" data-composition-id="arrival" data-composition-src="compositions/arrival.html"
+        data-start="5.93" data-duration="6.88" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="flame-slot" data-composition-id="flame" data-composition-src="compositions/flame.html"
+        data-start="12.81" data-duration="4.27" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="stat-slot" data-composition-id="stat" data-composition-src="compositions/stat.html"
+        data-start="17.08" data-duration="4.65" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="statement-slot" data-composition-id="statement" data-composition-src="compositions/statement.html"
+        data-start="21.73" data-duration="5.26" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- The animated collage block: who, why, how much, and the event from above. -->
+      <div id="eckener-slot" data-composition-id="eckener" data-composition-src="compositions/eckener.html"
+        data-start="26.99" data-duration="7.04" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="helium-slot" data-composition-id="helium" data-composition-src="compositions/helium.html"
+        data-start="34.03" data-duration="5.96" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="hydrogen-slot" data-composition-id="hydrogen" data-composition-src="compositions/hydrogen.html"
+        data-start="39.99" data-duration="5.18" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="field-slot" data-composition-id="field" data-composition-src="compositions/field.html"
+        data-start="45.17" data-duration="6.03" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Back to the film for the climax and the ending. -->
+      <div id="fire-slot" data-composition-id="fire" data-composition-src="compositions/fire.html"
+        data-start="51.2" data-duration="4.71" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="survivors-slot" data-composition-id="survivors" data-composition-src="compositions/survivors.html"
+        data-start="55.91" data-duration="5.38" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="ending-slot" data-composition-id="ending" data-composition-src="compositions/ending.html"
+        data-start="61.29" data-duration="6.71" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- One paper sheet over the collage block only. -->
+      <div id="paper-slot" data-composition-id="paper" data-composition-src="compositions/paper.html"
+        data-start="26.99" data-duration="24.21" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- Subtitles: cues exist only where archive film plays. -->
+      <div id="subs-slot" data-composition-id="subs" data-composition-src="compositions/subs.html"
+        data-start="0" data-duration="68" data-track-index="3" data-track-kind="captions" data-width="1920" data-height="1080"></div>
+
+      <!-- narration -->
+      <!-- /narration -->
+      <!-- Music: the bed stops dead on the flash (51.20 s) and returns under the count of survivors. -->
+      <!-- SOUND SLOT (id "bed-a", from 0 s, for 51.2 s, volume 1, track 11): an audio element played assets/generated/src/bed.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "bed-b", from 55.91 s, for 12.09 s, volume 1, track 11): an audio element played assets/generated/src/bed.mp3 here, which is not bundled. Its volume lanes were in data-automation. It started 60 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- The real sound of the event: the blast on the flash, then the fire under the climax. -->
+      <!-- SOUND SLOT (id "sfx-blast", from 51.17 s, for 4.6 s, volume 0.5, track 12): an audio element played assets/generated/src/explosion.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "amb-fire", from 51.2 s, for 10.09 s, volume 1, track 13): an audio element played assets/generated/src/fire-roar.mp3 here, which is not bundled. Its volume lanes were in data-automation. It started 4 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- Hits by measured peak (data-start = target - peak): whoosh 0.17, pop 0.12, impact-bass-1 0.12, typing onset 0.45.
+           The Pixabay bass impact is a full-scale tone: each one is held low for 0.3 s and faded out by 1 s, so it lands under the voice. -->
+      <!-- SOUND SLOT (id "sfx-fly", from 1.3 s, for 0.57 s, volume 0.3, track 14): an audio element played assets/sfx/whoosh.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-pin", from 3.16 s, for 0.72 s, volume 0.5, track 14): an audio element played assets/sfx/pop.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-type-1", from 3.2 s, for 0.8 s, volume 0.3, track 15): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-stat", from 16.96 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-whip-1", from 27.02 s, for 0.57 s, volume 0.5, track 14): an audio element played assets/sfx/whoosh-short.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-stamp-1", from 30.21 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-type-2", from 31.34 s, for 1.05 s, volume 0.3, track 15): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-pin-2", from 35.19 s, for 0.72 s, volume 0.4, track 14): an audio element played assets/sfx/pop.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-type-3", from 35.63 s, for 1.0 s, volume 0.3, track 15): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-stamp-2", from 37.45 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-whip-2", from 40.22 s, for 0.57 s, volume 0.5, track 14): an audio element played assets/sfx/whoosh-short.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-slap", from 41.35 s, for 0.72 s, volume 0.45, track 16): an audio element played assets/sfx/pop.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-stamp-3", from 41.75 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-type-4", from 42.44 s, for 1.05 s, volume 0.3, track 15): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-stamp-4", from 46.33 s, for 1.0 s, volume 1, track 14): an audio element played assets/sfx/impact-bass-1.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-whip-3", from 47.95 s, for 0.57 s, volume 0.45, track 16): an audio element played assets/sfx/whoosh-short.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "sfx-type-5", from 50.17 s, for 0.5 s, volume 0.3, track 15): an audio element played assets/sfx/typing.mp3 here, which is not bundled. It started 0.45 s into the file. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- narration: one clip per segment, written by scripts/narration-segments.py wire; do not edit -->
+      <!-- SOUND SLOT (id "voice-s01", from 0 s, for 5.485 s, volume 1, track 10): an audio element played assets/narration/s01.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s02", from 5.935 s, for 6.423 s, volume 1, track 10): an audio element played assets/narration/s02.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s03", from 12.808 s, for 3.821 s, volume 1, track 10): an audio element played assets/narration/s03.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s04", from 17.079 s, for 4.205 s, volume 1, track 10): an audio element played assets/narration/s04.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s05", from 21.734 s, for 4.802 s, volume 1, track 10): an audio element played assets/narration/s05.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s06", from 26.986 s, for 6.594 s, volume 1, track 10): an audio element played assets/narration/s06.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s07", from 34.03 s, for 5.506 s, volume 1, track 10): an audio element played assets/narration/s07.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s08", from 39.986 s, for 4.738 s, volume 1, track 10): an audio element played assets/narration/s08.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s09", from 45.174 s, for 10.285 s, volume 1, track 10): an audio element played assets/narration/s09.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s10", from 55.909 s, for 4.93 s, volume 1, track 10): an audio element played assets/narration/s10.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "voice-s11", from 61.289 s, for 4.738 s, volume 1, track 10): an audio element played assets/narration/s11.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- /narration -->
+    </div>
+    <script>
+      /* The root timeline is empty and paused; each scene registers its own timeline under its id. */
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

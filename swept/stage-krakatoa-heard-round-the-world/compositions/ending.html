@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/ending.html (composition id "ending")
+  WHAT: The last scene of the film, 9.44 s, mounted at 58.06 s. Three film shots of an island play in
+    sequence: an island at dusk under the gold tag 1927 on "nineteen twenty-seven"; then the sea
+    breaking open, seen from the air, on "island"; then the new volcano erupting, with the tag CHILD
+    OF KRAKATOA on "the child". The picture then falls to black over the last of the music, and the
+    final 0.5 s are black. Subtitles for the scene come from subs.html.
+  STRUCTURE: Three .en-shot wrappers, each with its own slow push: #en-a (video slot #en-a-video from 0 s
+    for 2.09 s, scaling 1.02 to 1.05), #en-b (video slot #en-b-video from 2.09 s for 1.97 s, scaling 1.02 to
+    1.06) and #en-c (video slot #en-c-video from 4.06 s for 5.38 s, scaling 1.02 to 1.09). Then #en-vig (the
+    vignette), the two tags #en-tag-1 and #en-tag-2, and last #en-black, the black layer for the fade.
+    Timeline, in seconds from the scene start: 0.31 tag 1 wipes in over 0.2 s and is hidden at 4.06;
+    5.3 tag 2 wipes in over 0.2 s; 7.85 the black layer fades in over 1.1 s; 7.9 tag 2 fades out over
+    0.6 s, so no text sits under the black.
+  CUSTOMIZE: The tags are #en-tag-1 (1927) and #en-tag-2 (CHILD OF KRAKATOA), in gold #e9b04a with the
+    text #15110a, at left 118px and top 776px. The cut points are the data-start values of the clips
+    and the start times of the .en-shot tweens (2.09 and 4.06), and tag 1's hide time must move with
+    its cut. The dusk shot is lifted by the brightness 1.6 on #en-a [data-media-kind="video"], because the source is dark.
+    The fade starts at 7.85 s and lasts 1.1 s; move it with the tag's fade-out. The 9.44 s length
+    must match the scene's data-duration in index.html.
+  MEDIA: No media file is bundled. Three video slots, each shown as a labeled hatch stand-in until a
+    clip is set. Slot 1, #en-a-video: an island at dusk (it was footage/e1.mp4, from 0 s for 2.09 s in
+    #en-a); its stand-in is labeled "VIDEO: footage/e1.mp4". Plug-in: replace that img with
+    a video element that has src set to your file, muted, playsinline, id="en-a-video", data-start="0", data-duration="2.09", data-track-index="1" and data-media-kind="video". Slot 2, #en-b-video: the sea breaking open,
+    seen from the air (it was footage/e2.mp4, from 2.09 s for 1.97 s in #en-b); its stand-in is labeled
+    "VIDEO: footage/e2.mp4". Plug-in: a video element with src set to your file, muted, playsinline, id="en-b-video", data-start="2.09", data-hf-media-start-basis="local", data-duration="1.97", data-track-index="2" and data-media-kind="video". Slot 3, #en-c-video: the new volcano erupting (it was
+    footage/e3.mp4, from 4.06 s for 5.38 s in #en-c); its stand-in is labeled "VIDEO: footage/e3.mp4".
+    Plug-in: a video element with src set to your file, muted, playsinline, id="en-c-video", data-start="4.06", data-hf-media-start-basis="local", data-duration="5.38", data-track-index="3" and data-media-kind="video".
+    In each plug-in, keep the id, the data-* attributes and data-media-kind="video" so the CSS still
+    matches. make-footage.sh cut the three clips from the inspiration's downloaded film (README). If a clip
+    is missing, use licensed footage of the same subject, or a still of it held with the same push.
+    Font slot: Roboto Condensed at weight 500 (the two tags) loads with src: local("Roboto Condensed"),
+    used if installed, else the sans-serif fallback shows; to plug in a file, add
+    url("assets/fonts/roboto-condensed-latin.woff2") as a source in the @font-face rule. Sound slots:
+    none in this file; the music fade is in index.html. CSS image slots: none; the vignette is a
+    radial gradient.
+  WHEN TO USE: A closing sequence of archive shots that ends on a year and a title, then fades to
+    black. Pick a different ending for a film that closes on a presenter or on a title card.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Font: Roboto Condensed at weight 500, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 500; font-display: block; src: local("Roboto Condensed"); }
+        /* The black ground. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #000000; }
+        /* The three shot wrappers: each pushes in on its own timing in the script. */
+        .en-shot { position: absolute; inset: 0; transform-origin: 50% 50%; }
+        .en-shot [data-media-kind="video"] { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.14) brightness(0.86); }
+        /* The dusk shot is underexposed in the source: it is lifted a little, not flattened. */
+        #en-a [data-media-kind="video"] { filter: grayscale(1) contrast(1.0) brightness(1.6); }
+        /* The vignette: a dark radial edge over every shot. */
+        #en-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 72% at 50% 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.62) 100%); }
+        .en-tag { position: absolute; left: 118px; top: 776px; padding: 16px 22px; background: #e9b04a; font-family: "Roboto Condensed", sans-serif; font-weight: 500; font-size: 50px; line-height: 1.2; letter-spacing: 0.02em; color: #15110a; white-space: nowrap; transform-origin: 0 50%; }
+        /* The black layer that the script fades in at the end of the scene. */
+        #en-black { position: absolute; inset: 0; background: #000000; }
+      </style>
+      <div id="root" data-composition-id="ending" data-width="1920" data-height="1080">
+        <!-- An island at dusk for "In nineteen twenty-seven"; from the air, the sea breaks open on "island"
+             (60.15 s); the new volcano erupting from "Anak Krakatau" (62.12 s). -->
+        <div class="en-shot" id="en-a" data-layout-allow-overflow>
+          <img id="en-a-video" data-start="0" data-duration="2.09" data-track-index="1" src="data:image/svg+xml,%3C!--e1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e1.mp4%3C/text%3E%3C/svg%3E" data-media="footage/e1.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div class="en-shot" id="en-b" data-layout-allow-overflow>
+          <img id="en-b-video" data-start="2.09" data-hf-media-start-basis="local" data-duration="1.97" data-track-index="2" src="data:image/svg+xml,%3C!--e2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e2.mp4%3C/text%3E%3C/svg%3E" data-media="footage/e2.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div class="en-shot" id="en-c" data-layout-allow-overflow>
+          <img id="en-c-video" data-start="4.06" data-hf-media-start-basis="local" data-duration="5.38" data-track-index="3" src="data:image/svg+xml,%3C!--e3.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e3.mp4%3C/text%3E%3C/svg%3E" data-media="footage/e3.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div id="en-vig"></div>
+        <div class="en-tag" id="en-tag-1">1927</div>
+        <div class="en-tag" id="en-tag-2">CHILD OF KRAKATOA</div>
+        <div id="en-black"></div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        /* The black layer and the second tag start hidden until their tweens show them. */
+        gsap.set(["#en-black", "#en-tag-2"], { opacity: 0 });
+        tl.fromTo("#en-a", { scale: 1.02 }, { scale: 1.05, duration: 2.09, ease: "none" }, 0);
+        tl.fromTo("#en-b", { scale: 1.02 }, { scale: 1.06, duration: 1.97, ease: "none" }, 2.09);
+        tl.fromTo("#en-c", { scale: 1.02 }, { scale: 1.09, duration: 5.38, ease: "none" }, 4.06);
+        // The year lands on "nineteen twenty-seven" (58.37 s) and holds over both shots of that sentence.
+        tl.fromTo("#en-tag-1", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 0.31);
+        tl.to("#en-tag-1", { opacity: 0, duration: 0.001 }, 4.06);
+        // The name's meaning lands on "the child" (63.42 s).
+        tl.fromTo("#en-tag-2", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 5.3);
+        // The film falls to black under the last of the music; the tag goes with it, so no text sits under the black.
+        tl.to("#en-black", { opacity: 1, duration: 1.1, ease: "power1.in" }, 7.85);
+        tl.to("#en-tag-2", { opacity: 0, duration: 0.6, ease: "power1.in" }, 7.9);
+        window.__timelines["ending"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

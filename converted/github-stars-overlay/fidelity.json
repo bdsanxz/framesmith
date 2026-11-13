@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 10,
-    "refused": 2,
-    "translated": 5
+    "refused": 1,
+    "translated": 6
   },
   "duration": 6.0,
   "entries": [
@@ -64,12 +64,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #stat-star is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-stat-star.svg (203 bytes; xmlns added: true)",
       "file": "compositions/stat.html",
       "line": 57,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -109,10 +108,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"[\\\"#stat-label\\\", \\\"#stat-date\\\"]\" is not a DOM selector (\"[\\\"#stat-label\\\", \\\"#stat-date\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "delta": "selector matched 2 clips; stagger 0.1200s expanded to per-element start offsets",
+      "detail": "tl.fromTo on [\"#stat-label\", \"#stat-date\"] at start=2.0000 duration=0.4000",
       "file": "compositions/stat.html",
       "line": 81,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.to",

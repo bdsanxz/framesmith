@@ -1,0 +1,51 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-card.html (composition id "c1-card")
+  WHAT: The chapter 1 title card. On a black-teal ground one line of small white capitals reads
+    "STRASBOURG MENJELANG WABAH: KELAPARAN DAN KETAKUTAN" (Strasbourg before the plague: hunger
+    and fear). It fades in over half a second, holds, and fades out, about 4 seconds in all.
+    index.html mounts it as c1-card-slot at 70.8 s with data-duration 4.0, just before chapter 1.
+  STRUCTURE: one layer: #root (background #0c0f10) holding #c1-title, a 38 px bold Arimo line set
+    at top 520 px across the full 1920 px width with white-space nowrap. The paused GSAP timeline,
+    registered as window.__timelines["c1-card"], runs two tweens: opacity 0 to 1 over 0.5 s from
+    0.25 s (power1.out), then opacity 0 over 0.35 s from 3.55 s (power1.in).
+  CUSTOMIZE: the chapter name is the text inside #c1-title; keep it on one line, since the title is
+    nowrap at 38 px. The colour (#e9edea) and the ground (#0c0f10) are set in the style block; size
+    and position are font-size 38px and top 520px. The fade timings (0.25, 0.5, 3.55, 0.35) must
+    finish inside the 4.0 s data-duration that index.html gives c1-card-slot.
+  MEDIA: no media file is bundled. This file has one font slot and no picture, video, sound or CSS image.
+    1. The font, the @font-face for "Arimo" (weights 400 to 700), used by #c1-title. It was a bundled
+       woff2 file (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is used if it is
+       installed, otherwise the sans-serif fallback. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+    2. Sound: none in this file. The bass hit that goes with this card is played by index.html, not here,
+       so no audio element is needed.
+  WHEN TO USE: a chapter title card in the documentary room style, when a chapter needs one short
+    line of text alone on black. Pick another card when the title runs to several lines or needs a
+    picture behind it.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The title font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The chapter card: one short line of small white caps, alone on black. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0f10; }
+        #c1-title { position: absolute; left: 0; width: 1920px; top: 520px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 38px; line-height: 1.2; color: #e9edea; white-space: nowrap; }
+      </style>
+      <!-- The card stage: a 1920 x 1080 root frame holding the single title line. -->
+      <div id="root" data-composition-id="c1-card" data-width="1920" data-height="1080">
+        <div id="c1-title">STRASBOURG MENJELANG WABAH: KELAPARAN DAN KETAKUTAN</div>
+      </div>
+      <script>
+        /* The timeline: fade the title in, hold it, then fade it out before the card ends. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c1-title", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0.25);
+        tl.to("#c1-title", { opacity: 0, duration: 0.35, ease: "power1.in" }, 3.55);
+        window.__timelines["c1-card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

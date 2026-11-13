@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/cards/close.html (composition id "card-close")
+  WHAT: The kinetic close, mounted by index.html at 15.25 s for 2.71 s, over the slow push-in on the
+    presenter. The line "AN AGENT CAN DIRECT IT." rises and fades in at 15.95 s over 0.5 s; the word
+    DIRECT, in blue, brightens from 20 percent opacity to full at 16.5 s over 0.25 s, on the spoken
+    word.
+  STRUCTURE: #root (full frame) holds #close-line, one centred line 150 px from the top in large
+    white Inter, with a soft text shadow, and the span #close-hl around DIRECT. Timeline in
+    card-local time (global minus 15.25 s): #close-line fades in and rises 30 px over 0.5 s,
+    starting at 0.7 s; #close-hl goes from opacity 0.2 to 1 over 0.25 s, starting at 1.25 s. The
+    push-in on the presenter is in index.html (scale 1.08 over 2.71 s), not here.
+  CUSTOMIZE: The line: the text of #close-line; the emphasised word: the text of #close-hl. Colours:
+    white text, #0a84ff for the emphasis. Size: 120 px Inter at weight 900 with tight
+    letter-spacing; top 150 px. Timing: card-local 0.7 and 1.25. If the close gets longer, change
+    the card's data-duration in index.html and the push-in duration there together.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its only font is Inter, named in the font stack of #root with no @font-face rule, and
+    HyperFrames bundles Inter, so no font file is added here. If Inter is not available where you render,
+    the sans-serif fallback is used and the timing is unchanged.
+  WHEN TO USE: A closing line that lands over a slow push-in on the speaker. Pick a card with a
+    second line, or a different layout, when the close needs more text than one line.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the card never blocks the video beneath. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #ffffff; pointer-events: none; }
+        /* The closing line: one centred row of heavy type near the top. */
+        #close-line { position: absolute; left: 0; right: 0; top: 150px; text-align: center; font-size: 120px; font-weight: 900; letter-spacing: -0.04em; text-shadow: 0 6px 40px rgba(0, 0, 0, 0.6); }
+        /* The emphasised word, in the accent blue. */
+        #close-hl { color: #0a84ff; }
+      </style>
+      <div id="root" data-composition-id="card-close" data-width="1920" data-height="1080">
+        <!-- The closing line; the word DIRECT is wrapped in its own span so the script can brighten it. --><div id="close-line">AN AGENT CAN <span id="close-hl">DIRECT</span> IT.</div>
+      </div>
+      <script>
+        /* Setup: this card's paused timeline, in card-local seconds. */
+        const tl = gsap.timeline({ paused: true });
+        // Card-local = global − 15.25: "agent" 0.71, "direct" 1.25.
+        tl.fromTo("#close-line", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.7);
+        tl.fromTo("#close-hl", { opacity: 0.2 }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 1.25);
+        /* Registration: the host finds this timeline by the composition id "card-close". */
+        window.__timelines["card-close"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

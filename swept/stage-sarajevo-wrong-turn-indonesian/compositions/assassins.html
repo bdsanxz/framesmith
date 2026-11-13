@@ -1,0 +1,127 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/assassins.html (composition id "assassins")
+  WHAT: Mounted at 12.27 s for 3.29 s, on the Indonesian line "Di sepanjang rutenya, enam pembunuh
+    muda menunggu" (six young assassins wait along the route). An empty orange card lands at 12.29
+    s; the big "6" is stamped on at 13.63 s, on the word "enam"; the label "PEMBUNUH MUDA" types on
+    from 13.81 s. A trial photo slides in from the right at 12.57 s, blurred and then sharp, and
+    three black bars strike across the eyes of the accused at 14.12 s, 14.22 s and 14.32 s. The file plays no sound of its own.
+  STRUCTURE: Back to front: two grey torn scraps (.as-scrap), the #as-print group (the trial photo
+    image, three .as-bar redaction bars with ids as-bar-1 to 3, and two .as-tape strips), and the
+    #as-card group (#as-card-bg, the number #as-num, and the #as-label strip with #as-label-text).
+    All sit in #as-cam. Timeline (local seconds from the 12.27 s start): the card at 0.02 s over
+    0.18 s; the number at 1.36 s over 0.12 s; the label typing at 1.54 s (26 per second); the print
+    slide x 1250 to 0 and rotation 8 to 2.5 over 0.38 s from 0.3 s, with its image blur 18 px to 0;
+    the bars scaleX 0 to 1 from 1.85 s, staggered by 0.1 s; the camera scales 1 to 1.04 over 3.29 s.
+  CUSTOMIZE: The count: the text of #as-num ("6"). Label: the text of #as-label-text (PEMBUNUH
+    MUDA). Colours: card #e3a21a, number ink #002356, label strip #faf9f7 with ink #1a1f35, bars
+    #111111 with saffron ends #e3a21a, ground #e3e0d6, scraps #629599 and #dedcd7. Positions:
+    #as-card at 190,300 px (430x420); #as-print at 700,250 px (1060x578). Bar positions are in the
+    print's own pixels, (80,168), (384,190) and (752,140), each 150 px wide; move them if the photo
+    is re-cropped. Times are local seconds in the script; the number's stamp must stay on the spoken
+    count word.
+  MEDIA: No media file is bundled. This file has one photo slot and two font slots, and no video or sound.
+    Photo slot, the img inside #as-print (assets/generated/trial.png, a crop of a public domain Wikimedia Commons
+    photo of the 1914 trial, cut out and given a paper border by paper-cutout.py, used as a whole print because
+    the accused do not cut out cleanly from a crowd): it now shows a faint hatch stand-in labeled "PHOTO:
+    assets/generated/trial.png", filling the 1060 by 578 px print. To plug in your own photo, set the src of that img
+    to your file, for example src="assets/generated/trial.png". The three black bars #as-bar-1, #as-bar-2 and
+    #as-bar-3 sit on top of it at the positions in CUSTOMIZE, so re-check them if your photo is cropped differently.
+    Font slot 1, Anton, used by #as-num (the count): it now uses an installed Anton, or the fallback sans-serif. To
+    bundle it, change the src of the Anton @font-face rule to url("assets/fonts/anton-latin.woff2") format("woff2"),
+    local("Anton").
+    Font slot 2, Special Elite, used by #as-label-text (PEMBUNUH MUDA): it now uses an installed Special Elite, or
+    the fallback monospace. To bundle it, change the src of the Special Elite @font-face rule to
+    url("assets/fonts/special-elite-latin.woff2") format("woff2"), local("Special Elite").
+  WHEN TO USE: A "how many" beat, where a large number and a label are the point and a group photo
+    is evidence, with redaction bars to suggest anonymity. Pick a plainer caption when the number is
+    not the point, or when the people in the photo should be shown clearly.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton for the number, Special Elite for the label. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The frame: the pale grey paper ground, clipped to the stage. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #e3e0d6; }
+        /* The camera wrapper: the card, the print and the scraps move together from one point. */
+        #as-cam { position: absolute; inset: 0; transform-origin: 900px 520px; }
+        /* Torn paper: the SVG turbulence filter displaces the edge of any piece marked .as-torn. */
+        .as-torn { filter: url(#as-tear); }
+        /* Scrap: a plain paper piece, positioned inline in the markup. */
+        .as-scrap { position: absolute; }
+        /* The number card: torn red paper, a big number, a typed label strip. */
+        #as-card { position: absolute; left: 190px; top: 300px; width: 430px; height: 420px; transform: rotate(-3deg); }
+        #as-card-bg { position: absolute; inset: 0; background: #e3a21a; box-shadow: 0 10px 16px rgba(0, 16, 68, 0.3); }
+        #as-num { position: absolute; left: 0; right: 0; top: 0; text-align: center; font-family: "Anton", sans-serif; font-size: 240px; line-height: 1.15; color: #002356; }
+        /* The label strip: a pale bar at the foot of the card that holds the typed label. */
+        #as-label { position: absolute; left: 40px; right: 40px; bottom: 34px; height: 54px; background: #faf9f7; text-align: center; }
+        #as-label-text { font-family: "Special Elite", monospace; font-size: 34px; line-height: 54px; color: #1a1f35; white-space: nowrap; }
+        /* The trial photo as a whole print (a crowd does not cut out cleanly), taped down. */
+        #as-print { position: absolute; left: 700px; top: 250px; width: 1060px; height: 578px; transform: rotate(2.5deg); filter: drop-shadow(10px 14px 12px rgba(0, 13, 63, 0.38)); }
+        #as-print img { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .as-tape { position: absolute; width: 140px; height: 40px; background: rgba(234, 232, 224, 0.85); }
+        /* Redaction bars over the eyes, with accent marker ends. */
+        .as-bar { position: absolute; height: 34px; background: #111111; transform-origin: 0 50%; }
+        .as-bar::after { content: ""; position: absolute; right: -18px; top: 6px; width: 26px; height: 22px; background: #e3a21a; transform: skewX(-20deg); }
+      </style>
+      <div id="root" data-composition-id="assassins" data-width="1920" data-height="1080">
+        <!-- The torn-edge filter used by the paper pieces. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="as-tear"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="2" /><feDisplacementMap in="SourceGraphic" scale="12" /></filter>
+        </svg>
+        <div id="as-cam" data-layout-allow-overflow>
+          <!-- Two grey paper scraps lying under the print and the card, for depth. -->
+          <div class="as-scrap as-torn" style="left: 1450px; top: 760px; width: 380px; height: 240px; background: #629599; transform: rotate(6deg)"></div>
+          <div class="as-scrap as-torn" style="left: 90px; top: 820px; width: 520px; height: 180px; background: #dedcd7; transform: rotate(-2deg)"></div>
+          <!-- The trial photo as a taped print, with the three redaction bars on top of it. -->
+          <div id="as-print" data-layout-allow-overflow>
+            <img src="data:image/svg+xml,%3C!--trial.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/trial.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/trial.png" alt="" />
+            <div class="as-bar" id="as-bar-1" style="left: 80px; top: 168px; width: 150px"></div>
+            <div class="as-bar" id="as-bar-2" style="left: 384px; top: 190px; width: 150px"></div>
+            <div class="as-bar" id="as-bar-3" style="left: 752px; top: 140px; width: 150px"></div>
+            <div class="as-tape" style="left: -40px; top: -16px; transform: rotate(-35deg)"></div>
+            <div class="as-tape" style="right: -40px; top: -16px; transform: rotate(35deg)"></div>
+          </div>
+          <!-- The number card: the saffron paper, the big number, and the label strip. -->
+          <div id="as-card">
+            <div id="as-card-bg" class="as-torn"></div>
+            <div id="as-num">6</div>
+            <div id="as-label"><span id="as-label-text">PEMBUNUH MUDA</span></div>
+          </div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this scene's paused timeline. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: types a text element one character at a time, from a start time and a rate. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        // The empty card lands first; the number is stamped on "enam" (13.65 s); the label types after.
+        tl.fromTo("#as-card", { scale: 1.3, rotation: -9, opacity: 0 }, { scale: 1, rotation: -3, opacity: 1, duration: 0.18, ease: "power4.out" }, 0.02);
+        tl.fromTo("#as-num", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.12, ease: "power3.out" }, 1.36);
+        typeOn("#as-label-text", 1.54, 26);
+        // The print slides in from the right with motion blur; the bars strike through the eyes one by one.
+        tl.fromTo("#as-print", { x: 1250, rotation: 8 }, { x: 0, rotation: 2.5, duration: 0.38, ease: "power3.out" }, 0.3);
+        tl.fromTo("#as-print img", { filter: "blur(18px)" }, { filter: "blur(0px)", duration: 0.38, ease: "power2.out" }, 0.3);
+        tl.fromTo(".as-bar", { scaleX: 0 }, { scaleX: 1, duration: 0.12, ease: "power2.out", stagger: 0.1 }, 1.85);
+        tl.fromTo("#as-cam", { scale: 1 }, { scale: 1.04, duration: 3.29, ease: "sine.inOut" }, 0);
+        /* Registration: the host finds this timeline by the composition id "assassins". */
+        window.__timelines["assassins"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

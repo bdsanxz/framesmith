@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/end.html (composition id "end"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: the end screen, shown after the presenter's last word for about 8 s: black with grain, an empty ring
+    (#ring, a border only, no picture inside), the red SUBSCRIBE block, the name "Pandji Pragiwaksono" and the handles.
+    The host index.html mounts it as #end-slot at 562.97 s for 8.3 s, over the film (z-index 8).
+  STRUCTURE: back to front: #ground (black with the .grain dots), #wipe (a pale block, z 3), #ring, and #col with
+    .nm (the name), #sub (the red SUBSCRIBE span), #more (FOR MORE VIDEOS) and #handles (the YouTube line).
+    The timeline tl (paused) wipes #wipe across the first 0.62 s, shows #ground at 0.3 s, fades in and grows #ring
+    at 0.5 s, shows #col at 0.32 s, slides #sub in at 0.7 s, fades in #more at 0.95 s and #handles at 1.15 s.
+    Nothing fades out: the host ends the clip at 8.3 s.
+  CUSTOMIZE: cut.json "end": {"at": last word, "name": ..., "handles": [...]}, and the builder writes the name and
+    handles into the markup. Its length is END (8.0 s) in scripts/deep-tracery-build.py, while the host slot in
+    index.html uses 8.3 s, so set both when you change it. The colours (#d92329 red, #a9e8e0 mint, #f6fbfa white) are
+    in the markup, and the cue times sit in the tl lines above. Change cut.json and build again, never this file.
+  MEDIA: no media file is bundled, and this file has no media slot of its own (no photo, video, sound or CSS image).
+    The six @font-face rules use src: local(...) for Archivo (500, 700, 800), Instrument Serif (italic), Bricolage
+    Grotesque (800) and JetBrains Mono (500). An installed font is used; otherwise the text falls back to sans-serif.
+    To bundle a face, add src: url("fonts/NAME.woff2") format("woff2") to its @font-face. The ground (#070707) and the
+    grain are CSS gradients, so they need no file. The ring is empty: to show the channel's picture, put an img
+    (object-fit: cover, 480 px square, border-radius 50%) inside #ring with src set to your picture file.
+    No sound is in this file; the end screen plays no audio.
+  WHEN TO USE: every film in this style ends on it.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is taken from the installed font (local); see MEDIA for bundling your own. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        /* The end screen: black with grain, an empty ring, the red block, the handles. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; color: #f6fbfa; }
+        #ground { position: absolute; inset: 0; background: #070707; opacity: 0; }
+        .grain { position: absolute; inset: 0; opacity: 0.5; background-image: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.35) 0 1px, transparent 1.6px), radial-gradient(circle at 64% 72%, rgba(255, 255, 255, 0.3) 0 1.2px, transparent 1.8px), radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.25) 0 0.9px, transparent 1.5px); }
+        #wipe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: #f3f3f1; z-index: 3; }
+        #ring { position: absolute; left: 330px; top: 300px; width: 480px; height: 480px; border-radius: 50%; border: 10px solid #f3f3f1; box-sizing: border-box; opacity: 0; }
+        #col { position: absolute; left: 930px; top: 0; height: 1080px; width: 820px; opacity: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 16px; }
+        .nm { font-weight: 500; font-size: 40px; color: #a9e8e0; letter-spacing: -0.01em; }
+        #sub span { display: inline-block; background: #d92329; color: #ffffff; font-weight: 800; font-size: 104px; line-height: 1; padding: 14px 28px 14px; letter-spacing: -0.02em; }
+        #more { font-weight: 800; font-size: 60px; letter-spacing: -0.015em; }
+        #handles { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; font-weight: 500; font-size: 36px; color: #c9cccb; }
+      </style>
+      <div id="root" data-composition-id="end" data-width="1920" data-height="1080">
+        <!-- Markup: the layers from back to front: the ground with grain, the pale wipe, the empty ring, and the column
+             with the name, the red SUBSCRIBE block, the FOR MORE line and the handle. -->
+        <div id="ground"><div class="grain"></div></div>
+        <div id="wipe" data-layout-allow-overflow></div>
+        <div id="ring"></div>
+        <div id="col">
+          <div class="nm">Pandji Pragiwaksono</div>
+          <div id="sub"><span>SUBSCRIBE</span></div>
+          <div id="more">FOR MORE VIDEOS</div>
+          <div id="handles"><div class="hd">YouTube  @pandji.pragiwaksono</div></div>
+        </div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it; the cues below run from the clip's start.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each. Both are defined here
+        // for the build's shared helpers; this file calls neither.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        // The pale block crosses the first 0.62 s of this clip, the black ground arrives under it, and then the screen builds.
+        tl.set("#ground", { opacity: 0 }, 0);
+        tl.fromTo("#wipe", { x: -1920 }, { x: 0, duration: 0.3, ease: "power2.in" }, 0);
+        tl.set("#ground", { opacity: 1 }, 0.3);
+        tl.fromTo("#wipe", { x: 0 }, { x: 1920, duration: 0.3, ease: "power2.out", immediateRender: false }, 0.32);
+        tl.fromTo("#ring", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, 0.5);
+        tl.fromTo("#col", { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, 0.32);
+        tl.fromTo("#sub", { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 0.7);
+        tl.fromTo("#more", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 0.95);
+        tl.fromTo("#handles", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 1.15);
+        window.__timelines["end"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

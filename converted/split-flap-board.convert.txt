@@ -1,10 +1,10 @@
 framesmith convert refused for split-flap-board: 9 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/split-flap-board/fidelity.json.
-  compositions/board.html:85 [tl.set] target "[ftop, fbot]" is not a DOM selector ("[ftop, fbot]" is runtime state); naming the call site instead of guessing a clip
-  compositions/board.html:94 [tl.set] position "t" is an expression; refusing the call site
-  compositions/board.html:95 [tl.set] position "t" is an expression; refusing the call site
-  compositions/board.html:96 [tl.set] position "t" is an expression; refusing the call site
-  compositions/board.html:97 [tl.to] duration "STEP / 2" is not a non-negative number; refusing the call site
-  compositions/board.html:98 [tl.set] position "t + STEP / 2" is an expression; refusing the call site
-  compositions/board.html:99 [tl.set] position "t + STEP / 2" is an expression; refusing the call site
-  compositions/board.html:100 [tl.to] duration "STEP / 2" is not a non-negative number; refusing the call site
-  compositions/board.html:101 [tl.set] position "t + STEP" is an expression; refusing the call site
+  compositions/board.html:85 [tl.set] array target entry "ftop" is not a string selector or DOM-id alias; refusing the call site
+  compositions/board.html:94 [tl.set] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:95 [tl.set] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:96 [tl.set] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:97 [tl.to] duration "STEP / 2" is outside the numeric grammar (unbound identifier "STEP" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:98 [tl.set] position "t + STEP / 2" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:99 [tl.set] position "t + STEP / 2" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:100 [tl.to] duration "STEP / 2" is outside the numeric grammar (unbound identifier "STEP" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/board.html:101 [tl.set] position "t + STEP" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site

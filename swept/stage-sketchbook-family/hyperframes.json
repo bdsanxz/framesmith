@@ -1,0 +1,34 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/hyperframes.json",
+  "registry": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry",
+  "paths": {
+    "blocks": "compositions",
+    "components": "compositions/components",
+    "assets": "assets"
+  },
+  "media": {
+    "autoProxy": true
+  },
+  "registryItems": [
+    {
+      "name": "hw-frame",
+      "type": "hyperframes:block",
+      "target": "compositions/hw-frame.html"
+    },
+    {
+      "name": "hw-scribble-transition",
+      "type": "hyperframes:block",
+      "target": "compositions/hw-scribble-transition.html"
+    },
+    {
+      "name": "hw-title",
+      "type": "hyperframes:block",
+      "target": "compositions/hw-title.html"
+    },
+    {
+      "name": "hw-callout-circle",
+      "type": "hyperframes:component",
+      "target": "compositions/components/hw-callout-circle.html"
+    }
+  ]
+}

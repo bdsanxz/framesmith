@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/card.html (composition id "card")
+  WHAT: The card itself, 5 seconds long. A thin accent bar grows up from the bottom at 0.2 seconds, the
+    small WELCOME label slides in from the left at 0.4 seconds, the large name rises and fades in at
+    0.55 seconds, and the role line in the accent color fades up at 0.9 seconds. From 1.0 second the
+    whole text block drifts 24px to the right until the end. index.html mounts it at time 0.
+  STRUCTURE: Layers in DOM order: #card-bar (the accent bar, 16 by 320px at left 200px, top 380px), then
+    #card-text (a flex column at left 260px, top 380px) holding #card-hello (WELCOME), #card-name (the
+    name, 150px) and #card-role (the role, 48px). Timeline: #card-bar scaleY 0 to 1 from 0.2s for 0.6s;
+    #card-hello opacity and x from 0.4s for 0.5s; #card-name opacity and y from 0.55s for 0.7s with
+    expo.out; #card-role opacity and y from 0.9s for 0.5s; #card-text x 0 to 24 from 1.0s for 4s with
+    ease none. The timeline is registered as window.__timelines["card"].
+  CUSTOMIZE: The name and role text come from the name and role variables (set in index.html, or by the
+    variables option at render time); WELCOME is fixed text in #card-hello. The accent color comes from
+    the accent variable, which is also exposed as a CSS custom property read on #card-bar and #card-role
+    with a fallback of #7c5cff, so change the color through the variable, not in these rules. Other
+    colors: name #f4f5fa and kicker #a2a6b8. Sizes and positions are the numbers in the #card-* rules
+    (bar 16 by 320, text at left 260 and top 380, name 150px). Timings are the numbers in the tl.fromTo
+    calls; the drift (1.0s plus 4s) must end inside the composition length of 5 seconds.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its fonts are Inter (the name and role, from #root) and JetBrains Mono (the WELCOME label,
+    from #card-hello), both named in font stacks with no @font-face rule. HyperFrames bundles both, so no font
+    file is added here. If either is not available where you render, the sans-serif or monospace fallback is
+    used and the card keeps its timing.
+  WHEN TO USE: A typographic name, speaker or title card that opens a segment, when no footage, photo or
+    logo is needed. Use another inspiration if the card needs a picture or a logo, or must run past 5 seconds.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The template wrapper holds the style, markup and script that index.html mounts as one composition. -->
+    <template>
+      <style>
+        /* Root of the card: fills the slot and sets the default font. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; }
+        /* Every scalar variable is also a CSS custom property; the accent property is read with var() and follows the render-time value. */
+        /* Accent bar: a vertical pill at the left, colored by the accent variable and grown from the bottom. */
+        #card-bar { position: absolute; left: 200px; top: 380px; width: 16px; height: 320px; border-radius: 8px; background: var(--accent, #7c5cff); transform-origin: 50% 100%; }
+        /* Text block: a flex column holding the three text lines with 24px gaps. */
+        #card-text { position: absolute; left: 260px; top: 380px; display: flex; flex-direction: column; gap: 24px; max-width: 1460px; }
+        /* Kicker: the small monospace WELCOME label in a muted grey. */
+        #card-hello { font-family: "JetBrains Mono", monospace; font-size: 34px; letter-spacing: .12em; color: #a2a6b8; }
+        /* Name: the large heavy headline in near-white. */
+        #card-name { font-size: 150px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; color: #f4f5fa; }
+        /* Role: the 48px line that takes the accent color. */
+        #card-role { font-size: 48px; color: var(--accent, #7c5cff); }
+      </style>
+      <!-- Composition root for the card: 1920 by 1080, with the bar and the text block as its layers. -->
+      <div id="root" data-composition-id="card" data-width="1920" data-height="1080">
+        <span id="card-bar"></span>
+        <!-- Text block: the three lines, in order from top to bottom. -->
+        <div id="card-text">
+          <div id="card-hello">WELCOME</div>
+          <!-- data-var-text substitutes the text at render time; the authored text is the fallback. -->
+          <div id="card-name" data-var-text="name">Ada Lovelace</div>
+          <div id="card-role" data-var-text="role">First programmer</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: a paused GSAP timeline that the renderer controls; every tween below is added to it. */
+        const tl = gsap.timeline({ paused: true });
+        /* Bar grows from zero height at 0.2 seconds. */
+        tl.fromTo("#card-bar", { scaleY: 0 }, { scaleY: 1, duration: 0.6, ease: "power3.out" }, 0.2);
+        /* Kicker slides in from 20px to the left at 0.4 seconds. */
+        tl.fromTo("#card-hello", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.4);
+        /* Name rises 40px and fades in at 0.55 seconds with an expo ease. */
+        tl.fromTo("#card-name", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" }, 0.55);
+        /* Role rises 20px and fades in at 0.9 seconds. */
+        tl.fromTo("#card-role", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.9);
+        /* Text block drifts 24px to the right over four seconds from 1.0 second, so the card keeps moving. */
+        tl.fromTo("#card-text", { x: 0 }, { x: 24, duration: 4, ease: "none" }, 1.0);
+        /* Registers this timeline under the id card so the host can drive it. */
+        window.__timelines["card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

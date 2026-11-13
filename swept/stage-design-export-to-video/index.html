@@ -1,0 +1,74 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition) (composition id "main")
+  WHAT: A 12-second, 1080 by 1080 square film that turns a design-tool export into motion. One continuous
+    background bed (assets/bed.mp4, a slow generated gradient loop) runs under the whole film, and four
+    3-second scenes follow one another with hard cuts: a grid of 20 cells lighting up, the title DESIGN
+    with an arrow and VIDEO with an entrance pop and a slow widen, a counter that counts up to 20 beside
+    the label DAY, and an end card with a ring mark and the word lumen. The look is taken from the export
+    in design-export/index.html. The film plays no sound of its own.
+  STRUCTURE: hosts in order, back to front. #bed-wrap (untimed full-bleed wrapper at z 0) holds the video
+    #bed (track 0, 0 to 12 s). Then four scene hosts on track 1: #s1 grid (0 to 3 s), #s2 title (3 to 6 s),
+    #s3 counter (6 to 9 s), #s4 endcard (9 to 12 s). Each scene's ground is transparent, so the bed shows
+    through every scene. The main timeline "main" has no tweens of its own; it only registers itself. The
+    root is 1080 by 1080 with data-duration 12.
+  CUSTOMIZE: a scene's timing is its host's data-start and data-duration (keep them 3 s apart and the root
+    at 12 s or more). The bed is the #bed video; any slow loop of about 12 s can replace assets/bed.mp4, as
+    the inspiration README says. The scene text, colors and sizes live in the html files of the compositions folder, and the body
+    background #0B1020 is set in the page style. Do not add a shader transition at a seam without also
+    changing the bed: the comment in this file explains why every seam is a hard cut.
+  MEDIA: No media file is bundled. This file has one video slot, and no photo, sound or font slot of its own.
+    Video slot, #bed (assets/bed.mp4, a 12-second generated gradient loop, played once under the whole film from 0 s
+    to 12 s on track 0): it now shows a faint hatch stand-in labeled "VIDEO: assets/bed.mp4", which sits under the
+    scenes. To plug in your own loop, replace that img with
+    a video element with id="bed", src="assets/bed.mp4", muted, playsinline, data-start="0", data-duration="12", data-track-index="0" and data-media-kind="video". Keep the id, so the #bed rule still sizes it. Until a loop is plugged in, the
+    #0B1020 page ground shows behind the scenes. The scenes have no font file of their own: they name Archivo Black
+    and JetBrains Mono, which HyperFrames bundles. gsap 3.14.2 comes from the jsDelivr CDN.
+  WHEN TO USE: a square social cut that turns an HTML and CSS design mock into motion, with one continuous
+    background and a few text and number beats. Use a separate background per scene only if the scenes
+    should look unrelated.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1080" />
+    <title>Lumen — a design export rebuilt as a composition</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset, and the page is fixed at 1080 by 1080 with a dark ground. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* html and body are the exact square size, with the page ground color. */
+      html, body { width: 1080px; height: 1080px; overflow: hidden; background: #0B1020; }
+      /* The root stage: a relative square box that clips its children. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; }
+      /* The bed lives in an untimed full-bleed wrapper under every scene (shader renders drop root fills). */
+      #bed-wrap { position: absolute; inset: 0; z-index: 0; }
+      /* The bed video fills its wrapper and is cropped to cover it. */
+      #bed { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="1080" data-height="1080">
+      <!-- One continuous bed for the whole cut. The design export restarted its pattern video in every
+           scene, which flickered at each cut; here it plays once, owned by the framework. -->
+      <div id="bed-wrap"><img id="bed" data-start="0" data-duration="12" data-track-index="0" src="data:image/svg+xml,%3C!--bed.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: assets/bed.mp4%3C/text%3E%3C/svg%3E" data-media="assets/bed.mp4" data-media-kind="video" alt="" /></div>
+      <!-- Scene hosts on track 1: four 3-second scenes, one after another, each with its own composition file. -->
+      <div id="s1" data-composition-id="grid" data-composition-src="compositions/grid.html"
+        data-start="0" data-duration="3" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1080"></div>
+      <div id="s2" data-composition-id="title" data-composition-src="compositions/title.html"
+        data-start="3" data-duration="3" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1080"></div>
+      <div id="s3" data-composition-id="counter" data-composition-src="compositions/counter.html"
+        data-start="6" data-duration="3" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1080"></div>
+      <div id="s4" data-composition-id="endcard" data-composition-src="compositions/endcard.html"
+        data-start="9" data-duration="3" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1080"></div>
+    </div>
+    <script>
+      /* Main timeline: it holds no tweens; the bed and the scenes are timed by their hosts. */
+      const tl = gsap.timeline({ paused: true });
+      // Every seam is a hard cut. A shader transition here was tried and rendered, but during its 0.5s it
+      // composites both scenes over a flat bgColor, so the continuous bed would vanish at the seam.
+      /* Registration of the main timeline under the composition id. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

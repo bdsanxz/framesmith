@@ -1,0 +1,149 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main", the root composition)
+  WHAT: a 22 s landscape film of one still-life clip in five costumes, in order. The clip opens as
+    a focus pull under the title, blooms under a camcorder HUD, pixelates in and out, is painted
+    into brushwork while its cutout stays sharp, and then freezes into a photo card printed as a
+    mono screen, with a warm light leak just before the freeze. Title and tag labels run the
+    whole film.
+  STRUCTURE: root #main, 22 s, 1920 by 1080. Media layers in markup order: focus (0 to 4 s, blur),
+    bloom (4 to 8 s), pixel (8 to 12 s), plate (12 to 15.5 s, Kuwahara), subject cutout (12 to
+    15.5 s on track 1), card-clip (15.5 to 17 s, inside the photo card), still-print (17 to 22 s,
+    mono print) and still-real (17 to 19.5 s, fading out, inside the card). Overlay hosts:
+    camcorder-hud at 4 s for 4 s (track 5), editorial-flash-overlay at 7.42 s for 1 s (track 6),
+    organic-light-leak-overlay at 15.1 s for 1.4 s (track 7), freeze-frame-dressing at 16.04 s for
+    4 s (track 8), and labels at 0 s for 22 s (track 10). Stacking is by z-index: the media sit
+    below the overlays, and the labels are on top. The master timeline tweens the effect
+    properties at the times the comments name.
+  CUSTOMIZE: each look is a payload. The data-color-grading JSON on a media element and the matching
+    inline custom property start it, and the master timeline tweens that property. Change a look
+    by editing both together. Keep each host data-start and data-duration in step with its tween
+    times; the flash peaks 58 percent into its window, so a 1 s window that peaks at 8 s starts at
+    7.42. The card is 640 by 800 px at left 560 and top 140. The print palette is #17130d and
+    #f4f0e0. The cutout uses media start 0.5 so that it lines up with 12 s.
+  MEDIA: No media file is bundled. This file has seven media slots, and each one now shows a faint hatch
+    stand-in labeled with the file it expects. Slots 1 to 5, videos of the one clip (footage/clip.mp4, the
+    22 s clean clip that make-footage.sh makes; it is not committed): #focus (0 to 4 s, media start 0),
+    #bloom (4 to 8 s, media start 4), #pixel (8 to 12 s, media start 8), #plate (12 to 15.5 s, media start
+    12, the Kuwahara paint) and #card-clip (15.5 to 17 s, media start 15.5, inside the photo card). Each is
+    an img with data-media-kind="video". Plug-in, the same for all five: replace that img with a
+    video element with src set to your file, muted and playsinline, that keeps every attribute of the img (its id, its
+    style, its data-color-grading, data-start, data-media-start, data-duration and data-track-index) and
+    data-media-kind="video", so the effects and the master timeline still find it. Any still-life clip with
+    similar framing works; without a clip, the #1c1814 ground shows and each look still shows on it. Slot 6,
+    a video: #subject, the alpha cutout of the subject from the clip's 11.5 to 15.5 s (it was
+    assets/layers/subject.webm, media start 0.5, 12 to 15.5 s, track 1). Its stand-in is labeled
+    "VIDEO: assets/layers/subject.webm". To plug in a cutout with a transparent background, replace the img
+    with a video element with src set to your file, muted, playsinline, id="subject", data-start="12", data-media-start="0.5", data-duration="3.5", data-track-index="1" and data-media-kind="video". Without a cutout, the plate
+    plays alone. Slots 7 and 8, photos: #still-print (the mono print) and #still-real (the real still that
+    fades away), both the frame at 17 s (it was assets/stills/freeze-17s.jpg, used by the two images). Each
+    shows the stand-in labeled "PHOTO: assets/stills/freeze-17s.jpg". To plug in the frame, set each img's
+    src to your still, for example src="assets/stills/freeze-17s.jpg"; any still with the same framing works.
+    Sound slots: none. Font slots: none as files; JetBrains Mono and Inter are named in the style blocks of
+    the overlay compositions, and HyperFrames bundles both, so no font file is needed. CSS image slots: none.
+  WHEN TO USE: a teaching film that re-costumes one clip with several live effects and overlay
+    blocks, so each look can be read as its own payload. For a single look, one effect payload is
+    enough.
+-->
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>One clip, five costumes</title>
+    <!-- GSAP 3.14.2 from jsDelivr, used by the master timeline in this file. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset, and the 1920 by 1080 canvas on the warm dark background. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #1c1814; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #1c1814; }
+
+      /* Media sit in untimed wrappers; effects are drawn on a sibling canvas, so all motion,
+         clipping, and fades go on the wrapper. */
+      .wrap { position: absolute; inset: 0; z-index: 1; }
+      .wrap [data-media-kind="video"], .wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      #subject-wrap { z-index: 2; }
+      /* The print beat: the clip in a 4:5 photo card. Video and stills share one box and one crop. */
+      /* Card geometry and shadow; the timeline switches its opacity on at 15.5 s. */
+      .card { position: absolute; left: 560px; top: 140px; width: 640px; height: 800px; overflow: hidden; z-index: 1;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); opacity: 0; }
+      #still-real-wrap { z-index: 2; }
+
+      /* Overlays (registry blocks) above the media, words above everything. */
+      /* Overlay stacking: HUD, light leak, freeze dressing, flash, then the labels on top. */
+      #hud-slot { z-index: 5; }
+      #leak-slot { z-index: 6; }
+      #freeze-slot { z-index: 7; }
+      #flash-slot { z-index: 8; }
+      #labels-slot { z-index: 10; }
+    </style>
+  </head>
+  <body>
+    <!-- One clip (footage/clip.mp4, 22 s) wearing five costumes. Each instance plays the clip's own
+         moment (data-media-start = data-start). Every effect strength that changes over time is a
+         runtime CSS property, started inline on the media element and tweened on the timeline. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="22" data-width="1920" data-height="1080">
+
+      <!-- 0–4 FOCUS: the film pulls itself into focus while the title lands. -->
+      <div class="wrap"><img id="focus" data-start="0" data-media-start="0" data-duration="4" data-track-index="0" style="--hf-color-grading-blur: 0.8" data-color-grading='{"effects":{"blur":0.8}}' src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div>
+
+      <!-- 4–8 BLOOM flares on the cut and settles to 0.55, under the camcorder HUD. -->
+      <div class="wrap"><img id="bloom" data-start="4" data-media-start="4" data-duration="4" data-track-index="0" style="--hf-color-grading-bloom: 2.2" data-color-grading='{"effects":{"bloom":2.2,"bloomRadius":12}}' src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div>
+      <div id="hud-slot" data-composition-id="camcorder-hud" data-composition-src="compositions/camcorder-hud.html"
+        data-start="4" data-duration="4" data-track-index="5" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- 8 CUT, landed by the flash: the block peaks at 58 % of its window, so a 1 s window starts at 8 − 0.58. -->
+      <div id="flash-slot" data-composition-id="editorial-flash-overlay" data-composition-src="compositions/editorial-flash-overlay.html"
+        data-start="7.42" data-duration="1" data-track-index="6" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- 8–12 PIXELATE: the scene enters as mosaic, resolves, holds, and leaves as mosaic. -->
+      <div class="wrap"><img id="pixel" data-start="8" data-media-start="8" data-duration="4" data-track-index="0" style="--hf-color-grading-pixelate: 1" data-color-grading='{"effects":{"pixelate":1}}' src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div>
+
+      <!-- 12–15.5 PAINT the world, not the subject: Kuwahara on the full clip, the untouched cutout on top.
+           subject.webm was cut from the clip's 11.5–15.5 s, so media-start 0.5 lines it up at 12 s. -->
+      <div class="wrap"><img id="plate" data-start="12" data-media-start="12" data-duration="3.5" data-track-index="0" style="--hf-color-grading-kuwahara: 0" data-color-grading='{"effects":{"kuwahara":1,"kuwaharaRadius":1,"kuwaharaSharpness":0.3125,"kuwaharaSaturation":0.5}}' src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div>
+      <div class="wrap" id="subject-wrap"><img id="subject" data-start="12" data-media-start="0.5" data-duration="3.5" data-track-index="1" src="data:image/svg+xml,%3C!--subject.webm--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: assets/layers/subject.webm%3C/text%3E%3C/svg%3E" data-media="assets/layers/subject.webm" data-media-kind="video" alt="" /></div>
+
+      <!-- 15.1–16.5 a warm light leak carries the handoff into the print beat. -->
+      <div id="leak-slot" data-composition-id="organic-light-leak-overlay" data-composition-src="compositions/organic-light-leak-overlay.html"
+        data-start="15.1" data-duration="1.4" data-track-index="7" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- 15.5–22 PRINT: the clip in a photo card freezes at 17 s on the freeze-frame dressing, then the
+           real still fades away to reveal its mono-screen print. Mono Screen has no animatable strength,
+           so the fade is two stacked copies of the frame. -->
+      <div class="card"><div class="wrap"><img id="card-clip" data-start="15.5" data-media-start="15.5" data-duration="1.5" data-track-index="0" src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div></div>
+      <div class="card"><div class="wrap"><img id="still-print" src="data:image/svg+xml,%3C!--freeze-17s.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/stills/freeze-17s.jpg%3C/text%3E%3C/svg%3E" data-media="assets/stills/freeze-17s.jpg" alt="" data-start="17" data-duration="5" data-track-index="1"
+        data-color-grading='{"effects":{"monoScreen":1,"monoScreenSize":0.35,"monoScreenAngle":0.25,"monoScreenSpread":0.3,"monoScreenShape":0},"palette":["#17130d","#f4f0e0"]}' /></div>
+        <div class="wrap" id="still-real-wrap"><img id="still-real" src="data:image/svg+xml,%3C!--freeze-17s.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/stills/freeze-17s.jpg%3C/text%3E%3C/svg%3E" data-media="assets/stills/freeze-17s.jpg" alt="" data-start="17" data-duration="2.5" data-track-index="2"
+          style="--hf-color-grading-exposure: 1.4" data-color-grading='{"adjust":{"exposure":0}}' /></div></div>
+      <div id="freeze-slot" data-composition-id="freeze-frame-dressing" data-composition-src="compositions/freeze-frame-dressing.html"
+        data-start="16.04" data-duration="4" data-track-index="8" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <div id="labels-slot" data-composition-id="labels" data-composition-src="compositions/labels.html"
+        data-start="0" data-duration="22" data-track-index="10" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+
+    <script>
+      /* Master timeline: every effect and card change in this film is a tween on this one timeline. */
+      const tl = gsap.timeline({ paused: true });
+      // Focus pull: blur 0.8 → 0 while the title lands.
+      tl.to("#focus", { "--hf-color-grading-blur": 0, duration: 1.6, ease: "power2.inOut" }, 0.4);
+      // Bloom: blown out on the cut, settled in under a second.
+      tl.to("#bloom", { "--hf-color-grading-bloom": 0.55, duration: 0.8, ease: "power2.out" }, 4.05);
+      // Pixelate: the effect performs both seams.
+      tl.to("#pixel", { "--hf-color-grading-pixelate": 0, duration: 1.2, ease: "power2.inOut" }, 8.05);
+      tl.to("#pixel", { "--hf-color-grading-pixelate": 1, duration: 0.85, ease: "power2.in" }, 11.15);
+      // Paint: the world melts into brushwork; the cutout above stays photographic.
+      tl.to("#plate", { "--hf-color-grading-kuwahara": 1, duration: 1.2, ease: "sine.inOut" }, 12.3);
+      // Print: the real still fades off its printed twin.
+      tl.set(".card", { opacity: 1 }, 15.5); // the cards are empty boxes (with a shadow) until their media start
+      // Freeze: the photo lifts above the paper-and-tape dressing and takes its own flash (exposure 1.4 → 0).
+      tl.set(".card", { zIndex: 9 }, 17);
+      tl.to("#still-real", { "--hf-color-grading-exposure": 0, duration: 0.35, ease: "power2.out" }, 17);
+      tl.to("#still-real-wrap", { opacity: 0, duration: 1.2, ease: "sine.inOut" }, 18.1); // done before the real still ends at 19.5
+      /* Registers the master timeline under the root id, so the host can play it. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

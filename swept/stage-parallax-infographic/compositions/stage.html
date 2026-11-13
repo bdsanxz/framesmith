@@ -1,0 +1,156 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/stage.html (composition id "stage")
+  WHAT: One 8 s infographic shot through a parallax camera. A bar chart of installs per year
+    (2019 to 2024, illustrative values 12, 19, 27, 34, 46 and 58) develops while the camera
+    trucks right and pushes in slightly. A focus pull opens soft (8 px of blur) and lands on the
+    chart by 0.9 s. The bars rise in order from 0.8 s, each 0.35 s after the last, and their values
+    count up beside them. It is silent; index.html mounts it at 0 s for 8 s.
+  STRUCTURE: back to front, all full-frame planes inside #pi-cam: #pi-far (depth 0.15) with
+    #pi-far-glow and #pi-far-dots; #pi-back (0.45) with the ghost numerals #pi-ghost; #pi-titleplane
+    (0.7) with #pi-title holding #pi-kicker, #pi-head and #pi-sub; #pi-chart (1) with the axis
+    #pi-axis and the six .pi-bar columns with their .pi-year labels; #pi-labels (1.2) with the value
+    labels #pi-val-0 to #pi-val-5; and #pi-near (2.2) with three .pi-disc circles at the frame edges.
+    The paused timeline "stage" is registered in window.__timelines. It tweens the two camera
+    properties on #pi-cam from -60 to 60 px of travel and 0 to 0.05 push over the full 8 s
+    (sine.inOut), runs four focus-pull tweens at 0 s (0.9 s each), and for each bar i scales the
+    fill #pi-fill-i from 0 to 1 at 0.8 + 0.35 i s (0.9 s, power3.out), fades its value in 0.25 s
+    later, and counts the value up over the same 0.9 s.
+  CUSTOMIZE: the data in the DATA array (year and value pairs, from [2019, 12] to [2024, 58]);
+    MAX_H 520 sets the tallest bar in px; X0 790 and STEP 170 set the first bar position and the
+    spacing; BASE_Y 900 sets the baseline. The text is in #pi-kicker ("SAMPLE DATA"), #pi-head
+    ("Installs per year") and #pi-sub ("Thousands of units, illustrative figures"). Colors: the bar
+    gradient #ffc56b to #ff9a3c (.pi-bar-fill), the glow #1d3b57 (#pi-far-glow), the ghost numerals
+    rgba(120, 170, 220, 0.07) (#pi-ghost) and the discs rgba(255, 197, 107, 0.55) (.pi-disc). Camera:
+    TRAVEL 60 and PUSH 0.05 in the script. The far plane overscan (base 1.07 in its inline style)
+    must cover twice TRAVEL at its depth plus the push, so change them together. Each plane's depth
+    is its inline value (0.15, 0.45, 0.7, 1, 1.2, 2.2). DUR 8 must match data-duration on the host.
+  MEDIA: No media file is bundled. The file has no slots: it loads no image, video, sound or font file,
+    and its planes are CSS gradients, dots and text. "Space Mono" (labels) and Inter are named in the style
+    block, and HyperFrames bundles both, so no font file is needed and nothing is to be plugged in.
+  WHEN TO USE: a chart or infographic shot as a 16:9 moving camera with depth and no narration. Pick
+    a flat layout when the figures must hold still for reading, or change the DATA array rather than
+    adding planes when the series changes.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Full-frame root in the navy background color, with Inter as the body font. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0b1622; font-family: Inter, sans-serif; }
+        /* The parallax rig, all CSS. #pi-cam carries the camera: --cam-x/--cam-y (travel in px as seen
+           at depth 1) and --cam-push (extra scale a depth-1 plane gains on a dolly-in); the timeline
+           tweens only these. A plane declares --depth; its effective depth --k is pulled toward 1 by
+           the host variable --parallax (1 = full parallax, 0 = every plane moves as one flat plane).
+           A plane at depth k moves k times as far and grows k times as fast. Every plane scales about
+           the same point, so the stack stays registered at rest. --base is overscan, fill planes only. */
+        #pi-cam { position: absolute; inset: 0; --cam-x: 0; --cam-y: 0; --cam-push: 0; }
+        .plane {
+          position: absolute; inset: 0; transform-origin: 60% 62%; will-change: transform;
+          --k: calc(1 + (var(--depth) - 1) * var(--parallax, 1));
+          transform: translate(calc(var(--cam-x) * var(--k) * -1px), calc(var(--cam-y) * var(--k) * -1px))
+                     scale(calc(var(--base, 1) * (1 + var(--cam-push) * var(--k))));
+          filter: blur(var(--dof, 0px));
+        }
+
+        /* far (depth 0.15): glow and a dot grid */
+        #pi-far-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 50% 45% at 62% 58%, #1d3b57 0%, #0b1622 70%); }
+        #pi-far-dots { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(140, 180, 220, 0.16) 2px, transparent 2.5px); background-size: 48px 48px; }
+
+        /* back (depth 0.45): ghost numerals */
+        #pi-ghost { position: absolute; right: 60px; top: 70px; font-weight: 900; font-size: 420px; line-height: 1; letter-spacing: -0.04em; color: rgba(120, 170, 220, 0.07); }
+
+        /* title (depth 0.7): sits between the backdrop and the data */
+        #pi-title { position: absolute; left: 120px; top: 150px; width: 560px; }
+        #pi-kicker { font-family: "Space Mono", monospace; font-size: 22px; letter-spacing: 0.18em; color: #ffb547; }
+        #pi-head { margin-top: 18px; font-weight: 900; font-size: 92px; line-height: 0.98; letter-spacing: -0.03em; color: #f2f6fa; }
+        #pi-sub { margin-top: 22px; font-size: 30px; line-height: 1.3; color: #a9bccd; }
+
+        /* chart (depth 1, the focal plane) */
+        #pi-axis { position: absolute; left: 760px; top: 900px; width: 1040px; height: 4px; background: #5d7b96; }
+        .pi-bar { position: absolute; bottom: 180px; width: 110px; }
+        .pi-bar-fill { position: absolute; left: 0; bottom: 0; width: 100%; background: linear-gradient(180deg, #ffc56b 0%, #ff9a3c 100%); border-radius: 10px 10px 0 0; transform-origin: 50% 100%; transform: scaleY(0); }
+        .pi-year { position: absolute; top: 924px; width: 110px; text-align: center; font-family: "Space Mono", monospace; font-size: 26px; color: #a9bccd; }
+
+        /* labels (depth 1.2): values float just in front of their bars */
+        .pi-val { position: absolute; width: 170px; text-align: center; font-weight: 700; font-size: 44px; color: #f2f6fa; font-variant-numeric: tabular-nums; opacity: 0; }
+
+        /* near (depth 2.2): out-of-focus discs that cross the frame edge */
+        .pi-disc { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255, 197, 107, 0.55), rgba(255, 154, 60, 0) 70%); }
+      </style>
+      <div id="root" data-composition-id="stage" data-width="1920" data-height="1080">
+        <!-- Camera wrapper: every plane inside it moves with the one camera state the timeline tweens. -->
+        <div id="pi-cam">
+        <!-- Far plane: the glow and dot grid, the slowest plane to move. -->
+        <div id="pi-far" class="plane" style="--depth: 0.15; --base: 1.07" data-layout-allow-overflow>
+          <div id="pi-far-glow"></div>
+          <div id="pi-far-dots"></div>
+        </div>
+        <div id="pi-back" class="plane" style="--depth: 0.45" data-layout-allow-overflow>
+          <div id="pi-ghost" data-layout-ignore>2024</div>
+        </div>
+        <!-- Title plane: the kicker, headline and subtitle, which sit behind the chart. -->
+        <div id="pi-titleplane" class="plane" style="--depth: 0.7" data-layout-allow-overflow>
+          <div id="pi-title">
+            <div id="pi-kicker">SAMPLE DATA</div>
+            <div id="pi-head">Installs per year</div>
+            <div id="pi-sub">Thousands of units, illustrative figures</div>
+          </div>
+        </div>
+        <!-- Chart plane: the axis, the bars and their year labels; the bars are added by the script. -->
+        <div id="pi-chart" class="plane" style="--depth: 1" data-layout-allow-overflow>
+          <div id="pi-axis"></div>
+        </div>
+        <!-- Value labels plane: its values are generated and counted up by the script. -->
+        <div id="pi-labels" class="plane" style="--depth: 1.2" data-layout-allow-overflow></div>
+        <!-- Near plane: three blurred discs at the frame edges, the fastest plane to cross the frame. -->
+        <div id="pi-near" class="plane" style="--depth: 2.2; --dof: 14px" data-layout-allow-overflow>
+          <div class="pi-disc" style="left: -120px; top: 620px; width: 420px; height: 420px"></div>
+          <div class="pi-disc" style="left: 1640px; top: -90px; width: 360px; height: 360px"></div>
+          <div class="pi-disc" style="left: 1500px; top: 860px; width: 260px; height: 260px"></div>
+        </div>
+        </div>
+      </div>
+      <script>
+        // Sample data (illustrative). Bars and labels are generated so the layout lives in one place.
+        const DATA = [[2019, 12], [2020, 19], [2021, 27], [2022, 34], [2023, 46], [2024, 58]];
+        const DUR = 8, W = 1920, H = 1080, X0 = 790, STEP = 170, BASE_Y = 900, MAX_H = 520;
+        const chart = document.getElementById("pi-chart"), labels = document.getElementById("pi-labels");
+        const max = Math.max(...DATA.map((d) => d[1]));
+        DATA.forEach(([year, v], i) => {
+          const x = X0 + i * STEP, h = Math.round((v / max) * MAX_H);
+          chart.insertAdjacentHTML("beforeend",
+            `<div class="pi-bar" style="left:${x}px;height:${h}px"><div class="pi-bar-fill" id="pi-fill-${i}" style="height:${h}px"></div></div>` +
+            `<div class="pi-year" style="left:${x}px">${year}</div>`);
+          labels.insertAdjacentHTML("beforeend",
+            `<div class="pi-val" id="pi-val-${i}" style="left:${x - 30}px;top:${BASE_Y - h - 66}px">0</div>`);
+        });
+
+        // The parallax camera: one tween on the camera properties of #pi-cam; CSS derives every
+        // plane's transform from them (see the .plane rule). TRAVEL is the depth-1 travel in px;
+        // the far plane's --base overscan (1.07) covers 2 x TRAVEL x its depth plus the push.
+        const TRAVEL = 60, PUSH = 0.05;
+
+        const tl = gsap.timeline({ paused: true });
+        // One continuous move for the whole shot: a slow truck right plus a gentle push-in.
+        tl.fromTo("#pi-cam", { "--cam-x": -TRAVEL, "--cam-push": 0 }, { "--cam-x": TRAVEL, "--cam-push": PUSH, duration: DUR, ease: "sine.inOut" }, 0);
+        // Focus pull: the shot opens soft and lands on the chart plane.
+        tl.fromTo("#pi-chart", { "--dof": "8px" }, { "--dof": "0px", duration: 0.9, ease: "power2.out" }, 0);
+        tl.fromTo("#pi-labels", { "--dof": "8px" }, { "--dof": "0px", duration: 0.9, ease: "power2.out" }, 0);
+        tl.fromTo("#pi-titleplane", { "--dof": "6px" }, { "--dof": "1.2px", duration: 0.9, ease: "power2.out" }, 0);
+        tl.fromTo("#pi-far", { "--dof": "4px" }, { "--dof": "2px", duration: 0.9, ease: "power2.out" }, 0);
+        // The data develops inside the shot while the camera drifts: bars rise in order, values count up.
+        DATA.forEach(([, v], i) => {
+          const at = 0.8 + i * 0.35;
+          tl.fromTo(`#pi-fill-${i}`, { scaleY: 0 }, { scaleY: 1, duration: 0.9, ease: "power3.out" }, at);
+          tl.fromTo(`#pi-val-${i}`, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, at + 0.25);
+          const n = { v: 0 }, el = document.getElementById(`pi-val-${i}`);
+          tl.fromTo(n, { v: 0 }, { v, duration: 0.9, ease: "power3.out", onUpdate: () => { el.textContent = Math.round(n.v); } }, at);
+        });
+        /* Register the timeline under the composition id so the host can seek it. */
+        window.__timelines["stage"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

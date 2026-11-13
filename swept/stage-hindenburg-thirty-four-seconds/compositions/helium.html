@@ -1,0 +1,130 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/helium.html (composition id "helium")
+  WHAT: A paper map of the United States on a tan ground. The map settles out of a soft, close focus. Texas fills
+    with a highlight on "holds", and a dark pin drops onto Amarillo. A torn cream name card reads AMARILLO, TEXAS,
+    and a second card types "the world's only helium plant". Then a red rubber stamp, NOT FOR EXPORT, slams down.
+    The map group drifts in scale for 5.96 s. index.html mounts it at 34.03 s, the second scene of the collage block.
+    The file plays no sound of its own.
+  STRUCTURE: #he-drift (slow scale to 1.05 over the scene) holds #he-cam, the camera (scale 1.14 to 1 and blur 8 px
+    to 0 over the first second), which holds the map image #he-map (assets/generated/usmap.svg) and the Texas
+    highlight #he-hl (usmap-hl.svg, fading to 0.92 opacity from 0.66 s). Also inside #he-drift, back to front: the
+    pin #he-pin (its svg drops in at 1.0 s), the leader line in the svg overlay #he-lead (path #he-line, drawn at
+    1.35 s), the name card #he-name (blur clears at 1.1 s), the role card #he-role (shown at 1.55 s, its text typed
+    from 1.6 s at 26 characters per second) and the stamp #he-stamp (slams at 3.4 s). The cards use the SVG filter
+    #he-tear for torn edges, and the stamp uses #he-ink.
+  CUSTOMIZE: Texts: #he-name-text (AMARILLO, TEXAS), #he-role-text and #he-stamp. The pin wrapper is at left 809.6
+    and top 656.9, so its tip sits on the Amarillo point. The leader line ends at 800, 640 in its path; the two
+    positions are set by hand, so move them together. Colours: background #cfc3a4, card #f7f3e8, ink #1c1a16, stamp
+    red #b3271e. The Texas highlight opacity is 0.92 in its tween. Sizes: name 84 px, role 38 px, stamp 136 px. The
+    transform origins are in the CSS: 810 657 for the drift and 960 540 for the camera.
+  MEDIA: No media file is bundled. This file has two font slots and no video or sound.
+    Bundled drawings (SVG, kept): assets/generated/usmap.svg, the US map drawn by map-svg.py at twice the frame
+    size, placed at -960, -540 by #he-map; and assets/generated/usmap-hl.svg, the Texas highlight on the same
+    canvas, loaded by #he-hl. Both render as they are and are not media slots; they need nothing plugged in. To
+    use your own map, set the src of #he-map to your file, for example src="assets/generated/usmap.svg", at
+    3840 by 2160 with the same offsets. To use your own highlight, set the src of #he-hl to your file, for
+    example src="assets/generated/usmap-hl.svg". Its opacity is tweened from 0 to 0.92 from 0.66 s, so the file
+    can be any colour that reads as a highlight. A simple cream-ink outline of the US on the tan ground, with
+    Texas filled, on the same canvas also works as a replacement; the pin, cards and stamp work with any map.
+    Font slot 1, Anton, used by #he-name-text (AMARILLO, TEXAS) and #he-stamp (NOT FOR EXPORT): it now uses an installed
+    Anton, or the fallback sans-serif. To bundle it, change the src of the Anton @font-face rule to
+    url("assets/fonts/anton-latin.woff2") format("woff2"), local("Anton").
+    Font slot 2, Special Elite, used by #he-role-text: it now uses an installed Special Elite, or the fallback
+    monospace. To bundle it, change the src of the Special Elite @font-face rule to
+    url("assets/fonts/special-elite-latin.woff2") format("woff2"), local("Special Elite").
+  WHEN TO USE: A second place on the paper map, named with a pin and a stamp about a fact. Pick another when the scene
+    needs no map.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* Scene root: tan paper ground under the map. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #cfc3a4; }
+        /* The map group drifts in scale over the whole scene, with the camera inside it. */
+        #he-drift { position: absolute; inset: 0; transform-origin: 810px 657px; }
+        #he-cam { position: absolute; inset: 0; transform-origin: 960px 540px; }
+        /* map-svg.py draws half a frame beyond each edge, so the images sit at -960,-540 and are twice the frame. */
+        #he-cam img { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; }
+        .he-torn { filter: url(#he-tear); }
+        /* The pin wrapper sits on the Amarillo point; its svg is drawn so the tip lands on that point. */
+        #he-pin { position: absolute; left: 809.6px; top: 656.9px; width: 0; height: 0; }
+        #he-pin svg { position: absolute; left: -17px; top: -48px; width: 34px; height: 48px; }
+        /* The name card: a torn cream strip, rotated slightly, with the place name in Anton. */
+        #he-name { position: absolute; left: 96px; top: 396px; transform: rotate(-2deg); }
+        #he-name-bg { position: absolute; inset: 0; background: #f7f3e8; box-shadow: 0 8px 14px rgba(40, 32, 14, 0.28); }
+        #he-name-text { position: relative; padding: 4px 26px 8px; font-family: "Anton", sans-serif; font-size: 84px; line-height: 1.15; color: #1c1a16; white-space: nowrap; }
+        #he-role { position: absolute; left: 122px; top: 540px; transform: rotate(-1deg); }
+        #he-role-bg { position: absolute; inset: 0; background: #f7f3e8; }
+        #he-role-text { position: relative; padding: 8px 18px; font-family: "Special Elite", monospace; font-size: 38px; line-height: 1.2; color: #24211b; white-space: nowrap; }
+        #he-lead { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        /* Rubber stamp: red ink, a double border, a rough mask so the ink is uneven. */
+        #he-stamp { position: absolute; left: 930px; top: 196px; padding: 2px 32px 6px; border: 10px double #b3271e; font-family: "Anton", sans-serif; font-size: 136px; line-height: 1.15; color: #b3271e; white-space: nowrap; mix-blend-mode: multiply; filter: url(#he-ink); transform: rotate(-7deg); }
+      </style>
+      <div id="root" data-composition-id="helium" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="he-tear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="4" /><feDisplacementMap in="SourceGraphic" scale="14" /></filter>
+          <filter id="he-ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="8" result="n" /><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.6" result="m" /><feComposite in="SourceGraphic" in2="m" operator="in" /></filter>
+        </svg>
+        <div id="he-drift" data-layout-allow-overflow>
+          <div id="he-cam" data-layout-allow-overflow>
+            <img id="he-map" src="assets/generated/usmap.svg" alt="" />
+            <img id="he-hl" src="assets/generated/usmap-hl.svg" alt="" />
+          </div>
+          <div id="he-pin">
+            <svg viewBox="0 0 34 48"><path d="M17 47 C11 35 2 28 2 17 A15 15 0 0 1 32 17 C32 28 23 35 17 47 Z" fill="#1c1a16" /><circle cx="17" cy="17" r="6" fill="#f7f3e8" /></svg>
+          </div>
+          <svg id="he-lead" viewBox="0 0 1920 1080">
+            <path id="he-line" d="M 640 470 L 720 560 L 800 640" fill="none" stroke="#1c1a16" stroke-width="3" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+          </svg>
+          <div id="he-name">
+            <div id="he-name-bg" class="he-torn"></div>
+            <div id="he-name-text">AMARILLO, TEXAS</div>
+          </div>
+          <div id="he-role">
+            <div id="he-role-bg" class="he-torn"></div>
+            <div id="he-role-text">the world's only helium plant</div>
+          </div>
+          <div id="he-stamp">NOT FOR EXPORT</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: the scene timeline, paused so the host seeks it. */
+        const tl = gsap.timeline({ paused: true });
+        /* typeOn: reveals the text one character at a time, from a start time, at a fixed rate. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        /* The stamp and the role card start hidden; the timeline reveals them. */
+        gsap.set(["#he-stamp", "#he-role"], { opacity: 0 });
+        // The paper map settles out of a soft, close focus.
+        tl.fromTo("#he-cam", { scale: 1.14, filter: "blur(8px)" }, { scale: 1, filter: "blur(0px)", duration: 1.0, ease: "power2.out" }, 0);
+        // Texas fills on "holds" (34.73 s); the pin drops; the name sharpens on "almost all".
+        tl.fromTo("#he-hl", { opacity: 0 }, { opacity: 0.92, duration: 0.4, ease: "power1.out" }, 0.66);
+        tl.fromTo("#he-pin svg", { y: -50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "back.out(2.2)" }, 1.0);
+        tl.fromTo("#he-name", { opacity: 0, scale: 1.08, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 1.1);
+        tl.to("#he-line", { strokeDashoffset: 0, duration: 0.35, ease: "power2.inOut" }, 1.35);
+        // The role types on "the world's helium" (35.63 s).
+        tl.to("#he-role", { opacity: 1, duration: 0.05 }, 1.55);
+        typeOn("#he-role-text", 1.6, 26);
+        // The stamp slams on "forbids" (37.51 s).
+        tl.fromTo("#he-stamp", { scale: 1.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power4.in" }, 3.4);
+        tl.fromTo("#he-drift", { scale: 1 }, { scale: 1.05, duration: 5.96, ease: "sine.inOut" }, 0);
+        window.__timelines["helium"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

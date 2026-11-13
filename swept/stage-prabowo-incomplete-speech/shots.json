@@ -1,0 +1,137 @@
+{
+ "width": 1920,
+ "height": 1080,
+ "fps": 30,
+ "out": "footage",
+ "handle": 0.2,
+ "shots": [
+  {
+   "id": "b01",
+   "start": 0.0,
+   "end": 6.0,
+   "source": "8PFLM3s_95o",
+   "in_point": 2.0,
+   "subject": "speaker standing at a chamber microphone reading from notes, public gallery behind"
+  },
+  {
+   "id": "b02",
+   "start": 6.0,
+   "end": 12.0,
+   "source": "InvGGLiA2P4",
+   "in_point": 225.0,
+   "subject": "teleprompter glass on a tripod showing its script, hand with remote"
+  },
+  {
+   "id": "b03",
+   "start": 12.0,
+   "end": 18.0,
+   "source": "h0ec0O7z8is",
+   "in_point": 1.0,
+   "subject": "audience in a large theatre hall applauding, seen from behind"
+  },
+  {
+   "id": "b04",
+   "start": 18.0,
+   "end": 24.0,
+   "source": "8PFLM3s_95o",
+   "in_point": 31.0,
+   "subject": "legislative chamber, wide view of members at their desks"
+  },
+  {
+   "id": "b05",
+   "start": 24.0,
+   "end": 30.0,
+   "source": "https://assets.mixkit.co/videos/18296/18296-1080.mp4",
+   "in_point": 1.0,
+   "subject": "hands counting a wad of US 100-dollar bills, close"
+  },
+  {
+   "id": "b06",
+   "start": 30.0,
+   "end": 36.0,
+   "source": "UcUGICKidOQ",
+   "in_point": 2.0,
+   "subject": "stock exchange price board, rows of changing numbers"
+  },
+  {
+   "id": "b07",
+   "start": 36.0,
+   "end": 42.0,
+   "source": "zdX7mWoSQR0",
+   "in_point": 2.0,
+   "subject": "busy traditional market in Indonesia, walking through the stalls"
+  },
+  {
+   "id": "b08",
+   "start": 42.0,
+   "end": 48.0,
+   "source": "https://assets.mixkit.co/videos/4011/4011-1080.mp4",
+   "in_point": 3.0,
+   "subject": "container ship stacked with containers under gantry cranes at a port"
+  },
+  {
+   "id": "b09",
+   "start": 48.0,
+   "end": 54.0,
+   "source": "footage/raw/rijksmuseum-1st-floor.webm",
+   "in_point": 29.0,
+   "subject": "museum gallery wall of paintings in gilded frames"
+  },
+  {
+   "id": "b10",
+   "start": 54.0,
+   "end": 60.0,
+   "source": "https://openbeelden.nl/files/14/80/1480904.1480138.DE_THEE_VAN_-FHD00Z03Q3K.mp4",
+   "in_point": 327.0,
+   "subject": "archive 1920s: tea pickers at work on a plantation in Java",
+   "credit": "Willy Mullens / Haghe Film (1920s), Nederlands Instituut voor Beeld en Geluid via Open Beelden: https://openbeelden.nl/media/1480134",
+   "license": "Public Domain Mark 1.0",
+   "cy": 0.8
+  },
+  {
+   "id": "b11",
+   "start": 60.0,
+   "end": 66.0,
+   "source": "footage/raw/rijksmuseum-1st-floor.webm",
+   "in_point": 40.5,
+   "subject": "visitors seated in front of a large painting in a museum gallery"
+  },
+  {
+   "id": "b12",
+   "start": 66.0,
+   "end": 72.0,
+   "source": "https://openbeelden.nl/files/14/80/1480904.1480138.DE_THEE_VAN_-FHD00Z03Q3K.mp4",
+   "in_point": 269.3,
+   "subject": "archive 1920s: European planter in white suit and pith helmet walking through the tea fields",
+   "credit": "Willy Mullens / Haghe Film (1920s), Nederlands Instituut voor Beeld en Geluid via Open Beelden: https://openbeelden.nl/media/1480134",
+   "license": "Public Domain Mark 1.0"
+  },
+  {
+   "id": "b13",
+   "start": 72.0,
+   "end": 78.0,
+   "source": "JuqqUtoRqlo",
+   "in_point": 20.0,
+   "subject": "fishing boats with Indonesian flags beached at a harbour"
+  },
+  {
+   "id": "b14",
+   "start": 78.0,
+   "end": 84.0,
+   "source": "ggXWCnvgWVU",
+   "in_point": 5.0,
+   "subject": "Jakarta from the air at dusk"
+  },
+  {
+   "id": "b15",
+   "start": 84.0,
+   "end": 90.0,
+   "source": "https://openbeelden.nl/files/14/80/1480904.1480138.DE_THEE_VAN_-FHD00Z03Q3K.mp4",
+   "in_point": 505.0,
+   "subject": "archive 1920s: line of workers carrying baskets of tea into the plantation factory",
+   "credit": "Willy Mullens / Haghe Film (1920s), Nederlands Instituut voor Beeld en Geluid via Open Beelden: https://openbeelden.nl/media/1480134",
+   "license": "Public Domain Mark 1.0",
+   "cy": 1.0
+  }
+ ]
+}

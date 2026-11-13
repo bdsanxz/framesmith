@@ -1,0 +1,217 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/chapters.html (composition id "chapters"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: the six chapter cards of the film. Each card holds for 5 s on a dark drafting sheet: a paper note with
+    CHAPTER NN and the chapter's question typed on, the film's title small at the top and the question small at the bottom.
+    The host index.html mounts this file as #chapters-slot for the whole film (0 to 563.27 s). The cards start at
+    11.23, 80.67, 146.40, 208.37, 328.17 and 428.40 s.
+  STRUCTURE: mounted by index.html at z-index 8. Six .clip cards, #c0 to #c5, each a full-frame .chapter with a .grid,
+    two .hud lines, a big number, three .cross marks, a paper .note (#cN-note) with its .tape, .pin, .holes, .kicker, the
+    title letters (#cN-kM) and a .rule, plus an .under sheet (#cN-under) behind it. The timeline tl (paused) cues each card
+    from its own start time: the grid flashes from brightness 6 to 1 (0.2 s), the note slides in from x -1900 (0.42 s), the
+    under sheet drops in from y 420 (0.4 s), the title is typed letter by letter (one letter every 0.0556 s), the cursor
+    blinks, and the note scales to 1.03 over 4.4 s.
+  CUSTOMIZE: the questions are cut.json "chapters" ({"at": word, "title": ...}), numbered from 00; the card's
+    length is CHAPTER in scripts/deep-tracery-build.py. change cut.json and build again, never this file: it is rewritten on every build. A scene's
+    words ("w"), its text ("lines", "word", "label"), its side and pictures live there; the colours
+    are COLORS and the timings CHAPTER, END, LEAD at the head of scripts/deep-tracery-build.py.
+  MEDIA: no media file is bundled, and this file has no media slot of its own (no photo, video, sound or CSS image).
+    The six @font-face rules use src: local(...) for Archivo (500, 700, 800), Instrument Serif (italic), Bricolage
+    Grotesque (800) and JetBrains Mono (500). An installed font is used; otherwise the title falls back to serif and
+    the HUD to monospace. To bundle a face, add src: url("fonts/NAME.woff2") format("woff2") to its @font-face.
+    The dark sheet and grid are drawn in CSS (#101112 and #111314), so they need no file.
+    The card sounds (impact, typing, riser) are not in this file: index.html plays them as audio slots (sfx-*) at the
+    card times (see index.html's MEDIA for how to plug in files).
+  WHEN TO USE: five or six questions that split a long explainer into parts; a short film takes none.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is taken from the installed font (local); see MEDIA for bundling your own. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        .clip { position: absolute; }
+        /* The chapter card: a dark drafting sheet, and on it a paper note with the chapter's question. */
+        .chapter { inset: 0; overflow: hidden; background: #101112; font-family: "JetBrains Mono", monospace; }
+        .grid { position: absolute; inset: 0; background-color: #111314;
+          background-image: linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px), radial-gradient(circle, rgba(255, 255, 255, 0.16) 1.4px, transparent 2px);
+          background-size: 100% 180px, 240px 100%, 24px 24px; background-position: 0 90px, 208px 0, 1380px 60px; }
+        .hud { position: absolute; left: 262px; display: flex; flex-direction: column; gap: 6px; font-weight: 500; font-size: 27px; letter-spacing: 0.09em; color: #696b6d; text-transform: uppercase; white-space: nowrap; }
+        .hud.top { top: 76px; }
+        .hud.bottom { top: 926px; }
+        .bignum { position: absolute; left: 22px; top: 930px; font-weight: 500; font-size: 92px; letter-spacing: 0.02em; color: #17191a; -webkit-text-stroke: 2px #3a3c3e; }
+        .cross { position: absolute; width: 34px; height: 34px; background: linear-gradient(#5a5c5e, #5a5c5e) 50% 0 / 2px 100% no-repeat, linear-gradient(#5a5c5e, #5a5c5e) 0 50% / 100% 2px no-repeat; }
+        .cross.c1 { left: 158px; top: 84px; } .cross.c2 { left: 140px; top: 978px; } .cross.c3 { left: 1790px; top: 90px; }
+        .note { position: absolute; left: 212px; top: 204px; width: 1610px; height: 646px; background: #d9d5cd; box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+          background-image: linear-gradient(rgba(60, 50, 44, 0.07) 1px, transparent 1px), radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 60%), radial-gradient(ellipse at 80% 90%, rgba(90, 80, 70, 0.18), rgba(90, 80, 70, 0) 55%);
+          background-size: 100% 54px, 100% 100%, 100% 100%; transform-origin: 0% 50%;
+          clip-path: polygon(0 0, 100% 0.6%, 99.7% 99%, 86% 100%, 71% 99.2%, 55% 100%, 38% 99.3%, 22% 100%, 9% 99.4%, 0.2% 100%); }
+        .note.under { left: 1530px; top: 820px; width: 420px; height: 330px; background-color: #8c8a84; clip-path: none; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5); }
+        .tape { position: absolute; left: -44px; top: 96px; width: 120px; height: 104px; background: rgba(150, 150, 146, 0.72); }
+        .pin { position: absolute; right: 70px; top: -52px; width: 80px; height: 192px; overflow: visible; }
+        .pin path { fill: none; stroke: #c9cbcc; stroke-width: 5; stroke-linecap: round; filter: drop-shadow(2px 4px 3px rgba(0, 0, 0, 0.45)); }
+        .holes { position: absolute; right: 26px; top: 120px; display: flex; flex-direction: column; gap: 78px; }
+        .holes i { display: block; width: 12px; height: 12px; border: 2px solid #8b837c; }
+        .kicker { position: absolute; left: 112px; top: 96px; display: flex; align-items: center; gap: 26px; font-weight: 500; font-size: 36px; letter-spacing: 0.1em; color: #b2362b; }
+        .kicker b { display: block; width: 720px; height: 2px; background: #b2362b; position: relative; }
+        .kicker b::after { content: ""; position: absolute; right: -8px; top: -5px; width: 12px; height: 12px; background: #b2362b; }
+        .title { position: absolute; left: 104px; top: 178px; width: 1380px; font-family: "Bricolage Grotesque", serif; font-weight: 700; line-height: 1.16; letter-spacing: 0.01em; color: #382c27; text-transform: uppercase; }
+        .ch { display: none; }
+        .cur { font-weight: 400; margin-left: 2px; }
+        .rule { position: absolute; left: 80px; right: 150px; bottom: 96px; height: 2px; background: rgba(56, 44, 39, 0.75); }
+      </style>
+      <div id="root" data-composition-id="chapters" data-width="1920" data-height="1080">
+        <!-- Markup: six cards, #c0 to #c5, each a .clip starting at its time in the film. Each holds its HUD lines, its
+             number, the note (#cN-note) with its letters (#cN-kM) and its cursor (#cN-cur). -->
+        <div id="c0" class="clip chapter" data-layout-allow-occlusion data-layout-allow-overflow data-start="11.233" data-duration="5.0" data-track-index="0">
+          <div class="grid"></div>
+          <div class="hud top"><span>JUDUL</span><span>NADIEM &amp; FRUSTRASI KITA</span></div>
+          <div class="hud bottom"><span>CHAPTER 01</span><span>KENAPA KITA SEFRUSTRASI INI?</span></div>
+          <div class="bignum">01</div>
+          <div class="cross c1"></div><div class="cross c2"></div><div class="cross c3"></div>
+          <div id="c0-under" class="note under"></div>
+          <div id="c0-note" class="note">
+            <div class="tape"></div>
+            <svg class="pin" viewBox="0 0 40 96"><path d="M 28 30 L 28 74 C 28 90, 8 90, 8 74 L 8 18 C 8 2, 34 2, 34 18 L 34 66 C 34 76, 20 76, 20 66 L 20 30" /></svg>
+            <div class="holes"><i></i><i></i><i></i><i></i></div>
+            <div class="kicker"><span>CHAPTER 00</span><b></b></div>
+            <div class="title" style="font-size:92px"><span class="ch" id="c0-k0">A</span><span class="ch" id="c0-k1">P</span><span class="ch" id="c0-k2">A</span><span class="ch" id="c0-k3"> </span><span class="ch" id="c0-k4">Y</span><span class="ch" id="c0-k5">A</span><span class="ch" id="c0-k6">N</span><span class="ch" id="c0-k7">G</span><span class="ch" id="c0-k8"> </span><span class="ch" id="c0-k9">S</span><span class="ch" id="c0-k10">E</span><span class="ch" id="c0-k11">B</span><span class="ch" id="c0-k12">E</span><span class="ch" id="c0-k13">N</span><span class="ch" id="c0-k14">A</span><span class="ch" id="c0-k15">R</span><span class="ch" id="c0-k16">N</span><span class="ch" id="c0-k17">Y</span><span class="ch" id="c0-k18">A</span><span class="ch" id="c0-k19"> </span><span class="ch" id="c0-k20">D</span><span class="ch" id="c0-k21">I</span><span class="ch" id="c0-k22">T</span><span class="ch" id="c0-k23">U</span><span class="ch" id="c0-k24">N</span><span class="ch" id="c0-k25">T</span><span class="ch" id="c0-k26">U</span><span class="ch" id="c0-k27">T</span><span class="ch" id="c0-k28"> </span><span class="ch" id="c0-k29">J</span><span class="ch" id="c0-k30">A</span><span class="ch" id="c0-k31">K</span><span class="ch" id="c0-k32">S</span><span class="ch" id="c0-k33">A</span><span class="ch" id="c0-k34"> </span><span class="ch" id="c0-k35">K</span><span class="ch" id="c0-k36">E</span><span class="ch" id="c0-k37"> </span><span class="ch" id="c0-k38">N</span><span class="ch" id="c0-k39">A</span><span class="ch" id="c0-k40">D</span><span class="ch" id="c0-k41">I</span><span class="ch" id="c0-k42">E</span><span class="ch" id="c0-k43">M</span><span class="ch" id="c0-k44">?</span><span id="c0-cur" class="cur">|</span></div>
+            <div class="rule"></div>
+          </div>
+        </div>
+        <div id="c1" class="clip chapter" data-layout-allow-occlusion data-layout-allow-overflow data-start="80.667" data-duration="5.0" data-track-index="0">
+          <div class="grid"></div>
+          <div class="hud top"><span>CHAPTER 00</span><span>APA YANG SEBENARNYA DITUNTUT JAKSA KE NADIEM?</span></div>
+          <div class="hud bottom"><span>CHAPTER 02</span><span>KALAU SEMUA PUNYA KOMENTAR, SIAPA YANG DIDENGAR?</span></div>
+          <div class="bignum">02</div>
+          <div class="cross c1"></div><div class="cross c2"></div><div class="cross c3"></div>
+          <div id="c1-under" class="note under"></div>
+          <div id="c1-note" class="note">
+            <div class="tape"></div>
+            <svg class="pin" viewBox="0 0 40 96"><path d="M 28 30 L 28 74 C 28 90, 8 90, 8 74 L 8 18 C 8 2, 34 2, 34 18 L 34 66 C 34 76, 20 76, 20 66 L 20 30" /></svg>
+            <div class="holes"><i></i><i></i><i></i><i></i></div>
+            <div class="kicker"><span>CHAPTER 01</span><b></b></div>
+            <div class="title" style="font-size:92px"><span class="ch" id="c1-k0">K</span><span class="ch" id="c1-k1">E</span><span class="ch" id="c1-k2">N</span><span class="ch" id="c1-k3">A</span><span class="ch" id="c1-k4">P</span><span class="ch" id="c1-k5">A</span><span class="ch" id="c1-k6"> </span><span class="ch" id="c1-k7">K</span><span class="ch" id="c1-k8">I</span><span class="ch" id="c1-k9">T</span><span class="ch" id="c1-k10">A</span><span class="ch" id="c1-k11"> </span><span class="ch" id="c1-k12">S</span><span class="ch" id="c1-k13">E</span><span class="ch" id="c1-k14">F</span><span class="ch" id="c1-k15">R</span><span class="ch" id="c1-k16">U</span><span class="ch" id="c1-k17">S</span><span class="ch" id="c1-k18">T</span><span class="ch" id="c1-k19">R</span><span class="ch" id="c1-k20">A</span><span class="ch" id="c1-k21">S</span><span class="ch" id="c1-k22">I</span><span class="ch" id="c1-k23"> </span><span class="ch" id="c1-k24">I</span><span class="ch" id="c1-k25">N</span><span class="ch" id="c1-k26">I</span><span class="ch" id="c1-k27">?</span><span id="c1-cur" class="cur">|</span></div>
+            <div class="rule"></div>
+          </div>
+        </div>
+        <div id="c2" class="clip chapter" data-layout-allow-occlusion data-layout-allow-overflow data-start="146.4" data-duration="5.0" data-track-index="0">
+          <div class="grid"></div>
+          <div class="hud top"><span>CHAPTER 01</span><span>KENAPA KITA SEFRUSTRASI INI?</span></div>
+          <div class="hud bottom"><span>CHAPTER 03</span><span>EMANGNYA KITA NGERTI HUKUM?</span></div>
+          <div class="bignum">03</div>
+          <div class="cross c1"></div><div class="cross c2"></div><div class="cross c3"></div>
+          <div id="c2-under" class="note under"></div>
+          <div id="c2-note" class="note">
+            <div class="tape"></div>
+            <svg class="pin" viewBox="0 0 40 96"><path d="M 28 30 L 28 74 C 28 90, 8 90, 8 74 L 8 18 C 8 2, 34 2, 34 18 L 34 66 C 34 76, 20 76, 20 66 L 20 30" /></svg>
+            <div class="holes"><i></i><i></i><i></i><i></i></div>
+            <div class="kicker"><span>CHAPTER 02</span><b></b></div>
+            <div class="title" style="font-size:92px"><span class="ch" id="c2-k0">K</span><span class="ch" id="c2-k1">A</span><span class="ch" id="c2-k2">L</span><span class="ch" id="c2-k3">A</span><span class="ch" id="c2-k4">U</span><span class="ch" id="c2-k5"> </span><span class="ch" id="c2-k6">S</span><span class="ch" id="c2-k7">E</span><span class="ch" id="c2-k8">M</span><span class="ch" id="c2-k9">U</span><span class="ch" id="c2-k10">A</span><span class="ch" id="c2-k11"> </span><span class="ch" id="c2-k12">P</span><span class="ch" id="c2-k13">U</span><span class="ch" id="c2-k14">N</span><span class="ch" id="c2-k15">Y</span><span class="ch" id="c2-k16">A</span><span class="ch" id="c2-k17"> </span><span class="ch" id="c2-k18">K</span><span class="ch" id="c2-k19">O</span><span class="ch" id="c2-k20">M</span><span class="ch" id="c2-k21">E</span><span class="ch" id="c2-k22">N</span><span class="ch" id="c2-k23">T</span><span class="ch" id="c2-k24">A</span><span class="ch" id="c2-k25">R</span><span class="ch" id="c2-k26">,</span><span class="ch" id="c2-k27"> </span><span class="ch" id="c2-k28">S</span><span class="ch" id="c2-k29">I</span><span class="ch" id="c2-k30">A</span><span class="ch" id="c2-k31">P</span><span class="ch" id="c2-k32">A</span><span class="ch" id="c2-k33"> </span><span class="ch" id="c2-k34">Y</span><span class="ch" id="c2-k35">A</span><span class="ch" id="c2-k36">N</span><span class="ch" id="c2-k37">G</span><span class="ch" id="c2-k38"> </span><span class="ch" id="c2-k39">D</span><span class="ch" id="c2-k40">I</span><span class="ch" id="c2-k41">D</span><span class="ch" id="c2-k42">E</span><span class="ch" id="c2-k43">N</span><span class="ch" id="c2-k44">G</span><span class="ch" id="c2-k45">A</span><span class="ch" id="c2-k46">R</span><span class="ch" id="c2-k47">?</span><span id="c2-cur" class="cur">|</span></div>
+            <div class="rule"></div>
+          </div>
+        </div>
+        <div id="c3" class="clip chapter" data-layout-allow-occlusion data-layout-allow-overflow data-start="208.367" data-duration="5.0" data-track-index="1">
+          <div class="grid"></div>
+          <div class="hud top"><span>CHAPTER 02</span><span>KALAU SEMUA PUNYA KOMENTAR, SIAPA YANG DIDENGAR?</span></div>
+          <div class="hud bottom"><span>CHAPTER 04</span><span>TERKENAL ATAU KOMPETEN: SIAPA YANG LAYAK DIDENGAR?</span></div>
+          <div class="bignum">04</div>
+          <div class="cross c1"></div><div class="cross c2"></div><div class="cross c3"></div>
+          <div id="c3-under" class="note under"></div>
+          <div id="c3-note" class="note">
+            <div class="tape"></div>
+            <svg class="pin" viewBox="0 0 40 96"><path d="M 28 30 L 28 74 C 28 90, 8 90, 8 74 L 8 18 C 8 2, 34 2, 34 18 L 34 66 C 34 76, 20 76, 20 66 L 20 30" /></svg>
+            <div class="holes"><i></i><i></i><i></i><i></i></div>
+            <div class="kicker"><span>CHAPTER 03</span><b></b></div>
+            <div class="title" style="font-size:92px"><span class="ch" id="c3-k0">E</span><span class="ch" id="c3-k1">M</span><span class="ch" id="c3-k2">A</span><span class="ch" id="c3-k3">N</span><span class="ch" id="c3-k4">G</span><span class="ch" id="c3-k5">N</span><span class="ch" id="c3-k6">Y</span><span class="ch" id="c3-k7">A</span><span class="ch" id="c3-k8"> </span><span class="ch" id="c3-k9">K</span><span class="ch" id="c3-k10">I</span><span class="ch" id="c3-k11">T</span><span class="ch" id="c3-k12">A</span><span class="ch" id="c3-k13"> </span><span class="ch" id="c3-k14">N</span><span class="ch" id="c3-k15">G</span><span class="ch" id="c3-k16">E</span><span class="ch" id="c3-k17">R</span><span class="ch" id="c3-k18">T</span><span class="ch" id="c3-k19">I</span><span class="ch" id="c3-k20"> </span><span class="ch" id="c3-k21">H</span><span class="ch" id="c3-k22">U</span><span class="ch" id="c3-k23">K</span><span class="ch" id="c3-k24">U</span><span class="ch" id="c3-k25">M</span><span class="ch" id="c3-k26">?</span><span id="c3-cur" class="cur">|</span></div>
+            <div class="rule"></div>
+          </div>
+        </div>
+        <div id="c4" class="clip chapter" data-layout-allow-occlusion data-layout-allow-overflow data-start="328.167" data-duration="5.0" data-track-index="1">
+          <div class="grid"></div>
+          <div class="hud top"><span>CHAPTER 03</span><span>EMANGNYA KITA NGERTI HUKUM?</span></div>
+          <div class="hud bottom"><span>CHAPTER 05</span><span>KALAU YANG KOMPETEN PUN BEDA PENDAPAT, KITA PERCAYA SIAPA?</span></div>
+          <div class="bignum">05</div>
+          <div class="cross c1"></div><div class="cross c2"></div><div class="cross c3"></div>
+          <div id="c4-under" class="note under"></div>
+          <div id="c4-note" class="note">
+            <div class="tape"></div>
+            <svg class="pin" viewBox="0 0 40 96"><path d="M 28 30 L 28 74 C 28 90, 8 90, 8 74 L 8 18 C 8 2, 34 2, 34 18 L 34 66 C 34 76, 20 76, 20 66 L 20 30" /></svg>
+            <div class="holes"><i></i><i></i><i></i><i></i></div>
+            <div class="kicker"><span>CHAPTER 04</span><b></b></div>
+            <div class="title" style="font-size:80px"><span class="ch" id="c4-k0">T</span><span class="ch" id="c4-k1">E</span><span class="ch" id="c4-k2">R</span><span class="ch" id="c4-k3">K</span><span class="ch" id="c4-k4">E</span><span class="ch" id="c4-k5">N</span><span class="ch" id="c4-k6">A</span><span class="ch" id="c4-k7">L</span><span class="ch" id="c4-k8"> </span><span class="ch" id="c4-k9">A</span><span class="ch" id="c4-k10">T</span><span class="ch" id="c4-k11">A</span><span class="ch" id="c4-k12">U</span><span class="ch" id="c4-k13"> </span><span class="ch" id="c4-k14">K</span><span class="ch" id="c4-k15">O</span><span class="ch" id="c4-k16">M</span><span class="ch" id="c4-k17">P</span><span class="ch" id="c4-k18">E</span><span class="ch" id="c4-k19">T</span><span class="ch" id="c4-k20">E</span><span class="ch" id="c4-k21">N</span><span class="ch" id="c4-k22">:</span><span class="ch" id="c4-k23"> </span><span class="ch" id="c4-k24">S</span><span class="ch" id="c4-k25">I</span><span class="ch" id="c4-k26">A</span><span class="ch" id="c4-k27">P</span><span class="ch" id="c4-k28">A</span><span class="ch" id="c4-k29"> </span><span class="ch" id="c4-k30">Y</span><span class="ch" id="c4-k31">A</span><span class="ch" id="c4-k32">N</span><span class="ch" id="c4-k33">G</span><span class="ch" id="c4-k34"> </span><span class="ch" id="c4-k35">L</span><span class="ch" id="c4-k36">A</span><span class="ch" id="c4-k37">Y</span><span class="ch" id="c4-k38">A</span><span class="ch" id="c4-k39">K</span><span class="ch" id="c4-k40"> </span><span class="ch" id="c4-k41">D</span><span class="ch" id="c4-k42">I</span><span class="ch" id="c4-k43">D</span><span class="ch" id="c4-k44">E</span><span class="ch" id="c4-k45">N</span><span class="ch" id="c4-k46">G</span><span class="ch" id="c4-k47">A</span><span class="ch" id="c4-k48">R</span><span class="ch" id="c4-k49">?</span><span id="c4-cur" class="cur">|</span></div>
+            <div class="rule"></div>
+          </div>
+        </div>
+        <div id="c5" class="clip chapter" data-layout-allow-occlusion data-layout-allow-overflow data-start="428.4" data-duration="5.0" data-track-index="1">
+          <div class="grid"></div>
+          <div class="hud top"><span>CHAPTER 04</span><span>TERKENAL ATAU KOMPETEN: SIAPA YANG LAYAK DIDENGAR?</span></div>
+          <div class="hud bottom"><span>JUDUL</span><span>NADIEM &amp; FRUSTRASI KITA</span></div>
+          <div class="bignum">06</div>
+          <div class="cross c1"></div><div class="cross c2"></div><div class="cross c3"></div>
+          <div id="c5-under" class="note under"></div>
+          <div id="c5-note" class="note">
+            <div class="tape"></div>
+            <svg class="pin" viewBox="0 0 40 96"><path d="M 28 30 L 28 74 C 28 90, 8 90, 8 74 L 8 18 C 8 2, 34 2, 34 18 L 34 66 C 34 76, 20 76, 20 66 L 20 30" /></svg>
+            <div class="holes"><i></i><i></i><i></i><i></i></div>
+            <div class="kicker"><span>CHAPTER 05</span><b></b></div>
+            <div class="title" style="font-size:80px"><span class="ch" id="c5-k0">K</span><span class="ch" id="c5-k1">A</span><span class="ch" id="c5-k2">L</span><span class="ch" id="c5-k3">A</span><span class="ch" id="c5-k4">U</span><span class="ch" id="c5-k5"> </span><span class="ch" id="c5-k6">Y</span><span class="ch" id="c5-k7">A</span><span class="ch" id="c5-k8">N</span><span class="ch" id="c5-k9">G</span><span class="ch" id="c5-k10"> </span><span class="ch" id="c5-k11">K</span><span class="ch" id="c5-k12">O</span><span class="ch" id="c5-k13">M</span><span class="ch" id="c5-k14">P</span><span class="ch" id="c5-k15">E</span><span class="ch" id="c5-k16">T</span><span class="ch" id="c5-k17">E</span><span class="ch" id="c5-k18">N</span><span class="ch" id="c5-k19"> </span><span class="ch" id="c5-k20">P</span><span class="ch" id="c5-k21">U</span><span class="ch" id="c5-k22">N</span><span class="ch" id="c5-k23"> </span><span class="ch" id="c5-k24">B</span><span class="ch" id="c5-k25">E</span><span class="ch" id="c5-k26">D</span><span class="ch" id="c5-k27">A</span><span class="ch" id="c5-k28"> </span><span class="ch" id="c5-k29">P</span><span class="ch" id="c5-k30">E</span><span class="ch" id="c5-k31">N</span><span class="ch" id="c5-k32">D</span><span class="ch" id="c5-k33">A</span><span class="ch" id="c5-k34">P</span><span class="ch" id="c5-k35">A</span><span class="ch" id="c5-k36">T</span><span class="ch" id="c5-k37">,</span><span class="ch" id="c5-k38"> </span><span class="ch" id="c5-k39">K</span><span class="ch" id="c5-k40">I</span><span class="ch" id="c5-k41">T</span><span class="ch" id="c5-k42">A</span><span class="ch" id="c5-k43"> </span><span class="ch" id="c5-k44">P</span><span class="ch" id="c5-k45">E</span><span class="ch" id="c5-k46">R</span><span class="ch" id="c5-k47">C</span><span class="ch" id="c5-k48">A</span><span class="ch" id="c5-k49">Y</span><span class="ch" id="c5-k50">A</span><span class="ch" id="c5-k51"> </span><span class="ch" id="c5-k52">S</span><span class="ch" id="c5-k53">I</span><span class="ch" id="c5-k54">A</span><span class="ch" id="c5-k55">P</span><span class="ch" id="c5-k56">A</span><span class="ch" id="c5-k57">?</span><span id="c5-cur" class="cur">|</span></div>
+            <div class="rule"></div>
+          </div>
+        </div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it. Each card is cued from its own start time below.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each. Both are defined here
+        // for the build's shared helpers; this file calls only the per-card cues below, not W or Q.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        tl.fromTo("#c0 .grid", { filter: "brightness(6)" }, { filter: "brightness(1)", duration: 0.2, ease: "power1.out" }, 11.233);
+        tl.fromTo("#c0-note", { x: -1900, rotation: -9, skewY: 6 }, { x: 0, rotation: -1.1, skewY: 0, duration: 0.42, ease: "power3.out" }, 11.403);
+        tl.fromTo("#c0-under", { y: 420, rotation: 6 }, { y: 0, rotation: 2.2, duration: 0.4, ease: "power3.out" }, 11.733);
+        for (let i = 0; i < 45; i++) tl.set("#c0-k" + i, { display: "inline" }, 11.983 + 0.05556 * i);
+        tl.to("#c0-cur", { opacity: 0, duration: 0.01, repeat: 3, repeatDelay: 0.39, yoyo: true }, 14.533);
+        tl.fromTo("#c0-note", { scale: 1 }, { scale: 1.03, duration: 4.4, ease: "none", immediateRender: false }, 11.833);
+        tl.fromTo("#c1 .grid", { filter: "brightness(6)" }, { filter: "brightness(1)", duration: 0.2, ease: "power1.out" }, 80.667);
+        tl.fromTo("#c1-note", { x: -1900, rotation: -9, skewY: 6 }, { x: 0, rotation: -1.1, skewY: 0, duration: 0.42, ease: "power3.out" }, 80.837);
+        tl.fromTo("#c1-under", { y: 420, rotation: 6 }, { y: 0, rotation: 2.2, duration: 0.4, ease: "power3.out" }, 81.167);
+        for (let i = 0; i < 28; i++) tl.set("#c1-k" + i, { display: "inline" }, 81.417 + 0.05556 * i);
+        tl.to("#c1-cur", { opacity: 0, duration: 0.01, repeat: 6, repeatDelay: 0.39, yoyo: true }, 83.023);
+        tl.fromTo("#c1-note", { scale: 1 }, { scale: 1.03, duration: 4.4, ease: "none", immediateRender: false }, 81.267);
+        tl.fromTo("#c2 .grid", { filter: "brightness(6)" }, { filter: "brightness(1)", duration: 0.2, ease: "power1.out" }, 146.4);
+        tl.fromTo("#c2-note", { x: -1900, rotation: -9, skewY: 6 }, { x: 0, rotation: -1.1, skewY: 0, duration: 0.42, ease: "power3.out" }, 146.57);
+        tl.fromTo("#c2-under", { y: 420, rotation: 6 }, { y: 0, rotation: 2.2, duration: 0.4, ease: "power3.out" }, 146.9);
+        for (let i = 0; i < 48; i++) tl.set("#c2-k" + i, { display: "inline" }, 147.15 + 0.05556 * i);
+        tl.to("#c2-cur", { opacity: 0, duration: 0.01, repeat: 3, repeatDelay: 0.39, yoyo: true }, 149.867);
+        tl.fromTo("#c2-note", { scale: 1 }, { scale: 1.03, duration: 4.4, ease: "none", immediateRender: false }, 147.0);
+        tl.fromTo("#c3 .grid", { filter: "brightness(6)" }, { filter: "brightness(1)", duration: 0.2, ease: "power1.out" }, 208.367);
+        tl.fromTo("#c3-note", { x: -1900, rotation: -9, skewY: 6 }, { x: 0, rotation: -1.1, skewY: 0, duration: 0.42, ease: "power3.out" }, 208.537);
+        tl.fromTo("#c3-under", { y: 420, rotation: 6 }, { y: 0, rotation: 2.2, duration: 0.4, ease: "power3.out" }, 208.867);
+        for (let i = 0; i < 27; i++) tl.set("#c3-k" + i, { display: "inline" }, 209.117 + 0.05556 * i);
+        tl.to("#c3-cur", { opacity: 0, duration: 0.01, repeat: 6, repeatDelay: 0.39, yoyo: true }, 210.667);
+        tl.fromTo("#c3-note", { scale: 1 }, { scale: 1.03, duration: 4.4, ease: "none", immediateRender: false }, 208.967);
+        tl.fromTo("#c4 .grid", { filter: "brightness(6)" }, { filter: "brightness(1)", duration: 0.2, ease: "power1.out" }, 328.167);
+        tl.fromTo("#c4-note", { x: -1900, rotation: -9, skewY: 6 }, { x: 0, rotation: -1.1, skewY: 0, duration: 0.42, ease: "power3.out" }, 328.337);
+        tl.fromTo("#c4-under", { y: 420, rotation: 6 }, { y: 0, rotation: 2.2, duration: 0.4, ease: "power3.out" }, 328.667);
+        for (let i = 0; i < 50; i++) tl.set("#c4-k" + i, { display: "inline" }, 328.917 + 0.05556 * i);
+        tl.to("#c4-cur", { opacity: 0, duration: 0.01, repeat: 3, repeatDelay: 0.39, yoyo: true }, 331.745);
+        tl.fromTo("#c4-note", { scale: 1 }, { scale: 1.03, duration: 4.4, ease: "none", immediateRender: false }, 328.767);
+        tl.fromTo("#c5 .grid", { filter: "brightness(6)" }, { filter: "brightness(1)", duration: 0.2, ease: "power1.out" }, 428.4);
+        tl.fromTo("#c5-note", { x: -1900, rotation: -9, skewY: 6 }, { x: 0, rotation: -1.1, skewY: 0, duration: 0.42, ease: "power3.out" }, 428.57);
+        tl.fromTo("#c5-under", { y: 420, rotation: 6 }, { y: 0, rotation: 2.2, duration: 0.4, ease: "power3.out" }, 428.9);
+        for (let i = 0; i < 58; i++) tl.set("#c5-k" + i, { display: "inline" }, 429.15 + 0.05556 * i);
+        tl.to("#c5-cur", { opacity: 0, duration: 0.01, repeat: 2, repeatDelay: 0.39, yoyo: true }, 432.422);
+        tl.fromTo("#c5-note", { scale: 1 }, { scale: 1.03, duration: 4.4, ease: "none", immediateRender: false }, 429.0);
+        window.__timelines["chapters"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

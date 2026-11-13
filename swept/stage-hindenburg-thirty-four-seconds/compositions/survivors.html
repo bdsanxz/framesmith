@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/survivors.html (composition id "survivors")
+  WHAT: A burning wreck on archive film, in black and white. Low on the left, a large figure counts up to 97 on
+    "ninety-seven" with a gold tick and the caption PEOPLE ON BOARD above it. Then the figure falls to 62, the
+    first caption fades out, and SURVIVORS OF 97 takes its place. It lasts 5.38 s. index.html mounts it at
+    55.91 s, where the music returns under the count. The file plays no sound of its own.
+  STRUCTURE: Back to front. #sv-shot is a push (scale 1.02 to 1.08) holding the video #sv-video. #sv-vig is a
+    dark vignette. #sv-block sits at left 120 px and top 708 px and holds the figure #sv-num, the gold tick
+    #sv-tick and the caption stack #sv-caps, where #sv-cap-1 and #sv-cap-2 sit on top of each other. Timeline:
+    the push runs for 5.38 s; #sv-num fades in at 0.02 s; the count runs from 0 to 97 over 0.6 s from 0.04 s;
+    the tick scales in at 0.3 s; caption one fades in at 0.75 s; the count falls to 62 over 0.6 s from 1.89 s;
+    caption one fades out at 1.89 s; caption two fades in at 2.45 s.
+  CUSTOMIZE: The figures 97 and 62 and the start times of the count tweens are the arguments in the script. The
+    captions are the text of #sv-cap-1 and #sv-cap-2, and caption two starts hidden through gsap.set. Colours:
+    figure #f6f3ea, caption #f1ede2, tick #e9b04a. The captions are 30 px with 0.16em tracking. The grade is in the
+    #sv-shot video rule: grayscale 1, contrast 1.1, brightness 0.86. Keep the push duration equal to the scene length.
+  MEDIA: No media file is bundled. This file has one video slot and two font slots, and no photo or sound.
+    Video slot, #sv-video (footage/d1.mp4, the burning wreck cut from the newsreel, muted, shown for the whole 5.38 s):
+    it now shows a faint hatch stand-in labeled "VIDEO: footage/d1.mp4". To plug in your own clip, replace that img
+    with a video element with id="sv-video", src="footage/d1.mp4", muted, playsinline, data-start="0", data-duration="5.38", data-track-index="1" and data-media-kind="video". Keep the id and every data-* attribute, and keep
+    data-media-kind="video" so the grade rule on #sv-shot [data-media-kind="video"] still matches.
+    Font slot 1, Roboto Condensed 500, used by #sv-num (the figure): it now uses an installed Roboto Condensed, or the
+    sans-serif fallback. Font slot 2, Roboto Condensed 400, used by the .sv-cap captions. To bundle the family, change
+    the src of each Roboto Condensed @font-face rule (weight 400 and weight 500) to
+    url("assets/fonts/roboto-condensed-latin.woff2") format("woff2"), local("Roboto Condensed").
+    Until you plug in a clip, the hatch stand-in shows under the figure and the captions, which stay readable.
+  WHEN TO USE: A count over an archive shot, with two captions, for a casualty or survivor figure. Pick another when
+    the figure is not the point, or when no film is available.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 400; font-display: block; src: local("Roboto Condensed"); }
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 500; font-display: block; src: local("Roboto Condensed"); }
+        /* Scene root: a full-frame black box under the film. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #000000; }
+        #sv-shot { position: absolute; inset: 0; transform-origin: 50% 55%; }
+        #sv-shot [data-media-kind="video"] { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(0.86); }
+        #sv-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 72% at 50% 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.62) 100%); }
+        /* A small figure with a gold tick and a tracked caption, low on the left. */
+        #sv-block { position: absolute; left: 120px; top: 708px; }
+        /* The figure: large numerals with a soft shadow, updated by the count tween. */
+        #sv-num { font-family: "Roboto Condensed", sans-serif; font-weight: 500; font-size: 104px; line-height: 1.1; color: #f6f3ea; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7); }
+        #sv-tick { margin-top: 8px; width: 60px; height: 4px; background: #e9b04a; transform-origin: 0 50%; }
+        /* The caption stack: the two captions share one spot and take turns. */
+        #sv-caps { position: relative; margin-top: 16px; height: 40px; width: 520px; }
+        .sv-cap { position: absolute; left: 0; top: 0; font-family: "Roboto Condensed", sans-serif; font-weight: 400; font-size: 30px; line-height: 1.3; letter-spacing: 0.16em; color: #f1ede2; white-space: nowrap; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); }
+      </style>
+      <div id="root" data-composition-id="survivors" data-width="1920" data-height="1080">
+        <div id="sv-shot" data-layout-allow-overflow>
+          <img id="sv-video" data-start="0" data-duration="5.38" data-track-index="1" src="data:image/svg+xml,%3C!--d1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/d1.mp4%3C/text%3E%3C/svg%3E" data-media="footage/d1.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div id="sv-vig"></div>
+        <div id="sv-block">
+          <div id="sv-num">0</div>
+          <div id="sv-tick"></div>
+          <div id="sv-caps">
+            <div class="sv-cap" id="sv-cap-1">PEOPLE ON BOARD</div>
+            <div class="sv-cap" id="sv-cap-2" data-layout-allow-overlap>SURVIVORS OF 97</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        /* Setup: the scene timeline, paused so the host seeks it; the second caption starts hidden. */
+        const tl = gsap.timeline({ paused: true });
+        gsap.set("#sv-cap-2", { opacity: 0 });
+        tl.fromTo("#sv-shot", { scale: 1.02 }, { scale: 1.08, duration: 5.38, ease: "none" }, 0);
+        const el = document.querySelector("#sv-num");
+        const n = { v: 0 };
+        /* show writes the rounded count into the figure each time the count tween updates. */
+        const show = () => { el.textContent = String(Math.round(n.v)); };
+        // The figure counts up to 97 on "ninety-seven" (55.93 s), then falls to 62 on "sixty-two" (57.80 s).
+        tl.fromTo("#sv-num", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 0.02);
+        tl.fromTo(n, { v: 0 }, { v: 97, duration: 0.6, ease: "power2.out", onUpdate: show }, 0.04);
+        tl.fromTo("#sv-tick", { scaleX: 0 }, { scaleX: 1, duration: 0.25, ease: "power2.out" }, 0.3);
+        tl.fromTo("#sv-cap-1", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 0.75);
+        tl.to(n, { v: 62, duration: 0.6, ease: "power2.inOut", onUpdate: show }, 1.89);
+        tl.to("#sv-cap-1", { opacity: 0, duration: 0.15 }, 1.89);
+        tl.to("#sv-cap-2", { opacity: 1, duration: 0.25 }, 2.45);
+        window.__timelines["survivors"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-06-gates.html (composition id "c1-06-gates")
+  WHAT: A short beat on the peasants and vine growers who came to the city gates. Two graded pictures
+    cut in one after the other with no text: a picture of peasants in conversation (peasants.jpg)
+    from the start, and a view of a Strasbourg gate (stras-gate2.jpg) from 4.07 s. Both push slowly
+    toward the frame's centre. It runs 7.22 s; index.html mounts it as c1-06-gates-slot at 121.46 s.
+  STRUCTURE: two .dr-shot wrappers in document order: #c106gates-a (peasants) and #c106gates-b (gate).
+    The paused GSAP timeline, registered as window.__timelines["c1-06-gates"], pushes the peasants
+    from 0 s (scale 1.014 to 1.081 over 4.07 s), then shows the gate at 4.07 s and pushes it (scale
+    1.014 to 1.067 over 3.15 s). The gate sits above the peasants, so there is no cut to hide.
+  CUSTOMIZE: there is no text or overlay in this file. The push amounts (1.081 and 1.067) and the
+    cut time 4.07 are in the tweens; the gate's end at 7.22 s must match the data-duration that
+    index.html gives c1-06-gates-slot. The grades are the data-color-grading JSON on each img. To add
+    a caption, copy the .dr-cap rule and markup from c1-05-hardship.html.
+  MEDIA: no media file is bundled. This file has two photo slots and no sound, no video and no CSS
+    image. A font face is declared but no element uses it.
+    1. The peasants, img #c106gates-a-img (inside #c106gates-a, on screen from the start). It showed
+       Durer's Three Peasants in Conversation (about 1497). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/peasants.jpg". To plug in your picture, set the img's src to your file
+       (for example assets/generated/peasants.jpg). The data-media attribute only names the expected
+       path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The gate, img #c106gates-b-img (inside #c106gates-b, which cuts in at 4.07 s). It showed a view of
+       a Strasbourg gate from the Nuremberg Chronicle (1493). It now shows a stand-in labeled
+       "PHOTO: assets/generated/stras-gate2.jpg". To plug in your picture, set the img's src to your file.
+    3. The font, the @font-face for "Arimo" (weights 400 to 700). No element in this file uses it, so
+       nothing is drawn with it and no file is needed. If you add a caption, the plug-in step is the same
+       as for the font in c1-05-hardship.html: add url("your-font.woff2") format("woff2") to its src list.
+  WHEN TO USE: a short beat that needs two pictures and no text, for a group of people or a place.
+    Pick another composition when the beat needs a caption or a name.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Ribuan petani dan penggarap ..." (121.46 s): peasants from the start; stras-gate2 on "datang" (125.53 s). -->
+      <div id="root" data-composition-id="c1-06-gates" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c106gates-a" data-layout-allow-overflow><img id="c106gates-a-img" src="data:image/svg+xml,%3C!--peasants.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/peasants.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/peasants.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c106gates-b" data-layout-allow-overflow><img id="c106gates-b-img" src="data:image/svg+xml,%3C!--stras-gate2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/stras-gate2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/stras-gate2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* The timeline: the peasants push, then the gate shot cuts in and pushes. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c106gates-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.081, x: 6, y: -2, duration: 4.07, ease: "none" }, 0.0);
+        tl.fromTo("#c106gates-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.067, x: -5, y: 3, duration: 3.15, ease: "none" }, 4.07);
+        gsap.set("#c106gates-b", { opacity: 0 });
+        tl.to("#c106gates-b", { opacity: 1, duration: 0.001 }, 4.07);
+        window.__timelines["c1-06-gates"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

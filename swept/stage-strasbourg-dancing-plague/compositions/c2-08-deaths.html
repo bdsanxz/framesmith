@@ -1,0 +1,74 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-08-deaths.html (composition id "c2-08-deaths")
+  WHAT: The eighth beat of chapter 2, 6.42 s, from 253.1 s in index.html, narrated by segment s26
+    (opening "Satu kronik bahkan menyebut", one chronicle even names). A picture, deathdance2, is shown
+    from 0 to 3.92 s with a slow push. Then stras-wide2, a wide picture, is cut in at 3.92 s with the
+    red figure "15 kematian sehari menurut satu kronik" (15 deaths a day according to one chronicle)
+    set over it in two lines.
+  STRUCTURE: #root holds two .dr-shot wrappers, #c208deaths-a and #c208deaths-b, and the red figure
+    #c208deaths-b-fig (.dr-figure, a full-width text box). The timeline pushes picture a from scale
+    1.014 to 1.079 over 3.92 s. At 3.92 s picture b is cut in by opacity and pushes over 2.5 s, and the
+    figure is shown at the same moment.
+  CUSTOMIZE: each picture's file is named by data-media on its img (deathdance2.jpg, stras-wide2.jpg); set
+    the src to swap in your own (see MEDIA). The figure
+    text is its two lines (br). Its height is the inline top 84 px, and its position is the inline left
+    -440 px: the box is 1920 px wide, so the text centres near x 520 instead of the frame centre. Change
+    left to move it. Colour and glow are in .dr-figure. The cut time 3.92 appears in several tweens; change
+    them together and keep the end inside data-duration (6.42 in index.html).
+  MEDIA: no media file is bundled. This file has two photo slots and one font slot. It has no sound, no
+    video and no CSS image.
+    1. The first picture, img #c208deaths-a-img (inside #c208deaths-a, shown 0 to 3.92 s). It showed a dance
+       picture (deathdance2.jpg). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/deathdance2.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/deathdance2.jpg). The data-media attribute only names the expected path; it
+       loads nothing. The img's data-color-grading still grades your picture.
+    2. The wide picture, img #c208deaths-b-img (inside #c208deaths-b, cut in at 3.92 s, under the red figure
+       #c208deaths-b-fig, which is plain text). It showed a wide picture (stras-wide2.jpg). It now shows a
+       stand-in labeled "PHOTO: assets/generated/stras-wide2.jpg". To plug in your picture, set the img's src
+       to your file.
+    3. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-figure for the red figure. It was
+       a bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a picture beat with one red number over a second picture, the same pattern as the first
+    beat of chapter 2 (c2-01-begins.html). Pick another pattern when the figure must sit beside the
+    people shown, or the picture needs motion.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo") for the red figure; no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The red figure: number on one line, unit on the next, bold italic, tracked. */
+        .dr-figure { position: absolute; left: 0; width: 1920px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-style: italic; font-size: 64px; line-height: 1.28; letter-spacing: 0.12em; color: rgba(214, 62, 38, 0.96); text-shadow: 0 0 18px rgba(198, 58, 36, 0.45); white-space: nowrap; }
+      </style>
+      <!-- "Satu kronik bahkan menyebut, ..." (253.10 s): deathdance2 from the start; stras-wide2 + red figure 15 kematian sehari menurut satu kronik on "lima" (257.02 s). -->
+      <div id="root" data-composition-id="c2-08-deaths" data-width="1920" data-height="1080">
+        <!-- Picture a: the first picture, shown from 0 s. -->
+        <div class="dr-shot" id="c208deaths-a" data-layout-allow-overflow><img id="c208deaths-a-img" src="data:image/svg+xml,%3C!--deathdance2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/deathdance2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/deathdance2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Picture b, cut in at 3.92 s. -->
+        <div class="dr-shot" id="c208deaths-b" data-layout-allow-overflow><img id="c208deaths-b-img" src="data:image/svg+xml,%3C!--stras-wide2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/stras-wide2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/stras-wide2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The red figure, shown together with picture b. -->
+        <div class="dr-figure" id="c208deaths-b-fig" style="top: 84px; left: -440px;">15 kematian sehari<br />menurut satu kronik</div>
+      </div>
+      <script>
+        /* Timeline: picture a pushes, then b and the figure are cut in at 3.92 s and b pushes. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c208deaths-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.079, x: 6, y: -2, duration: 3.92, ease: "none" }, 0.0);
+        tl.fromTo("#c208deaths-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.057, x: -5, y: 3, duration: 2.5, ease: "none" }, 3.92);
+        gsap.set("#c208deaths-b", { opacity: 0 });
+        tl.to("#c208deaths-b", { opacity: 1, duration: 0.001 }, 3.92);
+        gsap.set("#c208deaths-b-fig", { opacity: 0 });
+        tl.to("#c208deaths-b-fig", { opacity: 1, duration: 0.001 }, 3.92);
+        window.__timelines["c2-08-deaths"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

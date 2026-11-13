@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/paper.html (composition id "paper")
+  WHAT: One sheet of paper texture with a soft warm vignette, laid over the collage block from 26.99 s to 51.2 s,
+    which is 24.21 s in all. It does not animate, so the viewer sees a constant paper tone on the four collage
+    scenes (eckener, helium, hydrogen, field). index.html mounts it on track 2, and the host multiplies it onto
+    the scenes beneath.
+  STRUCTURE: One #root holding #pp-sheet, the paper image overscanned to 2112 by 1188 px and placed at -96, -54 so
+    its edges fall outside the frame, and #pp-vig, a radial vignette. Both layers have opacity 0.58. The
+    timeline is empty: the composition only registers it, so nothing moves.
+  CUSTOMIZE: The strength of the texture comes from how assets/generated/paper.jpg was made (paper-texture.py with
+    the mottle and burn flags, as the comment above the styles explains). The opacity 0.58 on both layers must stay under
+    0.6, as that comment explains. The vignette is rgba(70, 54, 20) with stops at 50 and 100 percent. Keep the
+    overscan (-96, -54) matched to the image size; change them together.
+  MEDIA: No media file is bundled. This file has one photo slot, and no video, sound or font slot.
+    Photo slot, #pp-sheet (assets/generated/paper.jpg, the paper texture): it now shows a faint hatch stand-in labeled
+    "PHOTO: assets/generated/paper.jpg" at the sheet's 0.58 opacity, so the collage scenes show a light hatch over
+    their cream grounds (#e6dcc3, and #cfc3a4 for helium). To plug in your own paper texture, set the src of that img
+    to your file, for example src="assets/generated/paper.jpg", at 2112 by 1188 px. The host sets the multiply blend
+    on its mount in index.html, so the texture needs no blend mode of its own.
+  WHEN TO USE: One shared paper layer over several collage scenes, instead of a texture in each. Pick another when
+    the scenes need different paper.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* One sheet of paper over the collage scenes. The host multiplies this whole layer onto them
+           (mix-blend-mode on the mount: a blend set inside a layer only mixes within that layer).
+           Opacity stays under 0.6 so the layout audit does not count the sheet as covering the text;
+           the strength is baked into the texture instead (paper-texture.py with its mottle and burn flags). */
+        #root, #root * { pointer-events: none; }
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        /* The paper image, sized larger than the frame so its edges fall outside it. */
+        #pp-sheet { position: absolute; left: -96px; top: -54px; width: 2112px; height: 1188px; opacity: 0.58; }
+        /* A warm brown radial vignette that darkens the edges of the paper. */
+        #pp-vig { position: absolute; inset: 0; opacity: 0.58; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(70, 54, 20, 0) 50%, rgba(70, 54, 20, 0.55) 100%); }
+      </style>
+      <div id="root" data-composition-id="paper" data-width="1920" data-height="1080">
+        <img id="pp-sheet" src="data:image/svg+xml,%3C!--paper.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paper.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/paper.jpg" alt="" data-layout-allow-overflow />
+        <div id="pp-vig"></div>
+      </div>
+      <script>
+        /* The paper has no animation: its timeline is empty and paused. */
+        window.__timelines["paper"] = gsap.timeline({ paused: true });
+      </script>
+    </template>
+  </body>
+</html>

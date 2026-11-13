@@ -1,0 +1,86 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/barographs.html (composition id "barographs")
+  WHAT: A 5.08 s return to the film, mounted at 52.98 s after the rings scene. A clip (video slot #bg-video),
+    which the README describes as the eruption column seen from the air, sits under a dark vignette.
+    At the lower left a figure counts from 0 up to 7 on the spoken "seven", a short gold tick draws
+    beneath it, and the caption PASSES OF ONE PRESSURE WAVE, IN 5 DAYS fades in. Subtitles for the
+    scene come from subs.html.
+  STRUCTURE: Back to front: #bg-shot (the clip wrapper, scaling from 1.02 to 1.08 over 5.08 s) holding
+    the video #bg-video, then #bg-vig (the vignette), then #bg-block with the figure #bg-num, the
+    tick #bg-tick and the caption #bg-cap. The figure is the count object n, which runs from 0 to 7
+    and is written into #bg-num by show. Timeline, in seconds from the scene start: 2.4 the figure
+    fades in over 0.15 s; 2.45 the count runs for 0.6 s with easing power1.out; 2.7 the tick grows
+    from scaleX 0 over 0.25 s; 3.4 the caption fades in over 0.25 s.
+  CUSTOMIZE: The final count is 7 in the fromTo of n, and its start time 2.45 and length 0.6 s set when
+    the count lands. The caption text is #bg-cap (PASSES OF ONE PRESSURE WAVE, IN 5 DAYS). Block
+    position is left 120px and top 708px. The figure is Roboto Condensed 500 at 104px in #f6f3ea, the
+    tick is #e9b04a, and the caption is 30px with 0.16em tracking. The grey and brightness filter is
+    on #bg-shot [data-media-kind="video"]. The 5.08 s length must match the scene's data-duration in index.html.
+  MEDIA: No media file is bundled. Slot 1, a video: #bg-video, the eruption column seen from the air
+    (it was footage/d1.mp4, played for the full 5.08 s in #bg-shot). A faint hatch stand-in labeled
+    "VIDEO: footage/d1.mp4" shows there, under the same vignette. make-footage.sh cut the original from
+    the inspiration's downloaded film (README: the eruption column from the air). To plug in your own clip,
+    replace that img with a video element with src set to your file, muted, playsinline, id="bg-video", data-start="0", data-duration="5.08", data-track-index="1" and data-media-kind="video", keeping the id, the
+    data-* attributes and data-media-kind="video" so the grade still matches. Any dark grey clip of
+    smoke or cloud, or aerial footage of a volcanic plume, works; keep the 5.08 s length. Slots 2 and 3,
+    fonts: no font file is bundled. Roboto Condensed at weight 400 (the caption) and weight 500 (the
+    figure) load with src: local("Roboto Condensed"), each used if installed, else the sans-serif
+    fallback shows. To plug in the file, add url("assets/fonts/roboto-condensed-latin.woff2") to the
+    weight 400 and the weight 500 @font-face rules (use your own file for either weight if you have one).
+    Sound slots: none; no audio in this file. CSS image slots: none; the vignette is a radial gradient.
+  WHEN TO USE: A small counted figure over a film shot, as a return to the film after a graphic
+    block. Pick another layout for a large number that must fill the frame.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Roboto Condensed at weights 400 and 500, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 400; font-display: block; src: local("Roboto Condensed"); }
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 500; font-display: block; src: local("Roboto Condensed"); }
+        /* The black ground, the clip layer and the figure block. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #000000; }
+        #bg-shot { position: absolute; inset: 0; transform-origin: 50% 55%; }
+        #bg-shot [data-media-kind="video"] { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(0.86); }
+        /* The vignette: a dark radial edge over the clip. */
+        #bg-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 72% at 50% 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.62) 100%); }
+        /* A small figure with a gold tick and a tracked caption, low on the left. */
+        #bg-block { position: absolute; left: 120px; top: 708px; }
+        #bg-num { font-family: "Roboto Condensed", sans-serif; font-weight: 500; font-size: 104px; line-height: 1.1; color: #f6f3ea; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7); }
+        #bg-tick { margin-top: 8px; width: 60px; height: 4px; background: #e9b04a; transform-origin: 0 50%; }
+        #bg-cap { margin-top: 16px; font-family: "Roboto Condensed", sans-serif; font-weight: 400; font-size: 30px; line-height: 1.3; letter-spacing: 0.16em; color: #f1ede2; white-space: nowrap; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); }
+      </style>
+      <div id="root" data-composition-id="barographs" data-width="1920" data-height="1080">
+        <!-- The clip layer, the vignette and the figure block, back to front. -->
+        <div id="bg-shot" data-layout-allow-overflow>
+          <img id="bg-video" data-start="0" data-duration="5.08" data-track-index="1" src="data:image/svg+xml,%3C!--d1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/d1.mp4%3C/text%3E%3C/svg%3E" data-media="footage/d1.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div id="bg-vig"></div>
+        <div id="bg-block">
+          <div id="bg-num">0</div>
+          <div id="bg-tick"></div>
+          <div id="bg-cap">PASSES OF ONE PRESSURE WAVE, IN 5 DAYS</div>
+        </div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#bg-shot", { scale: 1.02 }, { scale: 1.08, duration: 5.08, ease: "none" }, 0);
+        /* Helpers: the figure element, the count value that is tweened, and the function that writes it. */
+        const el = document.querySelector("#bg-num");
+        const n = { v: 0 };
+        const show = () => { el.textContent = String(Math.round(n.v)); };
+        // The figure arrives on "wave" (55.46 s) and counts the passes up to 7 on "seven" (55.90 s);
+        // the caption follows on "times".
+        tl.fromTo("#bg-num", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 2.4);
+        tl.fromTo(n, { v: 0 }, { v: 7, duration: 0.6, ease: "power1.out", onUpdate: show }, 2.45);
+        tl.fromTo("#bg-tick", { scaleX: 0 }, { scaleX: 1, duration: 0.25, ease: "power2.out" }, 2.7);
+        tl.fromTo("#bg-cap", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 3.4);
+        window.__timelines["barographs"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

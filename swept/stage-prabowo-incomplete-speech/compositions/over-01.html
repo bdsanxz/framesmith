@@ -1,0 +1,194 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/over-01.html (composition id "over-01"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: Text and pictures OVER everything on the presenter shots (z-index 7): side texts, low captions,
+    chips, front floats, the lines of a stage, and the captions, tags, and subtitles of b-roll and clips. What is read: each "say" block word by word as he speaks, a picture or page card beside him,
+    the source tag and subtitles of a clip.
+  STRUCTURE: mounted by index.html as #over-01-slot at 1.20 s for 154.90 s (z-index 7). One .clip per scene with
+    data-start and data-duration in this file's seconds. tl brings each line in on its spoken word (W/Q rows of
+    [element id, time]) and takes it out at the scene's end. The scenes in this file (type: what it is):
+      s0    say, side left     0.00-5.47 s
+      s2    say, low           16.50-20.20 s
+      s5    say, low           30.37-34.53 s
+      s6    float, left        36.90-40.93 s   a photo card with a name tag (PRABOWO SUBIANTO)
+      s7    say, chip          40.93-43.70 s   a red tag
+      s8    say, side left     54.83-59.53 s
+      s9    say, low, bare     60.60-64.47 s   a caption over the host's b-roll (index.html v-9)
+      s12   say, low, bare    76.37-79.90 s   a caption and source tag over the host's clip (index.html v-12)
+      s13   say, side right   79.57-86.60 s
+      s15   say, low          93.43-95.33 s
+      s16   say, caps         95.33-100.67 s
+      s17   float, left       108.43-115.10 s a photo card with a name tag (SOEHARTO)
+      s18   say, side right   118.47-124.83 s
+      s19   say, side left    123.80-130.00 s
+      s20   say, low, bare    130.23-133.57 s a caption over the host's b-roll (index.html v-20)
+      s22   say, caps         148.17-151.00 s
+      s23   float, right      150.93-153.50 s a photo card with a name tag (SUSILO BAMBANG YUDHOYONO)
+      s24   float, left       153.50-154.90 s a photo card with a name tag (SOEKARNO)
+  CUSTOMIZE: change cut.json and build again, never this file: it is rewritten on every build. A scene's
+    words ("w"), its text ("lines", "word", "label"), its side and pictures live there; the colours
+    are COLORS and the timings CHAPTER, END, LEAD at the head of scripts/deep-tracery-build.py.
+  MEDIA: no media file is bundled. Slots in this file:
+    PHOTO slots, four portraits in the float cards: an img element in #s6 showed assets/pic/prabowo.jpg; #s17
+    assets/pic/soeharto.jpg; #s23 assets/pic/sby.jpg; #s24 assets/pic/soekarno-portrait.jpg. Each is a labelled hatch
+    stand-in now, so the card frame and name tag still show. To plug in, set that img's src to the file (its
+    data-media names it).
+    VIDEO, SOUND and CSS image slots: none. The captions over b-roll (#s9, #s20) and over the clip (#s12) need no
+    media here; their pictures and clip sounds are the host's, in index.html.
+    FONTS: the six @font-face rules use local(...) for Archivo, Bricolage Grotesque, Instrument Serif and JetBrains
+    Mono. An installed font is used, otherwise the stack falls back. To bundle one, add
+    src: url("fonts/NAME.woff2") format("woff2") to its @font-face.
+  WHEN TO USE: a presenter explainer: a talking head dressed with text and pictures timed to his own words, in the
+    deep tracery style (references/deep-tracery.md). For a narrated film without a presenter, use another style.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is taken from the installed font (local); see MEDIA for bundling your own. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; color: #f6fbfa; }
+        .clip { position: absolute; }
+        .say { inset: 0; }
+        .w { display: inline-block; }
+        .ln { text-shadow: 0 2px 22px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.5); }
+        /* A dark veil where the type sits: the side beside him, or the foot of the frame. */
+        .scrim { position: absolute; inset: 0; }
+        .say.st-side.left .scrim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.78) 34%, rgba(5, 5, 5, 0) 58%); }
+        .say.st-side.right .scrim { background: linear-gradient(270deg, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.78) 34%, rgba(5, 5, 5, 0) 58%); }
+        .say.st-low .scrim, .say.st-caps .scrim, .say.st-chip .scrim { background: linear-gradient(0deg, rgba(5, 5, 5, 0.75) 0%, rgba(5, 5, 5, 0) 50%); }   /* one even ramp, no knee */
+        .block { position: absolute; }
+        .say.st-side .block { top: 0; height: 1080px; width: 780px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+        .say.st-side.left .block { left: 130px; }
+        .say.st-side.right .block { left: 1040px; }
+        .say.st-low .block, .say.st-caps .block, .say.st-chip .block { left: 160px; width: 1600px; bottom: 96px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .l-lead { font-weight: 500; font-size: 46px; line-height: 1.2; color: #a9e8e0; letter-spacing: -0.01em; }
+        .l-lead .em { font-weight: 800; font-style: italic; }
+        .l-bold { font-weight: 800; font-size: 92px; line-height: 1.02; letter-spacing: -0.025em; }
+        .l-bold .em { color: #b9e31c; }
+        .l-serif { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 500; font-size: 86px; line-height: 1.05; color: #b9e31c; letter-spacing: -0.01em; }
+        .l-low { font-weight: 700; font-size: 74px; line-height: 1.1; letter-spacing: -0.02em; }
+        .l-low .em { color: #b9e31c; font-style: italic; }
+        .l-caps { font-weight: 800; font-size: 92px; line-height: 1.02; letter-spacing: -0.015em; text-transform: uppercase; }
+        .l-caps .em { color: #b9e31c; }
+        .l-capsserif { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 500; font-size: 84px; line-height: 1.05; color: #b9e31c; text-transform: uppercase; }
+        .l-red { font-weight: 800; font-size: 124px; line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; color: #ef2b31; text-shadow: 0 0 34px rgba(239, 43, 49, 0.55), 0 2px 4px rgba(0, 0, 0, 0.6); }
+        .l-chip { text-shadow: none; margin-bottom: 8px; }
+        .l-chip .tag { display: inline-block; background: #d92329; color: #ffffff; font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; padding: 9px 18px 8px; }
+        .say.st-side .l-chip { align-self: flex-start; }
+        /* .clipfoot and .cliptag: a dark foot shade and a source tag for a caption over a clip (#s12). */
+        .clipfoot { position: absolute; left: 300px; width: 1320px; top: 470px; height: 330px; background: linear-gradient(180deg, rgba(5, 5, 5, 0) 0%, rgba(5, 5, 5, 0.82) 70%, #050505 100%); }
+        .cliptag { position: absolute; left: 346px; top: 80px; background: rgba(5, 5, 5, 0.72); color: #f3f3f1; font-weight: 500; font-size: 26px; line-height: 1; padding: 9px 14px 10px; letter-spacing: 0.02em; border-radius: 6px; }
+        /* A clip's subtitle: the speaker's words in a yellow box, the translation in a white one. */
+        .sub { position: absolute; left: 0; width: 1920px; top: 690px; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; }
+        .sub-a { background: #f1e30f; color: #0b0b0b; font-weight: 700; font-size: 50px; line-height: 1; padding: 9px 20px 11px; letter-spacing: -0.01em; }
+        .sub-b { background: #f3f3f1; color: #0b0b0b; font-weight: 500; font-size: 36px; line-height: 1; padding: 8px 16px 9px; letter-spacing: -0.01em; }
+        /* Something beside him: a photo, a page, a logo, a person with a name tag. */
+        .float { top: 0; height: 1080px; }
+        .float .scrim { left: -170px; width: 1100px; }
+        .float.left .scrim { background: linear-gradient(90deg, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0) 100%); }
+        .float.right .scrim { left: auto; right: -170px; background: linear-gradient(270deg, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0) 100%); }
+        .card { position: absolute; left: 0; right: 0; top: 0; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+        .pic { position: relative; width: 100%; overflow: hidden; }
+        .pic img { display: block; width: 100%; height: auto; }
+        .pic.photo, .pic.portrait { border-radius: 14px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6); }
+        .pic.portrait img { filter: saturate(0.9) contrast(1.05); }
+        .pic.page { border-radius: 12px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6); background: #ffffff; }
+        .pic.logo { filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.55)); }
+        .fmarks, .crop { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+        .fmark { position: absolute; background: #fbe406; mix-blend-mode: multiply; transform-origin: 0 50%; }
+        .unknown { width: 300px; height: 300px; border-radius: 50%; background: #f1f1ef; color: #101010; font-weight: 800; font-size: 210px; line-height: 300px; text-align: center; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.25), 0 24px 70px rgba(0, 0, 0, 0.6); }
+        .nametag { margin-top: -26px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .nametag .nm { background: #0b0b0b; color: #ffffff; font-weight: 800; font-size: 40px; line-height: 1; padding: 10px 18px; text-transform: uppercase; letter-spacing: 0.005em; }
+        .nametag .rl { background: #f3f3f1; color: #0b0b0b; font-weight: 500; font-size: 28px; line-height: 1; padding: 7px 14px 8px; }
+      </style>
+      <!-- Markup: #root fills the frame; each .clip is one scene (#s0 to #s24) with its host timing. The say scenes hold
+           .block (the lines), the float scenes hold a .pic photo and its .nametag, and the clip scenes hold .clipfoot and .cliptag. -->
+      <div id="root" data-composition-id="over-01" data-width="1920" data-height="1080">
+        <div id="s0" class="clip say st-side left" data-layout-allow-occlusion data-start="0.0" data-duration="5.467" data-track-index="0"><div class="scrim"></div><div class="block"><div class="ln l-lead"><span id="s0-l0w0" class="w">kita</span> <span id="s0-l0w1" class="w">akan</span> <span id="s0-l0w2" class="w">coba</span> <span id="s0-l0w3" class="w">membahas</span></div><div class="ln l-bold"><span id="s0-l1w0" class="w">pidato</span> <span id="s0-l1w1" class="w">Presiden</span> <span id="s0-l1w2" class="w">Prabowo</span></div><div class="ln l-serif"><span id="s0-l2w0" class="w">di</span> <span id="s0-l2w1" class="w">rapat</span> <span id="s0-l2w2" class="w">paripurna</span> <span id="s0-l2w3" class="w">DPR</span></div></div></div>
+        <div id="s2" class="clip say st-low" data-layout-allow-occlusion data-start="16.5" data-duration="3.7" data-track-index="0"><div class="scrim"></div><div class="block"><div class="ln l-low"><span id="s2-l0w0" class="w">siap-siap,</span> <span id="s2-l0w1" class="w">ini</span> <span id="s2-l0w2" class="w">akan</span> <span id="s2-l0w3" class="w">jadi</span></div><div class="ln l-low"><span id="s2-l1w0" class="w em">video</span> <span id="s2-l1w1" class="w em">yang</span> <span id="s2-l1w2" class="w em">cukup</span> <span id="s2-l1w3" class="w em">panjang</span></div></div></div>
+        <div id="s5" class="clip say st-low" data-layout-allow-occlusion data-start="30.367" data-duration="4.166" data-track-index="0"><div class="scrim"></div><div class="block"><div class="ln l-low"><span id="s5-l0w0" class="w">sayangnya</span> <span id="s5-l0w1" class="w">jadi</span> <span id="s5-l0w2" class="w em">retorika</span> <span id="s5-l0w3" class="w em">yang</span> <span id="s5-l0w4" class="w em">biasa</span> <span id="s5-l0w5" class="w em">saja</span></div></div></div>
+        <div id="s6" class="clip float left" data-layout-allow-occlusion data-layout-allow-overflow data-start="36.9" data-duration="4.033" data-track-index="1" style="left:170px;width:480px"><div class="scrim"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--prabowo.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'611' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/prabowo.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/prabowo.jpg" alt="" /></div><div class="nametag"><span class="nm">PRABOWO SUBIANTO</span><span class="rl">Presiden RI</span></div></div></div>
+        <div id="s7" class="clip say st-chip" data-layout-allow-occlusion data-start="40.933" data-duration="2.767" data-track-index="1"><div class="scrim"></div><div class="block"><div class="ln l-chip"><span id="s7-l0t" class="tag"><span id="s7-l0w0" class="w">teramat</span> <span id="s7-l0w1" class="w">sayang</span></span></div><div class="ln l-caps"><span id="s7-l1w0" class="w">kalau</span> <span id="s7-l1w1" class="w">nggak</span> <span id="s7-l1w2" class="w">kita</span> <span id="s7-l1w3" class="w">bahas</span></div></div></div>
+        <div id="s8" class="clip say st-side left" data-layout-allow-occlusion data-start="54.833" data-duration="4.7" data-track-index="1"><div class="scrim"></div><div class="block"><div class="ln l-lead"><span id="s8-l0w0" class="w">Pak</span> <span id="s8-l0w1" class="w">Prabowo</span> <span id="s8-l0w2" class="w">itu</span></div><div class="ln l-bold"><span id="s8-l1w0" class="w">banyak</span> <span id="s8-l1w1" class="w">ngasih</span></div><div class="ln l-serif"><span id="s8-l2w0" class="w">momen-momen</span> <span id="s8-l2w1" class="w">bagus</span></div></div></div>
+        <div id="s9" class="clip say st-low bare" data-layout-allow-occlusion data-start="60.6" data-duration="3.867" data-track-index="2"><div class="scrim"></div><div class="block"><div class="ln l-caps"><span id="s9-l0w0" class="w">beliau</span> <span id="s9-l0w1" class="w">menyediakan</span> <span id="s9-l0w2" class="w">dirinya</span></div><div class="ln l-red"><span id="s9-l1w0" class="w">untuk</span> <span id="s9-l1w1" class="w">masyarakat</span></div></div></div>
+        <div id="s12" class="clip say st-low bare" data-layout-allow-occlusion data-start="76.367" data-duration="3.533" data-track-index="2"><div class="clipfoot"></div><div class="cliptag">Prabowo Menjawab</div></div>
+        <div id="s13" class="clip say st-side right" data-layout-allow-occlusion data-start="79.567" data-duration="7.033" data-track-index="3"><div class="scrim"></div><div class="block"><div class="ln l-lead"><span id="s13-l0w0" class="w">ini</span> <span id="s13-l0w1" class="w">bukan</span> <span id="s13-l0w2" class="w">sesuatu</span> <span id="s13-l0w3" class="w">yang</span> <span id="s13-l0w4" class="w">lazim</span></div><div class="ln l-bold"><span id="s13-l1w0" class="w">nggak</span> <span id="s13-l1w1" class="w">dilakukan</span></div><div class="ln l-serif"><span id="s13-l2w0" class="w">presiden-presiden</span> <span id="s13-l2w1" class="w">sebelumnya</span></div></div></div>
+        <div id="s15" class="clip say st-low" data-layout-allow-occlusion data-start="93.433" data-duration="1.9" data-track-index="2"><div class="scrim"></div><div class="block"><div class="ln l-low"><span id="s15-l0w0" class="w">pidato</span> <span id="s15-l0w1" class="w">selama</span> <span id="s15-l0w2" class="w em">satu</span> <span id="s15-l0w3" class="w em">setengah</span> <span id="s15-l0w4" class="w em">jam</span></div></div></div>
+        <div id="s16" class="clip say st-caps" data-layout-allow-occlusion data-start="95.333" data-duration="5.334" data-track-index="3"><div class="scrim"></div><div class="block"><div class="ln l-caps"><span id="s16-l0w0" class="w">menyediakan</span> <span id="s16-l0w1" class="w">dirinya</span></div><div class="ln l-capsserif"><span id="s16-l1w0" class="w">untuk</span> <span id="s16-l1w1" class="w">diakses</span> <span id="s16-l1w2" class="w">publik</span></div></div></div>
+        <div id="s17" class="clip float left" data-layout-allow-occlusion data-layout-allow-overflow data-start="108.433" data-duration="6.667" data-track-index="3" style="left:170px;width:480px"><div class="scrim"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--soeharto.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'630' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/soeharto.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/soeharto.jpg" alt="" /></div><div class="nametag"><span class="nm">SOEHARTO</span><span class="rl">Presiden ke-2 RI</span></div></div></div>
+        <div id="s18" class="clip say st-side right" data-layout-allow-occlusion data-start="118.467" data-duration="6.366" data-track-index="4"><div class="scrim"></div><div class="block"><div class="ln l-lead"><span id="s18-l0w0" class="w">dibandingkan</span> <span id="s18-l0w1" class="w">presiden-presiden</span> <span id="s18-l0w2" class="w">yang</span> <span id="s18-l0w3" class="w">lain</span></div><div class="ln l-bold"><span id="s18-l1w0" class="w">mungkin</span> <span id="s18-l1w1" class="w">public</span> <span id="s18-l1w2" class="w">speaker</span></div><div class="ln l-serif"><span id="s18-l2w0" class="w">yang</span> <span id="s18-l2w1" class="w">paling</span> <span id="s18-l2w2" class="w">baik</span></div></div></div>
+        <div id="s19" class="clip say st-side left" data-layout-allow-occlusion data-start="123.8" data-duration="6.2" data-track-index="5"><div class="scrim"></div><div class="block"><div class="ln l-lead"><span id="s19-l0w0" class="w">paling</span> <span id="s19-l0w1" class="w">baiknya</span> <span id="s19-l0w2" class="w">itu</span></div><div class="ln l-bold"><span id="s19-l1w0" class="w">bukan</span> <span id="s19-l1w1" class="w">cuma</span> <span id="s19-l1w2" class="w">berapi-api</span></div><div class="ln l-serif"><span id="s19-l2w0" class="w">bukan</span> <span id="s19-l2w1" class="w">cuma</span> <span id="s19-l2w2" class="w">artikulatif</span></div></div></div>
+        <div id="s20" class="clip say st-low bare" data-layout-allow-occlusion data-start="130.233" data-duration="3.334" data-track-index="4"><div class="scrim"></div><div class="block"><div class="ln l-caps"><span id="s20-l0w0" class="w">dia</span> <span id="s20-l0w1" class="w">nggak</span> <span id="s20-l0w2" class="w">perlu</span> <span id="s20-l0w3" class="w">hafal</span></div><div class="ln l-red"><span id="s20-l1w0" class="w">dia</span> <span id="s20-l1w1" class="w">memang</span> <span id="s20-l1w2" class="w">baca</span> <span id="s20-l1w3" class="w">prompter</span></div></div></div>
+        <div id="s22" class="clip say st-caps" data-layout-allow-occlusion data-start="148.167" data-duration="2.833" data-track-index="4"><div class="scrim"></div><div class="block"><div class="ln l-caps"><span id="s22-l0w0" class="w">kayaknya</span> <span id="s22-l0w1" class="w">public</span> <span id="s22-l0w2" class="w">speaker</span></div><div class="ln l-capsserif"><span id="s22-l1w0" class="w">terbaik</span></div></div></div>
+        <div id="s23" class="clip float right" data-layout-allow-occlusion data-layout-allow-overflow data-start="150.933" data-duration="2.567" data-track-index="5" style="left:1270px;width:480px"><div class="scrim"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--sby.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'535' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/sby.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/sby.jpg" alt="" /></div><div class="nametag"><span class="nm">SUSILO BAMBANG YUDHOYONO</span><span class="rl">Presiden ke-6 RI</span></div></div></div>
+        <div id="s24" class="clip float left" data-layout-allow-occlusion data-layout-allow-overflow data-start="153.5" data-duration="1.4" data-track-index="5" style="left:170px;width:480px"><div class="scrim"></div><div class="card"><div class="pic portrait"><img src="data:image/svg+xml,%3C!--soekarno-portrait.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pic/soekarno-portrait.jpg%3C/text%3E%3C/svg%3E" data-media="assets/pic/soekarno-portrait.jpg" alt="" /></div><div class="nametag"><span class="nm">SOEKARNO</span><span class="rl">Presiden pertama RI</span></div></div></div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it. Each line is cued on its spoken word, and each
+        // scene's .block fades out just before the scene ends (the scene times are in STRUCTURE).
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        W([["s0-l0w0", 0.01], ["s0-l0w1", 0.174], ["s0-l0w2", 0.317], ["s0-l0w3", 1.014], ["s0-l1w0", 1.86], ["s0-l1w1", 2.27], ["s0-l1w2", 2.66], ["s0-l2w0", 3.594], ["s0-l2w1", 3.978], ["s0-l2w2", 4.82], ["s0-l2w3", 5.176]]);
+        tl.fromTo("#s0 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 0.0);
+        tl.to("#s0 .block", { opacity: 0, duration: 0.13, ease: "none" }, 5.327);
+        W([["s2-l0w0", 16.529], ["s2-l0w1", 17.126], ["s2-l0w2", 17.29], ["s2-l0w3", 17.455], ["s2-l1w0", 17.723], ["s2-l1w1", 17.97], ["s2-l1w2", 18.093], ["s2-l1w3", 18.41]]);
+        tl.fromTo("#s2 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 16.5);
+        tl.to("#s2 .block", { opacity: 0, duration: 0.13, ease: "none" }, 20.06);
+        W([["s5-l0w0", 30.4], ["s5-l0w1", 31.041], ["s5-l0w2", 31.682], ["s5-l0w3", 32.71], ["s5-l0w4", 33.43], ["s5-l0w5", 33.813]]);
+        tl.fromTo("#s5 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 30.367);
+        tl.to("#s5 .block", { opacity: 0, duration: 0.13, ease: "none" }, 34.393);
+        tl.fromTo("#s6 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 36.9);
+        tl.fromTo("#s6 .card", { opacity: 0, filter: "blur(16px)", scale: 0.94 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.32, ease: "power2.out" }, 36.9);
+        tl.to("#s6 .card", { opacity: 0, duration: 0.13, ease: "none" }, 40.793);
+        W([["s7-l0w0", 40.95], ["s7-l0w1", 41.46], ["s7-l1w0", 41.824], ["s7-l1w1", 42.054], ["s7-l1w2", 42.284], ["s7-l1w3", 42.551]]);
+        Q([["s7-l0t", 40.94]]);
+        tl.fromTo("#s7 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 40.933);
+        tl.to("#s7 .block", { opacity: 0, duration: 0.13, ease: "none" }, 43.56);
+        W([["s8-l0w0", 54.84], ["s8-l0w1", 54.933], ["s8-l0w2", 55.307], ["s8-l1w0", 55.64], ["s8-l1w1", 55.753], ["s8-l2w0", 56.14], ["s8-l2w1", 56.93]]);
+        tl.fromTo("#s8 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 54.833);
+        tl.to("#s8 .block", { opacity: 0, duration: 0.13, ease: "none" }, 59.393);
+        W([["s9-l0w0", 60.616], ["s9-l0w1", 61.518], ["s9-l0w2", 62.154], ["s9-l1w0", 62.605], ["s9-l1w1", 62.88]]);
+        tl.to("#s9 .block", { opacity: 0, duration: 0.13, ease: "none" }, 64.327);
+        W([["s13-l0w0", 79.567], ["s13-l0w1", 79.572], ["s13-l0w2", 79.855], ["s13-l0w3", 80.442], ["s13-l0w4", 80.594], ["s13-l1w0", 81.317], ["s13-l1w1", 82.04], ["s13-l2w0", 83.32], ["s13-l2w1", 83.958]]);
+        tl.fromTo("#s13 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 79.567);
+        tl.to("#s13 .block", { opacity: 0, duration: 0.13, ease: "none" }, 86.46);
+        W([["s15-l0w0", 93.47], ["s15-l0w1", 93.788], ["s15-l0w2", 94.051], ["s15-l0w3", 94.2], ["s15-l0w4", 94.58]]);
+        tl.fromTo("#s15 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 93.433);
+        tl.to("#s15 .block", { opacity: 0, duration: 0.13, ease: "none" }, 95.193);
+        W([["s16-l0w0", 96.06], ["s16-l0w1", 96.91], ["s16-l1w0", 97.498], ["s16-l1w1", 98.14], ["s16-l1w2", 98.589]]);
+        tl.fromTo("#s16 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 95.333);
+        tl.to("#s16 .block", { opacity: 0, duration: 0.13, ease: "none" }, 100.527);
+        tl.fromTo("#s17 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 108.433);
+        tl.fromTo("#s17 .card", { opacity: 0, filter: "blur(16px)", scale: 0.94 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.32, ease: "power2.out" }, 108.433);
+        tl.to("#s17 .card", { opacity: 0, duration: 0.13, ease: "none" }, 114.96);
+        W([["s18-l0w0", 118.49], ["s18-l0w1", 119.14], ["s18-l0w2", 119.711], ["s18-l0w3", 119.888], ["s18-l1w0", 120.43], ["s18-l1w1", 121.08], ["s18-l1w2", 121.405], ["s18-l2w0", 121.78], ["s18-l2w1", 122.371], ["s18-l2w2", 122.745]]);
+        tl.fromTo("#s18 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 118.467);
+        tl.to("#s18 .block", { opacity: 0, duration: 0.13, ease: "none" }, 124.693);
+        W([["s19-l0w0", 123.83], ["s19-l0w1", 123.93], ["s19-l0w2", 124.116], ["s19-l1w0", 124.302], ["s19-l1w1", 124.488], ["s19-l1w2", 126.329], ["s19-l2w0", 127.477], ["s19-l2w1", 127.519], ["s19-l2w2", 128.057]]);
+        tl.fromTo("#s19 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 123.8);
+        tl.to("#s19 .block", { opacity: 0, duration: 0.13, ease: "none" }, 129.86);
+        W([["s20-l0w0", 130.26], ["s20-l0w1", 130.384], ["s20-l0w2", 130.508], ["s20-l0w3", 130.528], ["s20-l1w0", 131.459], ["s20-l1w1", 131.604], ["s20-l1w2", 131.852], ["s20-l1w3", 132.038]]);
+        tl.to("#s20 .block", { opacity: 0, duration: 0.13, ease: "none" }, 133.427);
+        W([["s22-l0w0", 148.19], ["s22-l0w1", 148.376], ["s22-l0w2", 148.915], ["s22-l1w0", 149.47]]);
+        tl.fromTo("#s22 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 148.167);
+        tl.to("#s22 .block", { opacity: 0, duration: 0.13, ease: "none" }, 150.86);
+        tl.fromTo("#s23 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 150.933);
+        tl.fromTo("#s23 .card", { opacity: 0, filter: "blur(16px)", scale: 0.94 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.32, ease: "power2.out" }, 150.933);
+        tl.to("#s23 .card", { opacity: 0, duration: 0.13, ease: "none" }, 153.36);
+        tl.fromTo("#s24 .scrim", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 153.5);
+        tl.fromTo("#s24 .card", { opacity: 0, filter: "blur(16px)", scale: 0.94 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.32, ease: "power2.out" }, 153.5);
+        tl.to("#s24 .card", { opacity: 0, duration: 0.13, ease: "none" }, 154.76);
+        window.__timelines["over-01"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

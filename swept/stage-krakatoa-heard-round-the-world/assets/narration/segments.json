@@ -1,0 +1,743 @@
+{
+ "version": 1,
+ "engine": "kokoro via misaki (am_michael)",
+ "lead": 0.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "August twenty-seventh, eighteen eighty-three. [Krakatoa](/kɹˌækətˈOə/), in the [Sunda](/sˈundə/) Strait.",
+   "key": "f7237a64755d408d",
+   "start": 0.0,
+   "duration": 5.101,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "August",
+     "start": 0.1,
+     "end": 0.518
+    },
+    {
+     "text": "twenty",
+     "start": 0.518,
+     "end": 0.852
+    },
+    {
+     "text": "seventh,",
+     "start": 0.852,
+     "end": 1.153
+    },
+    {
+     "text": "eighteen.",
+     "start": 1.437,
+     "end": 2.44
+    },
+    {
+     "text": "Krakatoa",
+     "start": 2.652,
+     "end": 3.253
+    },
+    {
+     "text": "in",
+     "start": 3.308,
+     "end": 3.364
+    },
+    {
+     "text": "the",
+     "start": 3.364,
+     "end": 3.475
+    },
+    {
+     "text": "Sunda",
+     "start": 3.475,
+     "end": 3.92
+    },
+    {
+     "text": "Strait.",
+     "start": 3.92,
+     "end": 4.421
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "The volcano has rumbled since May. At two minutes past ten, the third and largest explosion tears the island apart.",
+   "key": "f136bfb9791af8d6",
+   "start": 5.551,
+   "duration": 8.002,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "The",
+     "start": 0.02,
+     "end": 0.163
+    },
+    {
+     "text": "volcano",
+     "start": 0.163,
+     "end": 0.591
+    },
+    {
+     "text": "has",
+     "start": 0.734,
+     "end": 0.877
+    },
+    {
+     "text": "rumbled",
+     "start": 0.877,
+     "end": 1.377
+    },
+    {
+     "text": "since",
+     "start": 1.377,
+     "end": 1.591
+    },
+    {
+     "text": "May.",
+     "start": 1.591,
+     "end": 2.02
+    },
+    {
+     "text": "At",
+     "start": 2.264,
+     "end": 2.403
+    },
+    {
+     "text": "two",
+     "start": 2.403,
+     "end": 2.551
+    },
+    {
+     "text": "minutes",
+     "start": 2.625,
+     "end": 2.92
+    },
+    {
+     "text": "past",
+     "start": 2.92,
+     "end": 3.216
+    },
+    {
+     "text": "ten,",
+     "start": 3.216,
+     "end": 3.692
+    },
+    {
+     "text": "the",
+     "start": 4.168,
+     "end": 4.168
+    },
+    {
+     "text": "third",
+     "start": 4.168,
+     "end": 4.472
+    },
+    {
+     "text": "and",
+     "start": 4.472,
+     "end": 4.694
+    },
+    {
+     "text": "largest",
+     "start": 4.694,
+     "end": 5.138
+    },
+    {
+     "text": "explosion",
+     "start": 5.138,
+     "end": 5.655
+    },
+    {
+     "text": "tears",
+     "start": 5.803,
+     "end": 6.246
+    },
+    {
+     "text": "the",
+     "start": 6.246,
+     "end": 6.32
+    },
+    {
+     "text": "island",
+     "start": 6.32,
+     "end": 6.764
+    },
+    {
+     "text": "apart.",
+     "start": 6.764,
+     "end": 7.352
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "Waves more than thirty metres high cross the strait.",
+   "key": "09a996bc4b068e5a",
+   "start": 14.003,
+   "duration": 3.479,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "waves",
+     "start": 0.12,
+     "end": 0.574
+    },
+    {
+     "text": "more",
+     "start": 0.574,
+     "end": 0.704
+    },
+    {
+     "text": "than",
+     "start": 0.704,
+     "end": 0.834
+    },
+    {
+     "text": "30",
+     "start": 0.834,
+     "end": 1.158
+    },
+    {
+     "text": "meters",
+     "start": 1.158,
+     "end": 1.482
+    },
+    {
+     "text": "high",
+     "start": 1.482,
+     "end": 1.807
+    },
+    {
+     "text": "cross",
+     "start": 1.807,
+     "end": 2.066
+    },
+    {
+     "text": "the",
+     "start": 2.066,
+     "end": 2.196
+    },
+    {
+     "text": "straight.",
+     "start": 2.196,
+     "end": 2.759
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "They kill thirty-six thousand, four hundred and seventeen people.",
+   "key": "517d24f4005633e7",
+   "start": 17.932,
+   "duration": 4.439,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "They",
+     "start": 0.04,
+     "end": 0.275
+    },
+    {
+     "text": "kill",
+     "start": 0.275,
+     "end": 0.51
+    },
+    {
+     "text": "36,417",
+     "start": 0.589,
+     "end": 3.331
+    },
+    {
+     "text": "people.",
+     "start": 3.488,
+     "end": 3.88
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s05",
+   "file": "assets/narration/s05.mp3",
+   "text": "But what the world remembers is the sound. The loudest sound in recorded history.",
+   "key": "252e12f78c84b1d7",
+   "start": 22.821,
+   "duration": 5.186,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "But",
+     "start": 0.04,
+     "end": 0.276
+    },
+    {
+     "text": "what",
+     "start": 0.276,
+     "end": 0.433
+    },
+    {
+     "text": "the",
+     "start": 0.433,
+     "end": 0.59
+    },
+    {
+     "text": "world",
+     "start": 0.59,
+     "end": 0.904
+    },
+    {
+     "text": "remembers",
+     "start": 0.904,
+     "end": 1.454
+    },
+    {
+     "text": "is",
+     "start": 1.454,
+     "end": 1.611
+    },
+    {
+     "text": "the",
+     "start": 1.611,
+     "end": 1.769
+    },
+    {
+     "text": "sound,",
+     "start": 1.769,
+     "end": 2.227
+    },
+    {
+     "text": "the",
+     "start": 2.383,
+     "end": 2.485
+    },
+    {
+     "text": "loudest",
+     "start": 2.485,
+     "end": 2.905
+    },
+    {
+     "text": "sound",
+     "start": 2.905,
+     "end": 3.145
+    },
+    {
+     "text": "in",
+     "start": 3.145,
+     "end": 3.325
+    },
+    {
+     "text": "recorded",
+     "start": 3.325,
+     "end": 3.745
+    },
+    {
+     "text": "history.",
+     "start": 3.745,
+     "end": 4.395
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s06",
+   "file": "assets/narration/s06.mp3",
+   "text": "[Rogier](/ɹOɡˈɪɹ/) [Verbeek](/vəɹbˈAk/), a Dutch geologist, surveys what is left. Two thirds of the island is gone.",
+   "key": "c94bfef65ef77505",
+   "start": 28.457,
+   "duration": 6.103,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "Roger",
+     "start": 0.06,
+     "end": 0.627
+    },
+    {
+     "text": "Verbeak,",
+     "start": 0.627,
+     "end": 1.274
+    },
+    {
+     "text": "a",
+     "start": 1.274,
+     "end": 1.355
+    },
+    {
+     "text": "Dutch",
+     "start": 1.355,
+     "end": 1.679
+    },
+    {
+     "text": "geologist,",
+     "start": 1.679,
+     "end": 2.407
+    },
+    {
+     "text": "surveys",
+     "start": 2.407,
+     "end": 2.893
+    },
+    {
+     "text": "what",
+     "start": 2.893,
+     "end": 3.054
+    },
+    {
+     "text": "is",
+     "start": 3.054,
+     "end": 3.216
+    },
+    {
+     "text": "left.",
+     "start": 3.216,
+     "end": 3.54
+    },
+    {
+     "text": "Two-thirds",
+     "start": 3.667,
+     "end": 4.153
+    },
+    {
+     "text": "of",
+     "start": 4.153,
+     "end": 4.213
+    },
+    {
+     "text": "the",
+     "start": 4.213,
+     "end": 4.335
+    },
+    {
+     "text": "island",
+     "start": 4.335,
+     "end": 4.638
+    },
+    {
+     "text": "is",
+     "start": 4.638,
+     "end": 4.82
+    },
+    {
+     "text": "gone.",
+     "start": 4.82,
+     "end": 5.424
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s07",
+   "file": "assets/narration/s07.mp3",
+   "text": "One hundred and sixty-five coastal villages are destroyed.",
+   "key": "94ed6f52948ffc68",
+   "start": 35.01,
+   "duration": 4.354,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "165",
+     "start": 0.04,
+     "end": 1.498
+    },
+    {
+     "text": "coastal",
+     "start": 1.637,
+     "end": 2.123
+    },
+    {
+     "text": "villages",
+     "start": 2.123,
+     "end": 2.678
+    },
+    {
+     "text": "are",
+     "start": 2.678,
+     "end": 2.887
+    },
+    {
+     "text": "destroyed.",
+     "start": 2.887,
+     "end": 3.714
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s08",
+   "file": "assets/narration/s08.mp3",
+   "text": "The sound keeps going. [Batavia](/bətˈAviə/), one hundred and sixty kilometres away. Perth, about three thousand one hundred. [Rodrigues](/ɹɑdɹˈiɡ/), four thousand eight hundred: a police chief reports the roar of heavy guns.",
+   "key": "6e1015c2d754cfd3",
+   "start": 39.814,
+   "duration": 12.717,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "The",
+     "start": 0.04,
+     "end": 0.176
+    },
+    {
+     "text": "sound",
+     "start": 0.176,
+     "end": 0.514
+    },
+    {
+     "text": "keeps",
+     "start": 0.514,
+     "end": 0.786
+    },
+    {
+     "text": "going.",
+     "start": 0.786,
+     "end": 1.241
+    },
+    {
+     "text": "Batavia",
+     "start": 1.543,
+     "end": 2.159
+    },
+    {
+     "text": "160",
+     "start": 2.594,
+     "end": 3.576
+    },
+    {
+     "text": "kilometers",
+     "start": 3.576,
+     "end": 4.181
+    },
+    {
+     "text": "away.",
+     "start": 4.181,
+     "end": 4.635
+    },
+    {
+     "text": "Perth",
+     "start": 4.799,
+     "end": 5.279
+    },
+    {
+     "text": "about",
+     "start": 5.439,
+     "end": 5.679
+    },
+    {
+     "text": "3,100.",
+     "start": 5.679,
+     "end": 6.841
+    },
+    {
+     "text": "Rodrigue",
+     "start": 7.033,
+     "end": 7.54
+    },
+    {
+     "text": "4,800.",
+     "start": 7.765,
+     "end": 8.849
+    },
+    {
+     "text": "A",
+     "start": 9.331,
+     "end": 9.331
+    },
+    {
+     "text": "police",
+     "start": 9.331,
+     "end": 9.634
+    },
+    {
+     "text": "chief",
+     "start": 9.634,
+     "end": 10.008
+    },
+    {
+     "text": "reports",
+     "start": 10.008,
+     "end": 10.457
+    },
+    {
+     "text": "the",
+     "start": 10.457,
+     "end": 10.607
+    },
+    {
+     "text": "roar",
+     "start": 10.607,
+     "end": 10.98
+    },
+    {
+     "text": "of",
+     "start": 10.98,
+     "end": 11.055
+    },
+    {
+     "text": "heavy",
+     "start": 11.055,
+     "end": 11.429
+    },
+    {
+     "text": "guns.",
+     "start": 11.429,
+     "end": 12.177
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s09",
+   "file": "assets/narration/s09.mp3",
+   "text": "Barographs around the world record the pressure wave seven times.",
+   "key": "5c0003489b045502",
+   "start": 52.981,
+   "duration": 4.631,
+   "gap_after": 0.45,
+   "words": [
+    {
+     "text": "Barographs",
+     "start": 0.04,
+     "end": 0.778
+    },
+    {
+     "text": "around",
+     "start": 0.778,
+     "end": 1.073
+    },
+    {
+     "text": "the",
+     "start": 1.073,
+     "end": 1.147
+    },
+    {
+     "text": "world",
+     "start": 1.147,
+     "end": 1.443
+    },
+    {
+     "text": "record",
+     "start": 1.443,
+     "end": 1.885
+    },
+    {
+     "text": "the",
+     "start": 1.885,
+     "end": 2.033
+    },
+    {
+     "text": "pressure",
+     "start": 2.033,
+     "end": 2.476
+    },
+    {
+     "text": "wave",
+     "start": 2.476,
+     "end": 2.919
+    },
+    {
+     "text": "seven",
+     "start": 2.919,
+     "end": 3.436
+    },
+    {
+     "text": "times.",
+     "start": 3.436,
+     "end": 4.1
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  },
+  {
+   "id": "s10",
+   "file": "assets/narration/s10.mp3",
+   "text": "In nineteen twenty-seven, a new island rises from the sea. [Anak](/ˈɑnɑk/) [Krakatau](/kɹˌækətˈW/): the child of [Krakatoa](/kɹˌækətˈOə/).",
+   "key": "10a7b34dadd6ce66",
+   "start": 58.062,
+   "duration": 7.405,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "In",
+     "start": 0.08,
+     "end": 0.311
+    },
+    {
+     "text": "1927,",
+     "start": 0.311,
+     "end": 1.359
+    },
+    {
+     "text": "a",
+     "start": 1.775,
+     "end": 1.775
+    },
+    {
+     "text": "new",
+     "start": 1.775,
+     "end": 2.083
+    },
+    {
+     "text": "island",
+     "start": 2.083,
+     "end": 2.545
+    },
+    {
+     "text": "rises",
+     "start": 2.545,
+     "end": 3.007
+    },
+    {
+     "text": "from",
+     "start": 3.007,
+     "end": 3.161
+    },
+    {
+     "text": "the",
+     "start": 3.161,
+     "end": 3.238
+    },
+    {
+     "text": "sea,",
+     "start": 3.238,
+     "end": 3.685
+    },
+    {
+     "text": "Anak",
+     "start": 4.055,
+     "end": 4.425
+    },
+    {
+     "text": "Krakatao,",
+     "start": 4.551,
+     "end": 5.043
+    },
+    {
+     "text": "the",
+     "start": 5.359,
+     "end": 5.373
+    },
+    {
+     "text": "child",
+     "start": 5.373,
+     "end": 5.563
+    },
+    {
+     "text": "of",
+     "start": 5.563,
+     "end": 5.69
+    },
+    {
+     "text": "Krakatawa.",
+     "start": 5.69,
+     "end": 6.737
+    }
+   ],
+   "voice": "kokoro via misaki (am_michael)"
+  }
+ ],
+ "duration": 65.467
+}

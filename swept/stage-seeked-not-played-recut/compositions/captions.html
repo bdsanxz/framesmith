@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/captions.html (composition id "captions")
+  WHAT: The word-synced caption track for the whole 17.96 s film, mounted by index.html at 0 s. The
+    text is the narration as captioned in captions.txt, with corrected spellings (HyperFrames,
+    seeked, families). It shows one line at a time in 12 lines, each on screen for the length of its
+    phrase: "HyperFrames turns HTML into video." (0.05 s) through "That is why an agent can direct
+    it." (15.25 s to 17.16 s). Each word is grey before it is spoken, white while it is spoken, and
+    light grey once it has been said.
+  STRUCTURE: #root holds twelve .captions-line divs (captions-l0 to captions-l11), each a clip with
+    its own data-start and data-duration, and each word is a span (captions-w0 to captions-w45). The
+    line sits at the bottom of the frame over a dark band. The script builds a timing array of 46
+    [start, end] pairs, one per word in order. For each word it sets grey #8e8e93 at 0 s, white
+    #ffffff at its start, and #c7c7cc at its end. Times are composition-local, which equals film
+    time because the host mounts this at 0 s.
+  CUSTOMIZE: Text: edit the span text, and keep the spans and the timing array in step (the array is
+    matched to the spans by index, so a new word needs a new span and a new pair in the right
+    place). Line breaks: move words between the captions-l divs, and set each line's data-start and
+    data-duration to its first and last word. Colours: #8e8e93 upcoming, #ffffff active, #c7c7cc
+    spoken; the band is rgba(0, 0, 0, 0.55). Layout: bottom 120 px, padding 12px 160px, Inter at 600
+    weight, 44 px. Regenerate the timing from captions.txt with scripts/word-captions.mjs (the
+    README gives the command) when the narration changes.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or
+    CSS image slot. Its only font is Inter, named in the font stack of .captions-line with no @font-face
+    rule; HyperFrames bundles Inter, so no font file is added here. If Inter is
+    not available where you render, the sans-serif fallback is used, and the timing is unchanged.
+  WHEN TO USE: Captions that colour each word as it is spoken, over a talking head. Pick a plain
+    subtitle track when the words need no timing colour, or when the captions must sit on a
+    different band than the cards.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the captions never block the video beneath. */
+        #root { position: absolute; inset: 0; pointer-events: none; }
+        /* One caption line: a dark band at the bottom, with the text centred in it. */
+        .captions-line { position: absolute; left: 0; right: 0; bottom: 120px; padding: 12px 160px; text-align: center;
+          background: rgba(0,0,0,0.55); font-family: "Inter", sans-serif; font-size: 44px; font-weight: 600;
+          line-height: 1.25; letter-spacing: -0.01em; }
+        /* A word before it is spoken: grey. The script changes its colour as it is said. */
+        .captions-word { color: #8e8e93; }
+      </style>
+      <div id="root" data-composition-id="captions" data-width="1920" data-height="1080">
+        <!-- The caption lines, in order: each is a clip that appears for its phrase, with one span per word. -->
+        <div id="captions-l0" class="captions-line clip" data-start="0.05" data-duration="2.8"><span id="captions-w0" class="captions-word">HyperFrames</span> <span id="captions-w1" class="captions-word">turns</span> <span id="captions-w2" class="captions-word">HTML</span> <span id="captions-w3" class="captions-word">into</span> <span id="captions-w4" class="captions-word">video.</span></div>
+        <div id="captions-l1" class="captions-line clip" data-start="2.85" data-duration="1.87"><span id="captions-w5" class="captions-word">The</span> <span id="captions-w6" class="captions-word">registry</span> <span id="captions-w7" class="captions-word">already</span> <span id="captions-w8" class="captions-word">holds</span> <span id="captions-w9" class="captions-word">about</span></div>
+        <div id="captions-l2" class="captions-line clip" data-start="4.72" data-duration="2.05"><span id="captions-w10" class="captions-word">400</span> <span id="captions-w11" class="captions-word">blocks</span> <span id="captions-w12" class="captions-word">and</span> <span id="captions-w13" class="captions-word">components.</span></div>
+        <div id="captions-l3" class="captions-line clip" data-start="6.77" data-duration="1.39"><span id="captions-w14" class="captions-word">18</span> <span id="captions-w15" class="captions-word">font</span> <span id="captions-w16" class="captions-word">families</span> <span id="captions-w17" class="captions-word">ship</span></div>
+        <div id="captions-l4" class="captions-line clip" data-start="8.16" data-duration="1.41"><span id="captions-w18" class="captions-word">inside</span> <span id="captions-w19" class="captions-word">the</span> <span id="captions-w20" class="captions-word">renderer.</span></div>
+        <div id="captions-l5" class="captions-line clip" data-start="9.57" data-duration="1.87"><span id="captions-w21" class="captions-word">And</span> <span id="captions-w22" class="captions-word">because</span> <span id="captions-w23" class="captions-word">every</span> <span id="captions-w24" class="captions-word">frame</span> <span id="captions-w25" class="captions-word">is</span> <span id="captions-w26" class="captions-word">seeked,</span></div>
+        <div id="captions-l6" class="captions-line clip" data-start="11.44" data-duration="1.01"><span id="captions-w27" class="captions-word">not</span> <span id="captions-w28" class="captions-word">played,</span></div>
+        <div id="captions-l7" class="captions-line clip" data-start="12.45" data-duration="1.1"><span id="captions-w29" class="captions-word">the</span> <span id="captions-w30" class="captions-word">same</span> <span id="captions-w31" class="captions-word">input</span> <span id="captions-w32" class="captions-word">gives</span></div>
+        <div id="captions-l8" class="captions-line clip" data-start="13.55" data-duration="0.94"><span id="captions-w33" class="captions-word">the</span> <span id="captions-w34" class="captions-word">same</span> <span id="captions-w35" class="captions-word">video,</span></div>
+        <div id="captions-l9" class="captions-line clip" data-start="14.49" data-duration="0.76"><span id="captions-w36" class="captions-word">every</span> <span id="captions-w37" class="captions-word">time.</span></div>
+        <div id="captions-l10" class="captions-line clip" data-start="15.25" data-duration="0.71"><span id="captions-w38" class="captions-word">That</span> <span id="captions-w39" class="captions-word">is</span> <span id="captions-w40" class="captions-word">why</span> <span id="captions-w41" class="captions-word">an</span></div>
+        <div id="captions-l11" class="captions-line clip" data-start="15.96" data-duration="1.8"><span id="captions-w42" class="captions-word">agent</span> <span id="captions-w43" class="captions-word">can</span> <span id="captions-w44" class="captions-word">direct</span> <span id="captions-w45" class="captions-word">it.</span></div>
+      </div>
+      <script>
+        /* Setup: this scene's paused timeline. */
+        // Each word: upcoming → active at its start → spoken at its end. Times are composition-local.
+        const tl = gsap.timeline({ paused: true });
+        const timing = [[0.05,1.07],[1.13,1.56],[1.56,1.93],[1.93,2.3],[2.3,2.84],[2.85,3.02],[3.02,3.52],[3.52,3.98],[3.98,4.26],[4.33,4.59],[4.72,5.19],[5.19,5.52],[5.64,5.77],[5.77,6.47],[6.77,7.11],[7.21,7.44],[7.44,7.87],[7.87,8.16],[8.16,8.59],[8.59,8.8],[8.8,9.56],[9.57,9.74],[9.74,10.17],[10.17,10.48],[10.48,10.79],[10.79,10.91],[10.91,11.31],[11.44,11.72],[11.72,12.4],[12.45,12.6],[12.6,12.79],[12.89,13.14],[13.23,13.55],[13.55,13.75],[13.75,14.02],[14.02,14.49],[14.49,14.83],[14.83,15.23],[15.25,15.5],[15.5,15.63],[15.63,15.83],[15.83,15.96],[15.96,16.3],[16.3,16.5],[16.5,16.91],[16.91,17.16]];
+        /* Helper loop: one set of colour changes per word, matched to its span by index. */
+        timing.forEach(([start, end], i) => {
+          const el = "#captions-w" + i;
+          tl.set(el, { color: "#8e8e93" }, 0);
+          tl.set(el, { color: "#ffffff" }, start);
+          tl.set(el, { color: "#c7c7cc" }, end);
+        });
+        /* Registration: the host finds this timeline by the composition id "captions". */
+        window.__timelines["captions"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

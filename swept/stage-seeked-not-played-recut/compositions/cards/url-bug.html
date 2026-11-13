@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/cards/url-bug.html (composition id "card-url-bug")
+  WHAT: A persistent URL bug: a dark pill at the top right of the frame with a blue dot and the
+    address hyperframes.heygen.com. index.html mounts it at 0 s on track 2 for the whole 17.96 s,
+    and it fades in and drops 12 px into place at 0.3 s over 0.5 s. Its host in index.html carries
+    the same id, card-url-bug, as every card host matches its card's composition id.
+  STRUCTURE: #root (full frame) holds #bug, a pill 96 px from the right and 64 px from the top,
+    containing #bug-dot (a 12 px blue circle) and the address text. Timeline (card-local, same as
+    film time because the host starts at 0): #bug fades in and rises from 12 px above over 0.5 s,
+    starting at 0.3 s.
+  CUSTOMIZE: The address: the text after #bug-dot. Colours: pill rgba(17, 17, 19, 0.8), dot #0a84ff,
+    text #c7c7cc. Size: 26 px in JetBrains Mono. Position: right 96 px, top 64 px. Timing: 0.3 s
+    start. To keep the bug on screen for the whole film, leave its host at 0 s with the root's full
+    duration.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its only font is JetBrains Mono, named in the font stack of #bug with no @font-face rule.
+    HyperFrames bundles it, so no font file is added here. If it is not available where you render, the
+    monospace fallback is used and the layout still holds.
+  WHEN TO USE: A persistent source or brand reference across a talking-head film. Pick nothing for a
+    film that should not show a URL, or move the bug when a card needs the top right.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the bug never blocks the video beneath. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #ffffff; pointer-events: none; }
+        /* The URL pill at the top right of the frame. */
+        #bug { position: absolute; right: 96px; top: 64px; display: flex; align-items: center; gap: 14px; padding: 12px 24px; border-radius: 999px;
+          background: rgba(17, 17, 19, 0.8); font-family: "JetBrains Mono", monospace; font-size: 26px; color: #c7c7cc; }
+        /* The small blue dot before the address. */
+        #bug-dot { display: block; width: 12px; height: 12px; border-radius: 50%; background: #0a84ff; }
+      </style>
+      <div id="root" data-composition-id="card-url-bug" data-width="1920" data-height="1080">
+        <!-- The persistent bug: a dot and the address. -->
+        <div id="bug"><span id="bug-dot"></span>hyperframes.heygen.com</div>
+      </div>
+      <script>
+        /* Setup: this bug's paused timeline. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#bug", { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+        /* Registration: the host finds this timeline by the composition id "card-url-bug". */
+        window.__timelines["card-url-bug"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

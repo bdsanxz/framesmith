@@ -1,0 +1,164 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/street.html (composition id "street")
+  WHAT: The wrong turn, mounted at 15.56 s for 8.76 s, as a top-down diagram of the quay in
+    Sarajevo, with Indonesian labels. Three cars roll along the quay toward Jembatan Latin (the
+    Latin Bridge) while the planned route is drawn in. The archduke's car turns right into Jl. Franz
+    Joseph at 17.54 s, is stamped SALAH ARAH! ("wrong way") at 19.16 s, backs up at 20.28 s and
+    stops; a dashed ring closes on it, and MESIN MATI ("engine dead") is stamped at 22.29 s. At
+    23.16 s a cut-out of Gavrilo Princip is pinned to the corner, with his name at 23.36 s. The file plays no
+    sound of its own.
+  STRUCTURE: Back to front: #st-plan, an SVG with the city blocks (hatched), the deli (TOKO
+    SCHILLER), Jl. Franz Joseph, the quay (DERMAGA APPEL), the river (SUNGAI MILJACKA, with the
+    waves pattern), the bridge (JEMBATAN LATIN), the planned route #st-route and the ring #st-ring.
+    Then the three car divs #st-car-lead, #st-car-ad and #st-car-rear, the tag #st-car-tag, the
+    clock #st-time, the stamps #st-wrong and #st-stall, the portrait #st-princip and its name
+    #st-princip-name. Everything sits in #st-cam, which pushes in from 1 to 1.2 over 8.76 s.
+    Timeline (local seconds from 15.56 s): the route is revealed by a clip-path from 0.1 s over 1.2
+    s; the lead car moves x 120 to 2150 on y 675 over 3.6 s (linear); the rear car x -120 to 1010
+    over 2.3 s; the archduke's car follows a keyframed path (x 1230 at y 675, then up to y 500, then
+    back to 530) that turns it -90 degrees at 1.98 s and reverses at 4.72 s; the stamp at 3.6 s over
+    0.14 s; the ring at 6.13 s over 0.55 s; ENGINE STALLS at 6.73 s; Princip at 7.6 s over 0.22 s;
+    his name at 7.8 s over 0.2 s.
+  CUSTOMIZE: Labels: the text of the SVG text elements (TOKO / SCHILLER, JL. FRANZ JOSEPH, DERMAGA
+    APPEL, SUNGAI MILJACKA, JEMBATAN LATIN), #st-time (SARAJEVO, 10.45 PAGI), #st-car-tag (ADIPATI),
+    the stamps #st-wrong and #st-stall, and #st-princip-name (GAVRILO PRINCIP). Colours: ground
+    #eceae3, river #5b6e9e and its label ink #f3f2ed, quay #f6f5f1, car #262d42, archduke's car
+    #e3a21a, stamp ink #8a5c06 (darkened for contrast on the pale paper), route and ring #e3a21a,
+    street outlines #2940a3. Geometry: the quay is y 610 to 740, the bridge x 1180 to 1280, the car
+    lane y 675, the turn at x 1230. If the corner moves, change the bridge, the ring centre
+    (1230,520), the car path x 1230, and the route end together. Timings are local seconds in the
+    script. The car keyframes hold two waits (1.98 s before the turn is the drive, 1.74 s the pause
+    before the reverse); change the turn and the reverse time together with the stamps.
+  MEDIA: No media file is bundled. This file has one photo slot and two font slots, and no video or sound.
+    Photo slot, the img inside #st-princip (assets/generated/princip.png, a paper-sticker cut-out of Gavrilo Princip,
+    made from a public domain Wikimedia Commons headshot by cutout.py and paper-cutout.py): it now shows a faint hatch
+    stand-in labeled "PHOTO: assets/generated/princip.png", filling the 238 by 225 px box. The name strip
+    #st-princip-name stays on it. To plug in your own cut-out, set the src of that img to your file, for example
+    src="assets/generated/princip.png".
+    Font slot 1, Anton, used by the stamps #st-wrong and #st-stall, the tag #st-car-tag and the name #st-princip-name:
+    it now uses an installed Anton, or the fallback sans-serif. To bundle it, change the src of the Anton @font-face
+    rule to url("assets/fonts/anton-latin.woff2") format("woff2"), local("Anton").
+    Font slot 2, Special Elite, used by the .st-lbl map labels and the clock #st-time: it now uses an installed Special
+    Elite, or the fallback monospace. To bundle it, change the src of the Special Elite @font-face rule to
+    url("assets/fonts/special-elite-latin.woff2") format("woff2"), local("Special Elite").
+    Everything else is inline SVG and CSS. The map is drawn in this file, so it needs no map file.
+  WHEN TO USE: Explaining a short movement on a small map, such as a route, a wrong turn or a stall,
+    where a diagram is clearer than footage. Pick a real map or live footage when the place itself
+    matters, or when a movement must look physical.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton for the stamps, tag and name; Special Elite for the map labels and the clock. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The frame: a pale map-paper ground, clipped to the stage. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #eceae3; }
+        /* One slow push toward the corner where it happens, for the whole scene. */
+        #st-cam { position: absolute; inset: 0; transform-origin: 1260px 560px; }
+        #st-plan { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        /* The river's label sits on the water, so it takes the colour that reads on the water. */
+        .st-lbl.st-lbl-water { fill: #f3f2ed; }
+        .st-lbl { font-family: "Special Elite", monospace; font-size: 22px; fill: #102266; letter-spacing: 0.06em; }
+        /* Top-down cars: a body and a windscreen; the archduke's car is the accent one. */
+        /* A car has no children, so it turns about its own centre; its tag is a sibling that follows it. */
+        .st-car { position: absolute; left: 0; top: 0; width: 78px; height: 38px; margin: -19px 0 0 -39px; border-radius: 9px; background: #262d42; box-shadow: 2px 3px 0 rgba(0, 16, 68, 0.3); }
+        .st-car::after { content: ""; position: absolute; left: 46px; top: 5px; width: 14px; height: 28px; border-radius: 3px; background: rgba(247, 247, 245, 0.75); }
+        #st-car-ad { background: #e3a21a; }
+        #st-car-tag { position: absolute; left: 0; top: 0; margin: -78px 0 0 -52px; padding: 2px 8px; background: #141a2e; font-family: "Anton", sans-serif; font-size: 22px; line-height: 1.2; color: #faf9f7; white-space: nowrap; }
+        /* The clock: a paper label with the place and the time, fixed at the top left. */
+        #st-time { position: absolute; left: 70px; top: 60px; padding: 6px 14px; background: #faf9f7; font-family: "Special Elite", monospace; font-size: 30px; line-height: 1.2; color: #1a1f35; box-shadow: 0 4px 8px rgba(0, 16, 68, 0.2); }
+        /* Rubber stamps: accent ink, a double border, a rough mask so the ink is uneven. */
+        .st-stamp { position: absolute; padding: 4px 18px; border: 6px double #8a5c06; font-family: "Anton", sans-serif; font-size: 72px; line-height: 1.15; color: #8a5c06; white-space: nowrap; mix-blend-mode: multiply; filter: url(#st-ink); }
+        #st-wrong { left: 740px; top: 190px; transform: rotate(-8deg); }
+        #st-stall { left: 640px; top: 400px; transform: rotate(5deg); font-size: 58px; }
+        /* The portrait: a cut-out of Princip with a drop shadow, pinned at the corner. */
+        #st-princip { position: absolute; left: 1530px; top: 118px; width: 238px; height: 225px; transform: rotate(4deg); filter: drop-shadow(6px 9px 8px rgba(0, 13, 63, 0.4)); }
+        #st-princip img { position: absolute; inset: 0; width: 100%; height: 100%; }
+        #st-princip-name { position: absolute; left: 1470px; top: 350px; padding: 4px 14px; background: #141a2e; font-family: "Anton", sans-serif; font-size: 46px; line-height: 1.15; color: #faf9f7; white-space: nowrap; transform: rotate(-2deg); }
+      </style>
+      <div id="root" data-composition-id="street" data-width="1920" data-height="1080">
+        <!-- The ink filter that gives the rubber stamps their uneven edge. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="st-ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5" result="n" /><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.6" result="m" /><feComposite in="SourceGraphic" in2="m" operator="in" /></filter>
+        </svg>
+        <div id="st-cam" data-layout-allow-overflow>
+          <!-- The top-down map: the hatched city blocks, the quay, the river, the bridge, and the planned route. -->
+          <svg id="st-plan" viewBox="0 0 1920 1080">
+            <defs>
+              <pattern id="st-hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="14" stroke="#c4c0b2" stroke-width="2" /></pattern>
+              <pattern id="st-waves" width="60" height="22" patternUnits="userSpaceOnUse"><path d="M0 11 Q 15 4 30 11 T 60 11" fill="none" stroke="#434e69" stroke-width="2" /></pattern>
+            </defs>
+            <!-- City blocks above the quay, Franz Joseph Street between them, Schiller's on the corner. -->
+            <g fill="url(#st-hatch)" stroke="#2940a3" stroke-width="2">
+              <rect x="-200" y="-200" width="700" height="790" /><rect x="580" y="-200" width="580" height="790" />
+              <rect x="1300" y="-200" width="820" height="560" /><rect x="1530" y="380" width="590" height="210" />
+            </g>
+            <rect x="1300" y="380" width="210" height="210" fill="#dad6c8" stroke="#2940a3" stroke-width="2" />
+            <text class="st-lbl" x="1405" y="490" text-anchor="middle">TOKO</text>
+            <text class="st-lbl" x="1405" y="520" text-anchor="middle">SCHILLER</text>
+            <text class="st-lbl" x="1230" y="300" text-anchor="middle" transform="rotate(-90 1230 300)">JL. FRANZ JOSEPH</text>
+            <!-- The quay, the river, and the bridge. -->
+            <rect x="-200" y="610" width="2320" height="130" fill="#f6f5f1" stroke="#2940a3" stroke-width="2" />
+            <text class="st-lbl" x="120" y="725">DERMAGA APPEL</text>
+            <rect x="-200" y="760" width="2320" height="200" fill="#5b6e9e" />
+            <rect x="-200" y="760" width="2320" height="200" fill="url(#st-waves)" />
+            <text class="st-lbl st-lbl-water" x="200" y="870">SUNGAI MILJACKA</text>
+            <rect x="1180" y="740" width="100" height="240" fill="#e9e7e0" stroke="#2940a3" stroke-width="2" />
+            <text class="st-lbl" x="1230" y="1020" text-anchor="middle">JEMBATAN LATIN</text>
+            <!-- The planned route: straight on along the quay. -->
+            <path id="st-route" d="M -100 675 H 2100" fill="none" stroke="#e3a21a" stroke-width="5" stroke-dasharray="18 14" />
+            <circle id="st-ring" cx="1230" cy="520" r="96" fill="none" stroke="#e3a21a" stroke-width="6" stroke-dasharray="16 12" pathLength="1000" />
+          </svg>
+          <!-- The three cars: the lead and rear of the motorcade, and the archduke's car in the accent colour. -->
+          <div class="st-car" id="st-car-lead"></div>
+          <div class="st-car" id="st-car-ad" data-layout-allow-orbit></div>
+          <div class="st-car" id="st-car-rear"></div>
+          <div id="st-car-tag">ADIPATI</div>
+          <div id="st-time">SARAJEVO · 10.45 PAGI</div>
+          <!-- The two rubber stamps, and the portrait with its name strip. -->
+          <div class="st-stamp" id="st-wrong">SALAH ARAH!</div>
+          <div class="st-stamp" id="st-stall">MESIN MATI</div>
+          <div id="st-princip"><img src="data:image/svg+xml,%3C!--princip.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/princip.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/princip.png" alt="" /></div>
+          <div id="st-princip-name">GAVRILO PRINCIP</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this scene's paused timeline. */
+        const tl = gsap.timeline({ paused: true });
+        // The route draws in from the left while the motorcade rolls along the quay toward the bridge.
+        tl.fromTo("#st-route", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 1.2, ease: "sine.inOut" }, 0.1);
+        tl.fromTo("#st-car-lead", { x: 120, y: 675 }, { x: 2150, y: 675, duration: 3.6, ease: "none" }, 0);
+        tl.fromTo("#st-car-rear", { x: -120, y: 675 }, { x: 1010, y: 675, duration: 2.3, ease: "power1.out" }, 0);
+        // The archduke's car follows, then turns right into Franz Joseph Street on "berbelok" (1.98 s),
+        // backs up when he brakes ("mengerem", 4.72 s), and stops dead.
+        // Like a token on a board: it drives to the corner, turns in place, then drives up the street.
+        // It travels while it turns, so it carries data-layout-allow-orbit (else: rotation_pivot_drift).
+        const path = [
+          { x: 1230, y: 675, duration: 1.98, ease: "power1.out" },
+          { x: 1230, y: 675, duration: 0.3 },
+          { x: 1230, y: 500, duration: 0.7, ease: "power1.inOut" },
+          { x: 1230, y: 500, duration: 1.74 },
+          { x: 1230, y: 530, duration: 0.45, ease: "power2.out" },
+        ];
+        tl.fromTo("#st-car-ad", { x: 0, y: 675 }, { keyframes: path }, 0);
+        tl.fromTo("#st-car-tag", { x: 0, y: 675 }, { keyframes: path }, 0);
+        tl.fromTo("#st-car-ad", { rotation: 0 }, { rotation: -90, duration: 0.3, ease: "power2.inOut", immediateRender: false }, 1.98);
+        // "SALAH ARAH!" is stamped on "salah" (3.69 s): it drops from above the paper and bites in.
+        tl.fromTo("#st-wrong", { scale: 1.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power4.in" }, 3.6);
+        // The engine stalls ("mati", 6.13 s): a dashed ring closes around the car, then the second stamp.
+        tl.fromTo("#st-ring", { strokeDashoffset: 1000, strokeDasharray: "0 1000" }, { strokeDasharray: "1000 0", strokeDashoffset: 0, duration: 0.55, ease: "power2.inOut" }, 6.13);
+        tl.fromTo("#st-stall", { scale: 1.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.14, ease: "power4.in" }, 6.73);
+        // A few steps away: Princip is pinned to the corner on his name (7.64 s).
+        tl.fromTo("#st-princip", { y: -60, scale: 1.25, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.22, ease: "power3.out" }, 7.6);
+        tl.fromTo("#st-princip-name", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.2, ease: "power2.out" }, 7.8);
+        tl.fromTo("#st-cam", { scale: 1 }, { scale: 1.2, duration: 8.76, ease: "sine.inOut" }, 0);
+        /* Registration: the host finds this timeline by the composition id "street". */
+        window.__timelines["street"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

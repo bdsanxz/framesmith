@@ -1,0 +1,339 @@
+{
+ "version": 1,
+ "engine": "adopted from narration.mp3",
+ "lead": 0.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "Every video here starts as one line of markup.",
+   "key": "6a4f44b92ca8ccc4",
+   "start": 0.0,
+   "duration": 2.675,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Every",
+     "start": 0.01,
+     "end": 0.37
+    },
+    {
+     "text": "video",
+     "start": 0.37,
+     "end": 0.74
+    },
+    {
+     "text": "here",
+     "start": 0.74,
+     "end": 1.04
+    },
+    {
+     "text": "starts",
+     "start": 1.04,
+     "end": 1.49
+    },
+    {
+     "text": "as",
+     "start": 1.49,
+     "end": 1.64
+    },
+    {
+     "text": "one",
+     "start": 1.64,
+     "end": 1.86
+    },
+    {
+     "text": "line",
+     "start": 1.86,
+     "end": 2.16
+    },
+    {
+     "text": "of",
+     "start": 2.16,
+     "end": 2.24
+    },
+    {
+     "text": "markup,",
+     "start": 2.3,
+     "end": 2.675
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "Watch that line become a wire.",
+   "key": "c1862426b8f00613",
+   "start": 2.675,
+   "duration": 1.93,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "watch",
+     "start": 0.145,
+     "end": 0.425
+    },
+    {
+     "text": "that",
+     "start": 0.475,
+     "end": 0.785
+    },
+    {
+     "text": "line",
+     "start": 0.785,
+     "end": 1.005
+    },
+    {
+     "text": "become",
+     "start": 1.105,
+     "end": 1.585
+    },
+    {
+     "text": "a",
+     "start": 1.585,
+     "end": 1.655
+    },
+    {
+     "text": "wire,",
+     "start": 1.655,
+     "end": 1.93
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "The wire turns into a chart, and the bars rise off it.",
+   "key": "7a338282557e37c4",
+   "start": 4.605,
+   "duration": 2.845,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "the",
+     "start": 0.135,
+     "end": 0.285
+    },
+    {
+     "text": "wire",
+     "start": 0.285,
+     "end": 0.505
+    },
+    {
+     "text": "turns",
+     "start": 0.505,
+     "end": 0.795
+    },
+    {
+     "text": "into",
+     "start": 0.805,
+     "end": 1.055
+    },
+    {
+     "text": "a",
+     "start": 1.055,
+     "end": 1.115
+    },
+    {
+     "text": "chart,",
+     "start": 1.115,
+     "end": 1.575
+    },
+    {
+     "text": "and",
+     "start": 1.575,
+     "end": 1.715
+    },
+    {
+     "text": "the",
+     "start": 1.805,
+     "end": 1.955
+    },
+    {
+     "text": "bars",
+     "start": 1.955,
+     "end": 2.185
+    },
+    {
+     "text": "rise",
+     "start": 2.245,
+     "end": 2.475
+    },
+    {
+     "text": "off",
+     "start": 2.475,
+     "end": 2.665
+    },
+    {
+     "text": "it,",
+     "start": 2.665,
+     "end": 2.845
+    }
+   ]
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "Then it bends into a waveform as the voice comes in.",
+   "key": "f37e1a3235337bfb",
+   "start": 7.45,
+   "duration": 3.115,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "then",
+     "start": 0.08,
+     "end": 0.34
+    },
+    {
+     "text": "it",
+     "start": 0.34,
+     "end": 0.46
+    },
+    {
+     "text": "bends",
+     "start": 0.77,
+     "end": 0.8
+    },
+    {
+     "text": "into",
+     "start": 0.8,
+     "end": 1.04
+    },
+    {
+     "text": "a",
+     "start": 1.1,
+     "end": 1.12
+    },
+    {
+     "text": "waveform",
+     "start": 1.12,
+     "end": 1.63
+    },
+    {
+     "text": "as",
+     "start": 1.73,
+     "end": 1.77
+    },
+    {
+     "text": "the",
+     "start": 1.77,
+     "end": 1.96
+    },
+    {
+     "text": "voice",
+     "start": 1.96,
+     "end": 2.39
+    },
+    {
+     "text": "comes",
+     "start": 2.68,
+     "end": 2.75
+    },
+    {
+     "text": "in,",
+     "start": 2.76,
+     "end": 3.02
+    }
+   ]
+  },
+  {
+   "id": "s05",
+   "file": "assets/narration/s05.mp3",
+   "text": "Now the renderer walks every frame.",
+   "key": "b5583b713bb7a184",
+   "start": 10.565,
+   "duration": 1.73,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "now",
+     "start": 0.0,
+     "end": 0.125
+    },
+    {
+     "text": "the",
+     "start": 0.125,
+     "end": 0.305
+    },
+    {
+     "text": "renderer",
+     "start": 0.335,
+     "end": 0.805
+    },
+    {
+     "text": "walks",
+     "start": 0.905,
+     "end": 1.245
+    },
+    {
+     "text": "every",
+     "start": 1.245,
+     "end": 1.595
+    },
+    {
+     "text": "frame,",
+     "start": 1.595,
+     "end": 1.73
+    }
+   ]
+  },
+  {
+   "id": "s06",
+   "file": "assets/narration/s06.mp3",
+   "text": "And the wire ends in a finished video file.",
+   "key": "f0ae9e80ee7067ca",
+   "start": 12.295,
+   "duration": 3.035,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "and",
+     "start": 0.355,
+     "end": 0.415
+    },
+    {
+     "text": "the",
+     "start": 0.725,
+     "end": 0.775
+    },
+    {
+     "text": "wire",
+     "start": 0.775,
+     "end": 0.995
+    },
+    {
+     "text": "ends",
+     "start": 1.055,
+     "end": 1.335
+    },
+    {
+     "text": "in",
+     "start": 1.335,
+     "end": 1.475
+    },
+    {
+     "text": "a",
+     "start": 1.475,
+     "end": 1.545
+    },
+    {
+     "text": "finished",
+     "start": 1.545,
+     "end": 2.105
+    },
+    {
+     "text": "video",
+     "start": 2.105,
+     "end": 2.355
+    },
+    {
+     "text": "file.",
+     "start": 2.635,
+     "end": 2.845
+    }
+   ]
+  }
+ ],
+ "duration": 15.33
+}

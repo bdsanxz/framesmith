@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/subs.html (composition id "subs")
+  WHAT: Ten subtitle cues, one clause each, in small white type centred low on the frame. They appear only over the
+    archive film: 5.96 to 16.42 s (the arrival and flame shots), 51.2 to 55.15 s (the fire), 55.93 to 60.1 s (the
+    survivors) and 61.31 to 65.75 s (the ending). No cue plays over the maps, the cards or the collage. It has no
+    animation: each cue shows for its own window. index.html mounts it at 0 s for the full 68 s on the captions track.
+    The file plays no sound of its own; the narration it follows is in index.html.
+  STRUCTURE: One #root holding ten divs, #sub-1 to #sub-10. Each has the classes subtitle-line and clip, and its own
+    data-start and data-duration. The .subtitle-line rule places every cue at top 938 px, full width, centred. The
+    timeline is empty: the composition only registers it.
+  CUSTOMIZE: The words are the text of each cue div. The timing is data-start and data-duration; the CSS comment says
+    each cue's times are the first and last word of its clause in the transcript. Change a cue's text and its times
+    together, and keep every cue inside a shot of archive film. Type: Roboto Condensed 400 at 38 px, white #ffffff,
+    with a dark shadow instead of a box.
+  MEDIA: No media file is bundled. This file has one font slot, and no picture, video or sound slot.
+    Font slot, Roboto Condensed 400, used by every .subtitle-line cue: it now uses an installed Roboto Condensed, or
+    the sans-serif fallback. To bundle it, change the src of the @font-face rule to
+    url("assets/fonts/roboto-condensed-latin.woff2") format("woff2"), local("Roboto Condensed").
+  WHEN TO USE: Subtitles for a film whose narration runs over archive shots only. Pick another when the film needs
+    word-level or animated captions.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 400; font-display: block; src: local("Roboto Condensed"); }
+        /* Subtitles in this style run only over archive film: one clause per cue, small, white,
+           centred low, with a soft shadow instead of a box. Maps, cards, and collage scenes carry
+           their own words. Cue times are the clause's first and last word in the transcript. */
+        /* Scene root: transparent and full frame, so only the cues show over the film. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        .subtitle-line { position: absolute; left: 0; right: 0; top: 938px; text-align: center; font-family: "Roboto Condensed", sans-serif; font-weight: 400; font-size: 38px; line-height: 1.3; color: #ffffff; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.95); }
+      </style>
+      <div id="root" data-composition-id="subs" data-width="1920" data-height="1080">
+        <!-- The cues in order; each one shows for its own data-start and data-duration. -->
+        <div class="subtitle-line clip" id="sub-1" data-start="5.96" data-duration="2.28" data-track-index="1">At 7:21 in the evening,</div>
+        <div class="subtitle-line clip" id="sub-2" data-start="8.26" data-duration="3.6" data-track-index="1">the largest aircraft ever built drops its landing lines.</div>
+        <div class="subtitle-line clip" id="sub-3" data-start="12.83" data-duration="1.27" data-track-index="1">Four minutes later,</div>
+        <div class="subtitle-line clip" id="sub-4" data-start="14.12" data-duration="2.3" data-track-index="1">a flame appears near the tail.</div>
+        <div class="subtitle-line clip" id="sub-5" data-start="51.2" data-duration="1.33" data-track-index="1">the tail catches fire,</div>
+        <div class="subtitle-line clip" id="sub-6" data-start="52.55" data-duration="2.6" data-track-index="1">and the flames run the length of the ship.</div>
+        <div class="subtitle-line clip" id="sub-7" data-start="55.93" data-duration="1.85" data-track-index="1">Ninety-seven people are on board.</div>
+        <div class="subtitle-line clip" id="sub-8" data-start="57.8" data-duration="2.3" data-track-index="1">Sixty-two get out alive.</div>
+        <div class="subtitle-line clip" id="sub-9" data-start="61.31" data-duration="1.92" data-track-index="1">The age of the passenger airship</div>
+        <div class="subtitle-line clip" id="sub-10" data-start="63.25" data-duration="2.5" data-track-index="1">ends in a New Jersey field.</div>
+      </div>
+      <script>
+        /* No tweens: the cues are timed by their own data-start and data-duration attributes. */
+        window.__timelines["subs"] = gsap.timeline({ paused: true });
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/frames/08-handoff.html (composition id "pr-handoff")
+  WHAT: The closing 4s of the 14s reviewer briefing, mounted at 10s on track 0 by index.html. On
+    the same cream ground, a round 220px monogram "VI" fades and scales in, then the name
+    "Vance Ingalls" and the line "author · @vanceingalls" rise in one after the other, then an
+    orange pill reading "MERGED" appears as the status of the change.
+  STRUCTURE: #root holds #pr-handoff-ground (a flat cream clip, 0 to 4s) and #pr-handoff-stage (a
+    full-frame centred column with a 36px gap) with four children: #pr-handoff-avatar (a 220px
+    round badge with the "VI" monogram), #pr-handoff-name (84px serif ink), #pr-handoff-role
+    (26px grey monospace) and #pr-handoff-pill (orange, 28px monospace, letter-spaced). Timeline:
+    the avatar fades in and scales 0.9 to 1 at 0.2s (0.7s, power3.out); the name and role rise
+    24px and fade in together, 0.6s each with a 0.12s stagger, from 0.5s; the pill rises 16px at
+    1.1s (0.5s, power3.out); and #pr-handoff-stage scales from 1 to 1.02 over 4s, ease none, from 0.
+  CUSTOMIZE: The name, role, pill label and the "VI" monogram are plain text in their elements. To
+    show a photo instead, remove the VI text and put an img inside #pr-handoff-avatar, sized 220px
+    by 220px with object-fit cover. The avatar has border-radius 50 percent but no overflow
+    hidden, so add overflow: hidden to the #pr-handoff-avatar rule (or give the img the same 50
+    percent radius) to clip the photo round. Colours: cream #FAF9F5 ground, badge #EFE9DE, pill
+    #CC785C, ink #141413, role #5E5D59. Timing: the starts 0.2, 0.5 and 1.1, the 0.12 stagger, and
+    the 4s push, which must match the host data-duration in index.html and the ground clip.
+    Fonts named are "EB Garamond" and "JetBrains Mono", set by family name only (see MEDIA).
+  MEDIA: no media file is bundled, and none is loaded. The one picture slot is the author badge.
+    It was a photo of the author in the original workflow, expected at assets/vanceingalls.png
+    (the inspiration README names it), but this copy shows the text monogram VI in #pr-handoff-avatar
+    instead, so the badge is a text stand-in and nothing shows as a picture. To plug in the photo,
+    put an img with src set to your picture (for example assets/vanceingalls.png) inside
+    #pr-handoff-avatar, sized and clipped to the circle as the CUSTOMIZE note says. The fonts
+    EB Garamond and JetBrains Mono have no @font-face rule and no font file here; to supply one,
+    add an @font-face rule with the family name and a url("FILE.woff2") source to the style block.
+  WHEN TO USE: A closing card that names who wrote the change and its status, placed after the
+    code beat. Pick another close when the author must not be named, or when the piece needs a
+    call to action rather than a status.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root: full-frame and clipped, so the stage scale never spills past the canvas. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        /* Ground: a flat cream layer that fills the frame for the 4s clip. */
+        #pr-handoff-ground { position: absolute; inset: 0; background: #FAF9F5; }
+        /* Stage: a centred column holding the badge, the name, the role and the status pill. */
+        #pr-handoff-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; }
+        /* Avatar: a 220px round badge that holds the monogram text. */
+        #pr-handoff-avatar { display: flex; align-items: center; justify-content: center; width: 220px; height: 220px; border-radius: 50%;
+          background: #EFE9DE; border: 1px solid rgba(20, 20, 19, 0.2); font-family: "EB Garamond", serif; font-size: 96px; color: #141413; }
+        /* Name: large serif ink text under the badge. */
+        #pr-handoff-name { font-family: "EB Garamond", serif; font-size: 84px; letter-spacing: -0.018em; color: #141413; }
+        /* Role line: small grey monospace text under the name. */
+        #pr-handoff-role { font-family: "JetBrains Mono", monospace; font-size: 26px; letter-spacing: 0.02em; color: #5E5D59; }
+        /* Status pill: an orange badge with the MERGED label. */
+        #pr-handoff-pill { padding: 14px 32px; border-radius: 9999px; background: #CC785C; font-family: "JetBrains Mono", monospace;
+          font-size: 28px; font-weight: 500; letter-spacing: 0.16em; color: #141413; }
+      </style>
+      <!-- Root stage for this frame, sized 1920x1080 for the host. -->
+      <div id="root" data-composition-id="pr-handoff" data-width="1920" data-height="1080">
+        <!-- Background clip, 0 to 4s, in the frame's own time. -->
+        <div id="pr-handoff-ground" class="clip" data-start="0" data-duration="4"></div>
+        <div id="pr-handoff-stage" data-layout-allow-overflow>
+          <!-- The author photo goes here in the real workflow (assets/LOGIN.png, named for the author's login); this inspiration uses a monogram instead, so no file is needed. -->
+          <!-- Badge: a monogram stands in for the author photo. -->
+          <div id="pr-handoff-avatar">VI</div>
+          <div id="pr-handoff-name">Vance Ingalls</div>
+          <div id="pr-handoff-role">author · @vanceingalls</div>
+          <div id="pr-handoff-pill">MERGED</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: one paused GSAP timeline that the host seeks. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#pr-handoff-avatar", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }, 0.2);
+        tl.fromTo(["#pr-handoff-name", "#pr-handoff-role"], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.12 }, 0.5);
+        tl.fromTo("#pr-handoff-pill", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.1);
+        /* Slow push: the whole stage drifts from scale 1 to 1.02 across the 4s clip. */
+        tl.fromTo("#pr-handoff-stage", { scale: 1 }, { scale: 1.02, duration: 4, ease: "none" }, 0);
+        /* Register the timeline under the composition id so the host can find and seek it. */
+        window.__timelines["pr-handoff"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

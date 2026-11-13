@@ -1,0 +1,25 @@
+{
+  "title": "MSG does not make you dull",
+  "lang": "id",
+  "duration": 40.24,
+  "mark": ["MASA", "SIH?!"],
+  "fonts": {
+    "caption": {"family": "Lilita One", "file": "assets/fonts/lilita-one-latin.woff2"},
+    "mark": {"family": "Bangers", "file": "assets/fonts/bangers-latin.woff2"}
+  },
+  "tear": "s06",
+  "zoom": ["s27"],
+  "paper": ["s04", "s14", "s21", "s30", "s35", "s39"],
+  "stickers": [
+    {"text": "1908", "start": 18.53, "end": 19.8},
+    {"text": "1/3", "start": 33.73, "end": 34.67}
+  ],
+  "card": {
+    "start": 23.1, "end": 26.6, "shot": "s29",
+    "kicker": "Surat pembaca · 1968",
+    "headline": "“Chinese-Restaurant Syndrome”",
+    "meta": "Robert Ho Man Kwok, The New England Journal of Medicine, 4 April 1968"
+  },
+  "voice_volume": 1.15,
+  "beds": [{"id": "bed", "src": "assets/audio/bed.mp3", "from": 0, "volume": 1}]
+}

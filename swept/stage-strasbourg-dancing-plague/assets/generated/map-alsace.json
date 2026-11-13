@@ -1,0 +1,37 @@
+{
+ "size": [
+  1920,
+  1080
+ ],
+ "pins": {
+  "Strasbourg": [
+   972.9,
+   521.7
+  ],
+  "Saverne": [
+   865.1,
+   454.6
+  ],
+  "Basel": [
+   929.1,
+   951.4
+  ],
+  "Karlsruhe": [
+   1156.5,
+   339.8
+  ],
+  "Metz": [
+   532.3,
+   293.1
+  ]
+ },
+ "focus_box": [
+  315,
+  21,
+  1605,
+  1059
+ ],
+ "highlights": {},
+ "scale_px_per_unit": 16079.76,
+ "projection": "mercator"
+}

@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 26,
-    "refused": 7,
-    "translated": 4
+    "refused": 5,
+    "translated": 5
   },
   "duration": 6.0,
   "entries": [
@@ -29,14 +29,6 @@
       "detail": "element #desktop-doc-3 has no own left/top; placed by flow approximation at (0, 0)",
       "file": "compositions/desktop.html",
       "line": 76,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #desktop-lid-wrap has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/desktop.html",
-      "line": 78,
       "verdict": "approximated"
     },
     {
@@ -192,12 +184,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #desktop-cursor is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-desktop-cursor.svg (266 bytes; xmlns added: true)",
       "file": "compositions/desktop.html",
       "line": 82,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",
@@ -215,17 +206,19 @@
     },
     {
       "construct": "tl.to",
-      "detail": "property \"transformOrigin\" (value \"\\\"10% 6%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"10% 6%\\\"\" snapped to clip origin \"left top\" (KDL pivot is a 3x3 placement; pivot off by 0.100 x / 0.060 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.to on \"#desktop-cursor\" at start=2.0000 duration=0.0500",
       "file": "compositions/desktop.html",
       "line": 94,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.to",
-      "detail": "property \"transformOrigin\" (value \"\\\"10% 6%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"10% 6%\\\"\" snapped to clip origin \"left top\" (KDL pivot is a 3x3 placement; pivot off by 0.100 x / 0.060 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.to on \"#desktop-cursor\" at start=2.2000 duration=0.0500",
       "file": "compositions/desktop.html",
       "line": 95,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -243,29 +236,29 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"50% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"50% 100%\\\"\" snapped to clip origin \"center bottom\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#desktop-folder\" at start=2.3300 duration=0.1200",
       "file": "compositions/desktop.html",
       "line": 99,
-      "verdict": "refused"
-    },
-    {
-      "construct": "tl.to",
-      "delta": "elastic amplitude/period (GSAP defaults 1/0.3) not expressible; default curve used",
-      "detail": "tl.to on \"#desktop-folder\" at start=2.4500 duration=0.4500",
-      "file": "compositions/desktop.html",
-      "line": 100,
       "verdict": "approximated"
     },
     {
+      "construct": "tl.to",
+      "detail": "ease \"elastic.out(1, 0.5)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 100,
+      "verdict": "refused"
+    },
+    {
       "construct": "tl.fromTo",
-      "detail": "position \"3.0 + i * 0.15\" is an expression; refusing the call site",
+      "detail": "position \"3.0 + i * 0.15\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/desktop.html",
       "line": 106,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "position \"4.1 + i * 0.12\" is an expression; refusing the call site",
+      "detail": "position \"4.1 + i * 0.12\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/desktop.html",
       "line": 109,
       "verdict": "refused"

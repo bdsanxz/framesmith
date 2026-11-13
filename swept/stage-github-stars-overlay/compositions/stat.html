@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/stat.html (composition id "stat")
+  WHAT: The badge itself, 6 seconds long, on a transparent 1920 by 1080 canvas. A dark glass card in the lower
+    left fades in and rises 30px from 0.2 seconds. A gold star slams in from 1.6 times scale and rotates to
+    level from 0.45 seconds. The count starts at 0 at 0.6 seconds and climbs to 54,957 by 2.0 seconds with an
+    expo ease. From 2.0 seconds the label and then the date fade and slide in, 0.12 seconds apart. At 5.5 seconds
+    the card fades and drops 20px, and it is clear by 5.9 seconds so the overlay ends empty.
+  STRUCTURE: One layer: #stat-card (a flex row with a dark glass background of rgba(12, 12, 14, 0.82), 28px
+    radius, at left 192px and bottom 140px) holding #stat-star (an inline SVG star, 120px, gold fill) and
+    #stat-text (a column) with #stat-num (the count, 120px, tabular figures), #stat-label and #stat-date
+    (JetBrains Mono lines). Timeline: #stat-card opacity and y from 0.2s for 0.5s; #stat-star scale and rotation
+    from 0.45s for 0.35s with expo.out; a proxy object n counts from 0 to TARGET from 0.6s for 1.4s, and its
+    onUpdate writes the rounded value, with thousands separators, into #stat-num; #stat-label and #stat-date
+    opacity and x from 2.0s for 0.4s with a 0.12s stagger; #stat-card opacity and y out from 5.5s for 0.4s with
+    power2.in. The timeline is registered as window.__timelines["stat"].
+  CUSTOMIZE: The count is the constant TARGET = 54957 in the script, read with the gh api command named in the
+    comment above it on 2026-10-01; to update it, change TARGET and also the source and date text in #stat-date.
+    The label is the text of #stat-label. Colors: count #ffffff, muted text #b4b4bb, star #f5c542 (in the SVG
+    fill), card glass rgba(12, 12, 14, 0.82). Position is left 192px and bottom 140px, and the CSS comment marks
+    that as the 10 percent title-safe inset. Timings are the numbers in the tl calls; the count runs from 0.6
+    to 2.0 seconds, and the card fade must end before the 6 second length.
+  MEDIA: No media file is bundled. The file has no slots: it has no image, video, sound or font file, and the
+    star is an inline SVG path. Inter and JetBrains Mono are named in CSS only; without them installed, the
+    browser uses the generic sans-serif and monospace faces, and the badge still reads. Nothing is to be
+    plugged in here.
+  WHEN TO USE: A dated stat or update badge that sits over footage, where a number should count up and the
+    label should follow it. Pick another inspiration if the badge needs a background or a picture.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <!-- The template wrapper holds the style, markup and script that index.html mounts as one composition. -->
+    <template>
+      <style>
+        /* Root of the badge: fills the slot and sets the default font. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; }
+        /* Lower-left, inside title-safe (10% inset = 192px / 108px). */
+        /* Glass card: a flex row holding the star and the text, with a dark translucent background. */
+        #stat-card { position: absolute; left: 192px; bottom: 140px; display: flex; align-items: center; gap: 36px;
+          padding: 36px 52px 36px 40px; border-radius: 28px; background: rgba(12, 12, 14, 0.82); }
+        /* Star: a fixed 120px box for the inline SVG. */
+        #stat-star { display: block; width: 120px; height: 120px; }
+        /* Text column: the count, the label and the date with 10px gaps. */
+        #stat-text { display: flex; flex-direction: column; gap: 10px; }
+        /* Count: 120px heavy white type with tabular figures, so the digits do not shift while counting. */
+        #stat-num { font-size: 120px; font-weight: 900; letter-spacing: -0.03em; line-height: 0.9; color: #ffffff; font-variant-numeric: tabular-nums; }
+        /* Label: small monospace caps in a muted grey. */
+        #stat-label { font-family: "JetBrains Mono", monospace; font-size: 26px; letter-spacing: 0.08em; color: #b4b4bb; }
+        /* Date line: the same style as the label, at 20px. */
+        #stat-date { font-family: "JetBrains Mono", monospace; font-size: 20px; letter-spacing: 0.08em; color: #b4b4bb; }
+      </style>
+      <!-- Composition root for the stat: 1920 by 1080, with no background, so the card is the only painted element. -->
+      <div id="root" data-composition-id="stat" data-width="1920" data-height="1080">
+        <div id="stat-card">
+          <!-- Gold star: an inline 24 by 24 SVG path filled #f5c542. -->
+          <svg id="stat-star" viewBox="0 0 24 24"><path fill="#f5c542" d="M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96z"/></svg>
+          <!-- Text stack: the count, then the label, then the date. -->
+          <div id="stat-text">
+            <div id="stat-num">0</div>
+            <div id="stat-label">GITHUB STARS · HEYGEN-COM/HYPERFRAMES</div>
+            <div id="stat-date">AS OF 2026-10-01 · GITHUB API</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        // Value fetched with: gh api repos/heygen-com/hyperframes --jq .stargazers_count (2026-10-01).
+        const TARGET = 54957;
+        /* Setup: the paused timeline that every tween below is added to. */
+        const tl = gsap.timeline({ paused: true });
+        /* Card fades in and rises 30px from 0.2 seconds. */
+        tl.fromTo("#stat-card", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.2);
+        /* Star slams in from 1.6 times scale and rotates to level from 0.45 seconds. */
+        tl.fromTo("#stat-star", { scale: 1.6, rotation: -20 }, { scale: 1, rotation: 0, duration: 0.35, ease: "expo.out" }, 0.45);
+        /* Proxy object: the count tween animates n.v, and onUpdate writes it into the count as a whole number. */
+        const n = { v: 0 };
+        const num = document.getElementById("stat-num");
+        tl.fromTo(n, { v: 0 }, { v: TARGET, duration: 1.4, ease: "expo.out",
+          onUpdate: () => { num.textContent = Math.round(n.v).toLocaleString("en-US"); } }, 0.6);
+        /* Label and date appear after the number lands, 0.12 seconds apart. */
+        tl.fromTo(["#stat-label", "#stat-date"], { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", stagger: 0.12 }, 2.0);
+        // Overlay must end empty so an editor can butt it against anything.
+        tl.to("#stat-card", { opacity: 0, y: 20, duration: 0.4, ease: "power2.in" }, 5.5);
+        /* Registers this timeline under the id stat so the host can seek it. */
+        window.__timelines["stat"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

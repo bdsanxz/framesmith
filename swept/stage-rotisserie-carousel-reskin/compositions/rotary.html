@@ -1,0 +1,120 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/rotary.html (composition id "rotary")
+  WHAT: 5.5 seconds on the Aurora Labs frame. A centered line reads "Aurora", a drum word, then
+    "itself.", in Outfit bold 120 px. "Aurora" and "itself." blur in from 0.1 s over 0.5 s. The
+    drum, in aurora cyan, flips three times, each a 30-degree turn over 0.35 s starting at 1.2,
+    2.2 and 3.2 s, so the middle word goes deploys, scales, heals, ships. Each flip also fades in
+    the next of four radial grounds. The row keeps a slow push (scale 1 to 1.03) over the whole
+    5.5 s, so the last word never freezes. Mounted by index.html as #slot-rotary, start 0.
+  STRUCTURE: Back to front: four ground layers #rotary-bg-0 to #rotary-bg-3 (bg-0 visible at
+    start, the others at opacity 0); #rotary-row, a centered flex line with a 28 px gap, holding
+    #rotary-fixed-a ("Aurora"), #rotary-drum (600 by 420 px, perspective 1150 px, masked at top
+    and bottom) and #rotary-fixed-b ("itself."). Inside the drum, #rotary-axis is pushed back 250
+    px and #rotary-cyl is the cylinder that GSAP rotates. Eight .rotary-w words sit on its surface
+    at n = -2 to 5, 30 degrees apart, at radius 250 px. Timeline: the fixed words go from 8 px blur
+    and opacity 0 to sharp at 0.1 s; the cylinder rotates to 30, 60 and 90 degrees at 1.2, 2.2
+    and 3.2 s; each flip's ground fades in on the same beat over 0.35 s; the row scales from 1 to
+    1.03 over 0 to 5.5 s. The timeline is registered as window.__timelines["rotary"].
+  CUSTOMIZE: The fixed words are the text of #rotary-fixed-a and #rotary-fixed-b. The drum words
+    are the SEQ array in the script (deploys, scales, heals, ships). The timeline has exactly
+    three flips, so a different list needs its own flips and its own rotation values (30, 60,
+    90 degrees are STEP times 1, 2 and 3). Colors: frost text #E8F6FA on the root, drum words
+    aurora #00E3FF, and the grounds are radial gradients of aurora at alpha 0.20, 0.24, 0.22 and
+    0.34 over #06141F and #0D2233. Size: Outfit 700 at 120 px for all words. STEP 30 and R 250
+    set the slot angle and radius together, and R must also match the 250 px push-back on
+    #rotary-axis (translateZ(-250px)); change all three or the drum will not sit on its axis.
+    Flip times and their 0.35 s durations set the rhythm. The 5.5 s length must match data-duration
+    on the host slot.
+  MEDIA: No media file is bundled, and this file has no photo, video, sound or CSS image slot, so
+    none is needed. The grounds are CSS radial gradients, so they need no stand-in. Its one font,
+    Outfit, is named in #root and .rotary-fixed and .rotary-w; no @font-face is declared, so Outfit
+    is used only when it is installed, and otherwise the browser falls back to sans-serif. To use a
+    font file, add an @font-face for "Outfit" with src: url("FILE.woff2") in the style block. GSAP is
+    not bundled in this file either; it comes from the host page's script tag.
+  WHEN TO USE: One centered line where a single word cycles through a short list, each step with
+    its own ground: a verb or state inside a sentence. Use it for three changes in about 5 s. The
+    mechanic comes from the original kept in source/rotary.original.html. Do not copy its URL seek
+    or dev play lines into a composition; this rebuild removes them. Pick a plain text swap when a
+    longer list or no 3D depth is needed.
+-->
+<!-- Mechanic adapted from heygen-com/hyperframes-launches, HF-heygen-stripe/compositions/rotary.html
+     (Apache-2.0; original kept in source/). Re-skinned to this project's frame.md and rebuilt on the
+     current composition contract: template transport, #root styling, px units, fromTo/to only, no
+     padding tweens, no tl.play(). -->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root frame: fills the composition, names Outfit as its font, and sets the frost text color. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Outfit", sans-serif; color: #E8F6FA; }
+        /* One ground per word; they crossfade in sync with each flip (frame.md: night, ink, glow position). */
+        .rotary-bg { position: absolute; inset: 0; opacity: 0; }
+        #rotary-bg-0 { background: radial-gradient(circle at 30% 40%, rgba(0, 227, 255, 0.20) 0%, #06141F 60%); opacity: 1; }
+        #rotary-bg-1 { background: radial-gradient(circle at 70% 30%, rgba(0, 227, 255, 0.24) 0%, #0D2233 62%); }
+        #rotary-bg-2 { background: radial-gradient(circle at 50% 80%, rgba(0, 227, 255, 0.22) 0%, #06141F 58%); }
+        #rotary-bg-3 { background: radial-gradient(circle at 50% 50%, rgba(0, 227, 255, 0.34) 0%, #0D2233 66%); }
+        /* One centered line: fixed word · drum · fixed word. */
+        #rotary-row { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 28px; }
+        /* Fixed words on either side of the drum: Outfit bold 120 px, one line, no wrapping. */
+        .rotary-fixed { font-size: 120px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
+        /* The drum: a 3D cylinder seen edge-on; the mask fades the rows above and below behind the "wall". */
+        #rotary-drum { position: relative; width: 600px; height: 420px; perspective: 1150px;
+          -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.25) 16%, #000 38%, #000 62%, rgba(0,0,0,.25) 84%, transparent 100%);
+                  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.25) 16%, #000 38%, #000 62%, rgba(0,0,0,.25) 84%, transparent 100%); }
+        /* Push the assembly back by the radius so the front (active) word sits at z = 0, the same scale as the fixed words. */
+        #rotary-axis { position: absolute; inset: 0; transform: translateZ(-250px); transform-style: preserve-3d; }
+        /* The cylinder that the script rotates; preserve-3d keeps the drum words on its surface. */
+        #rotary-cyl { position: absolute; inset: 0; transform-style: preserve-3d; }
+        /* One drum word: aurora text, centered on the cylinder and hidden when it faces away. */
+        .rotary-w { position: absolute; left: 0; top: 50%; width: 100%; text-align: center; font-size: 120px; font-weight: 700;
+          letter-spacing: -0.03em; line-height: 1; color: #00E3FF; white-space: nowrap; backface-visibility: hidden; }
+      </style>
+      <!-- Scene root: the ground layers, then the centered row with the drum. -->
+      <div id="root" data-composition-id="rotary" data-width="1920" data-height="1080">
+        <!-- Four ground layers stacked under the row; the script fades each one in on a flip. -->
+        <div id="rotary-bg-0" class="rotary-bg"></div>
+        <div id="rotary-bg-1" class="rotary-bg"></div>
+        <div id="rotary-bg-2" class="rotary-bg"></div>
+        <div id="rotary-bg-3" class="rotary-bg"></div>
+        <!-- The centered row: the fixed Aurora word, the drum, and the fixed "itself." word. -->
+        <div id="rotary-row" data-layout-allow-overflow>
+          <div id="rotary-fixed-a" class="rotary-fixed">Aurora</div>
+          <div id="rotary-drum" data-layout-allow-overflow><div id="rotary-axis"><div id="rotary-cyl"></div></div></div>
+          <div id="rotary-fixed-b" class="rotary-fixed">itself.</div>
+        </div>
+      </div>
+      <script>
+        // Geometry: STEP degrees between slots on a cylinder of radius R px. Slot n sits at angle −n·STEP;
+        // rotating the cylinder +STEP brings the next word to the front.
+        const SEQ = ["deploys", "scales", "heals", "ships"];
+        const STEP = 30, R = 250;
+        /* Places the eight drum words on the cylinder, one per slot from n = -2 to 5. */
+        const cyl = document.getElementById("rotary-cyl");
+        for (let n = -2; n <= 5; n++) {
+          const w = document.createElement("div");
+          w.className = "rotary-w";
+          w.setAttribute("data-layout-allow-overlap", ""); // words on the far side of the drum share 2D bounds by design
+          w.textContent = SEQ[((n % SEQ.length) + SEQ.length) % SEQ.length];
+          w.style.transform = "translateY(-50%) rotateX(" + (-n * STEP) + "deg) translateZ(" + R + "px)";
+          cyl.appendChild(w);
+        }
+
+        /* Paused timeline: the fixed words blur in, three flips follow, and the row keeps a slow push. */
+        const tl = gsap.timeline({ paused: true });
+        // Fixed words: motion-blur in (the drum stays sharp; a CSS filter on it would flatten the 3D).
+        tl.fromTo(["#rotary-fixed-a", "#rotary-fixed-b"], { filter: "blur(8px)", opacity: 0 }, { filter: "blur(0px)", opacity: 1, duration: 0.5, ease: "power3.out" }, 0.1);
+        // Each flip: 0.35s power3.inOut on the cylinder, the matching ground crossfades on the same beat.
+        [1.2, 2.2, 3.2].forEach((t, i) => {
+          tl.to("#rotary-cyl", { rotationX: (i + 1) * STEP, duration: 0.35, ease: "power3.inOut" }, t);
+          tl.to("#rotary-bg-" + (i + 1), { opacity: 1, duration: 0.35, ease: "power2.inOut" }, t);
+        });
+        // Ambient: the whole row keeps a slow push through the final hold, so the last word never freezes.
+        tl.fromTo("#rotary-row", { scale: 1 }, { scale: 1.03, duration: 5.5, ease: "none" }, 0);
+        /* Registers the timeline under the rotary composition id for the runtime. */
+        window.__timelines["rotary"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

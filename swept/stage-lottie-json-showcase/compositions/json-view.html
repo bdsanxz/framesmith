@@ -1,0 +1,119 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/json-view.html (composition id "json-view")
+  WHAT: The first 2.5 seconds of the film. A code panel on the right shows the text of the Lottie
+    file, with the headline "Found JSON is an animation." on the left and the caption
+    "assets/tile-pulse.json, 2s at 30 fps" under it. The panel fades up from 0.1 s and the
+    headline slides in from the left at 0.3 s. Mounted by index.html as #slot-json, start 0.
+  STRUCTURE: #root is a centered flex row with two children. #json-view-label is the headline and
+    holds the caption span #json-view-file. #json-view-code is the panel: a pre-formatted block
+    (white-space pre) with data-layout-allow-overflow that holds the JSON excerpt. The GSAP
+    timeline has two fromTo tweens: #json-view-code from opacity 0 and y 30 to rest at 0.1 s over
+    0.5 s, and #json-view-label from opacity 0 and x -30 to rest at 0.3 s over 0.5 s. It is
+    registered as window.__timelines["json-view"].
+  CUSTOMIZE: The headline is #json-view-label (56 px bold white Inter, 520 px wide). The caption
+    is #json-view-file (26 px, grey #8b93a7). The panel is 820 by 760 px, background #171a21,
+    border #262b36, text #c9d1e3 at 22 px. The JSON is written directly into the panel. It is an
+    excerpt that stops inside the rotation keyframes, and the fixed panel clips the rest. To show
+    another file, replace that text and change the caption to match. Timings are the 0.1 and
+    0.3 s starts and the 0.5 s durations.
+  MEDIA: No media file is bundled in this file, and it has no photo, video, sound or CSS image
+    slot, so none is needed. Its one file-like text is the caption "assets/tile-pulse.json", which
+    only names the source. The JSON itself is typed into the panel #json-view-code and is not
+    fetched at runtime. That file is the one compositions/lottie-play.html loads, and it is not
+    bundled here. Fonts: no @font-face is declared, so the CSS names JetBrains Mono (#root and
+    #json-view-file) and Inter (#json-view-label) and uses them only when they are installed;
+    otherwise the browser falls back to the generic monospace and sans-serif faces. To use a font
+    file, add an @font-face block for each family with src: url("FILE.woff2") and keep the same
+    family name in the rules above.
+  WHEN TO USE: The opening beat of a film that teaches a Lottie file: show the source first, then
+    play it. Pick another scene when the JSON must be read in full, since the panel is fixed in
+    size and clips its text.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Flex row that centers the headline and the code panel side by side on the frame. */
+        #root { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 64px; font-family: "JetBrains Mono", monospace; }
+        /* Headline: 56 px bold white Inter, wrapped at 520 px. */
+        #json-view-label { font-family: "Inter", sans-serif; font-size: 56px; font-weight: 700; color: #ffffff; max-width: 520px; line-height: 1.1; }
+        /* Caption under the headline: grey mono text with the file name and frame rate. */
+        #json-view-file { color: #8b93a7; font-size: 26px; margin-top: 18px; display: block; font-family: "JetBrains Mono", monospace; font-weight: 400; }
+        /* Code panel: a fixed 820 by 760 px dark box that shows the JSON text and clips its overflow. */
+        #json-view-code { width: 820px; height: 760px; overflow: hidden; padding: 36px 40px; border-radius: 20px; background: #171a21; border: 1px solid #262b36;
+          color: #c9d1e3; font-size: 22px; line-height: 1.45; white-space: pre; }
+      </style>
+      <!-- Scene root: the headline and the code panel, centered in the 1920 by 1080 frame. -->
+      <div id="root" data-composition-id="json-view" data-width="1920" data-height="1080">
+        <div id="json-view-label">Found JSON is an animation.<span id="json-view-file">assets/tile-pulse.json · 2s @ 30fps</span></div>
+        <!-- Code panel: the pasted JSON text, an excerpt that stops inside the rotation keyframes. -->
+        <div id="json-view-code" data-layout-allow-overflow>{
+  "v": "5.7.4",
+  "fr": 30,
+  "ip": 0,
+  "op": 60,
+  "w": 400,
+  "h": 400,
+  "nm": "tile-pulse",
+  "ddd": 0,
+  "assets": [],
+  "layers": [
+    {
+      "ddd": 0,
+      "ind": 1,
+      "ty": 4,
+      "nm": "tile",
+      "sr": 1,
+      "ks": {
+        "o": {
+          "a": 0,
+          "k": 100
+        },
+        "r": {
+          "a": 1,
+          "k": [
+            {
+              "t": 0,
+              "s": [
+                0
+              ],
+              "i": {
+                "x": [
+                  0.4
+                ],
+                "y": [
+                  1
+                ]
+              },
+              "o": {
+                "x": [
+                  0.6
+                ],
+                "y": [
+                  0
+                ]
+              }
+            },
+            {
+              "t": 60,
+              "s": [
+                180
+              ]
+            }
+    </div>
+      </div>
+      <script>
+        /* Paused timeline: nothing plays on its own, and the runtime seeks it to each time. */
+        const tl = gsap.timeline({ paused: true });
+        /* The code panel enters first: it fades up and rises 30 px over 0.5 s, starting at 0.1 s. */
+        tl.fromTo("#json-view-code", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.1);
+        /* The headline slides in from the left by 30 px over 0.5 s, starting at 0.3 s. */
+        tl.fromTo("#json-view-label", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+        /* Registers the timeline under the json-view composition id for the runtime. */
+        window.__timelines["json-view"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 19,
-    "refused": 10,
-    "translated": 5
+    "refused": 8,
+    "translated": 7
   },
   "duration": 10.0,
   "entries": [
@@ -95,35 +95,35 @@
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"duration\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"duration\" is outside the numeric grammar (unbound identifier \"duration\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 221,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "tl.fromTo on \"#od-row\" at start=0.1000 duration=0.5000",
       "file": "compositions/odometer-roll.html",
       "line": 223,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "duration \"land - start - i * 0.05\" is outside the numeric grammar (unbound identifier \"land\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 234,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "position \"land - 0.2\" is outside the numeric grammar (unbound identifier \"land\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 242,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "position \"land - 0.1\" is outside the numeric grammar (unbound identifier \"land\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 249,
       "verdict": "refused"
@@ -216,35 +216,35 @@
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"duration\" is not a non-negative number; refusing the call site",
+      "detail": "duration \"duration\" is outside the numeric grammar (unbound identifier \"duration\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 221,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "tl.fromTo on \"#od-row\" at start=5.1000 duration=0.5000",
       "file": "compositions/odometer-roll.html",
       "line": 223,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "duration \"land - start - i * 0.05\" is outside the numeric grammar (unbound identifier \"land\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 234,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "position \"land - 0.2\" is outside the numeric grammar (unbound identifier \"land\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 242,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "detail": "position \"land - 0.1\" is outside the numeric grammar (unbound identifier \"land\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/odometer-roll.html",
       "line": 249,
       "verdict": "refused"

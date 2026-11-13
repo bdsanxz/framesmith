@@ -1,0 +1,117 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/eruption.html (composition id "eruption")
+  WHAT: The middle of the dark half, 8.45 s long, mounted at 5.55 s. It cuts on the narration
+    through four shots, each pushing in slowly. First the 1883 photograph of the eruption under the
+    gold tag ERUPTING SINCE MAY; then the quiet strait under the tag 10:02 AM, on "At two minutes
+    past ten"; then a white flash and the explosion under THE THIRD EXPLOSION, on "the third and
+    largest explosion"; then the blast along the water, on "tears". The subtitles are a separate
+    composition (subs.html).
+  STRUCTURE: Back to front: #er-a (the photograph #er-photo, from 0 s), #er-b (video slot #er-b-video from
+    2.27 s), #er-c (video slot #er-c-video from 4.17 s), #er-d (video slot #er-d-video from 5.8 s), each in an
+    .er-shot wrapper that scales 1.02 up to 1.07, 1.05, 1.06 and 1.08 over its own length. Then
+    #er-vig (the vignette), #er-flash (the white flash) and the three tags #er-tag-1, #er-tag-2 and
+    #er-tag-3. Timeline, in seconds from the scene start: 0.3 tag 1 wipes in, 2.27 it is hidden on
+    the cut; 2.4 tag 2 wipes in, 4.17 it is hidden; 4.17 the flash is shown and 4.21 it fades out
+    over 0.34 s; 4.5 tag 3 wipes in. Media times inside the scene are local to each clip.
+  CUSTOMIZE: The tag words are the text of #er-tag-1 (ERUPTING SINCE MAY), #er-tag-2 (10:02 AM) and
+    #er-tag-3 (THE THIRD EXPLOSION). Tag colours: box #e9b04a, text #15110a, placed at left 118px and
+    top 776px. The cut points are the data-start values of the clips and the start times of the
+    .er-shot tweens (2.27, 4.17, 5.8), and each tag's hide time must move with its cut. The photo is
+    cropped by #er-photo (left -66px, top -1310px, 2052x2775px) so its white margin stays outside
+    the frame. The grey, contrast and brightness treatment is the filter on .er-shot [data-media-kind="video"] and on
+    #er-photo. The flash colour is #ffffff.
+  MEDIA: No media file is bundled. Slot 1, a photo: #er-photo, the 1883 photograph of the eruption
+    (it was assets/generated/src/eruption-1883.jpg; the README names its source as KITLV). A faint
+    hatch stand-in labeled "PHOTO: assets/generated/src/eruption-1883.jpg" shows there, under the same
+    crop and grade. To plug in your own file, set the img's src to it, for example
+    src="assets/generated/src/eruption-1883.jpg". A dark grey still of a volcanic column, or any
+    licensed photograph of a volcano in the same tone, works; nothing was filmed in 1883.
+    Slots 2 to 4, videos: shots of Anak Krakatau that make-footage.sh cut from the 1930 British Pathe
+    film. Slot 2, #er-b-video: a2, the quiet strait, from 2.27 s for 1.9 s in #er-b (stand-in labeled
+    "VIDEO: footage/a2.mp4"). Slot 3, #er-c-video: a3, the explosion, from 4.17 s for 1.63 s in #er-c
+    (stand-in labeled "VIDEO: footage/a3.mp4"). Slot 4, #er-d-video: a4, the blast along the water,
+    from 5.8 s for 2.65 s in #er-d (stand-in labeled "VIDEO: footage/a4.mp4"). To plug in a clip,
+    replace that img with a video element with src set to your file, muted, playsinline, id="er-b-video", data-start="2.27", data-hf-media-start-basis="local", data-duration="1.9", data-track-index="1" and data-media-kind="video";
+    for slot 3 use id="er-c-video" data-start="4.17" data-duration="1.63" data-track-index="2", and for
+    slot 4 use id="er-d-video" data-start="5.8" data-duration="2.65" data-track-index="3". Keep
+    data-hf-media-start-basis="local" and data-media-kind="video" on each. If a clip is missing, use a
+    licensed black-and-white clip of a volcano and keep the clip's data-duration.
+    Slot 5, font: Roboto Condensed at weight 500 (the three tags) loads with src: local("Roboto Condensed"),
+    used if installed, else the sans-serif fallback shows. To plug in a file, add
+    url("assets/fonts/roboto-condensed-latin.woff2") as a source in the @font-face rule. Sound slots:
+    none in this file; the blast and the rumble sit in index.html. CSS image slots: none; the vignette
+    and the flash are gradients and colour.
+  WHEN TO USE: A cut-on-narration archive sequence that moves from a still photograph to film with
+    short event tags. Use a single held shot with no tag changes for a calmer moment.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Font: Roboto Condensed at weight 500, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Roboto Condensed"; font-style: normal; font-weight: 500; font-display: block; src: local("Roboto Condensed"); }
+        /* The black ground. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #000000; }
+        /* Archive photo and film under a slow push. Motion on the wrapper, treatment on the picture. */
+        .er-shot { position: absolute; inset: 0; transform-origin: 55% 50%; }
+        .er-shot [data-media-kind="video"] { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.12) brightness(0.9); }
+        /* The 1883 photograph is a tall print with a white margin: it is shown wider than the frame,
+           on the island and the foot of the ash column, so the margin stays outside. */
+        #er-photo { position: absolute; left: -66px; top: -1310px; width: 2052px; height: 2775px; filter: grayscale(1) contrast(1.12) brightness(0.9); }
+        /* The vignette: a dark radial edge over every shot. */
+        #er-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 72% at 50% 50%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.6) 100%); }
+        /* The tag: a caps label on a gold box, low on the left, above the subtitle line. */
+        .er-tag { position: absolute; left: 118px; top: 776px; padding: 16px 22px; background: #e9b04a; font-family: "Roboto Condensed", sans-serif; font-weight: 500; font-size: 50px; line-height: 1.2; letter-spacing: 0.02em; color: #15110a; white-space: nowrap; transform-origin: 0 50%; }
+        /* The white flash for the explosion cut; the script shows it and fades it away. */
+        #er-flash { position: absolute; inset: 0; background: #ffffff; }
+      </style>
+      <div id="root" data-composition-id="eruption" data-width="1920" data-height="1080">
+        <!-- Cut on the narration: the 1883 photograph for "since May"; the quiet strait from "At two
+             minutes past ten" (7.82 s); the explosion from "the third and largest" (9.72 s); the blast
+             along the water from "tears" (11.35 s). Media times inside a sub-composition are local. -->
+        <div class="er-shot" id="er-a" data-layout-allow-overflow>
+          <img id="er-photo" src="data:image/svg+xml,%3C!--eruption-1883.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'915' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/eruption-1883.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/src/eruption-1883.jpg" alt="" />
+        </div>
+        <div class="er-shot" id="er-b" data-layout-allow-overflow>
+          <img id="er-b-video" data-start="2.27" data-hf-media-start-basis="local" data-duration="1.9" data-track-index="1" src="data:image/svg+xml,%3C!--a2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a2.mp4%3C/text%3E%3C/svg%3E" data-media="footage/a2.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div class="er-shot" id="er-c" data-layout-allow-overflow>
+          <img id="er-c-video" data-start="4.17" data-hf-media-start-basis="local" data-duration="1.63" data-track-index="2" src="data:image/svg+xml,%3C!--a3.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a3.mp4%3C/text%3E%3C/svg%3E" data-media="footage/a3.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div class="er-shot" id="er-d" data-layout-allow-overflow>
+          <img id="er-d-video" data-start="5.8" data-hf-media-start-basis="local" data-duration="2.65" data-track-index="3" src="data:image/svg+xml,%3C!--a4.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a4.mp4%3C/text%3E%3C/svg%3E" data-media="footage/a4.mp4" data-media-kind="video" alt="" />
+        </div>
+        <div id="er-vig"></div>
+        <div id="er-flash"></div>
+        <div class="er-tag" id="er-tag-1">ERUPTING SINCE MAY</div>
+        <div class="er-tag" id="er-tag-2">10:02 AM</div>
+        <div class="er-tag" id="er-tag-3">THE THIRD EXPLOSION</div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        /* Tags 2 and 3 and the flash start hidden until their tweens show them. */
+        gsap.set(["#er-tag-2", "#er-tag-3", "#er-flash"], { opacity: 0 });
+        tl.fromTo("#er-a", { scale: 1.02 }, { scale: 1.07, duration: 2.27, ease: "none" }, 0);
+        tl.fromTo("#er-b", { scale: 1.02 }, { scale: 1.05, duration: 1.9, ease: "none" }, 2.27);
+        tl.fromTo("#er-c", { scale: 1.02 }, { scale: 1.06, duration: 1.63, ease: "none" }, 4.17);
+        tl.fromTo("#er-d", { scale: 1.02 }, { scale: 1.08, duration: 2.65, ease: "none" }, 5.8);
+        // The first tag names what the 1883 photograph shows, on "the volcano" (5.71 s), and leaves on the cut.
+        tl.fromTo("#er-tag-1", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 0.3);
+        tl.to("#er-tag-1", { opacity: 0, duration: 0.001 }, 2.27);
+        // The time lands on "two minutes past ten" (7.95 s) and leaves on the explosion.
+        tl.fromTo("#er-tag-2", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 2.4);
+        tl.to("#er-tag-2", { opacity: 0, duration: 0.001 }, 4.17);
+        // The explosion opens on a white flash that falls away in a third of a second.
+        tl.to("#er-flash", { opacity: 1, duration: 0.001 }, 4.17);
+        tl.to("#er-flash", { opacity: 0, duration: 0.34, ease: "power2.out" }, 4.21);
+        // "The third and largest explosion" (9.72 s): the tag holds over both shots of it.
+        tl.fromTo("#er-tag-3", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 4.5);
+        window.__timelines["eruption"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-05-sources.html (composition id "c2-05-sources")
+  WHAT: The fifth beat of chapter 2, 12.5 s, from 220.8 s in index.html, narrated by segment s23
+    (opening "Kita mengetahuinya dari catatan", we know it from the records). It shows four pictures
+    and a short film clip in turn, each sourced on screen. A picture of the council decision carries
+    the caption "Keputusan dewan kota Strasbourg, 2 Agustus 1518" (decision of the Strasbourg city
+    council, 2 August 1518); the caption is removed at 3.17 s. From 3.17 s a short clip of a gothic
+    church nave runs (footage/v03.mp4). Then a city market picture from 5.67 s, and from 9.22 s a
+    wide city picture with a framed portrait of Daniel Specklin, named as the architect, and his name
+    in red under it.
+  STRUCTURE: #root holds four .dr-shot wrappers (#c205sources-a to -d). Shot a holds the caption
+    #c205sources-a-cap. Shot b is a video slot (img #c205sources-b-video, footage/v03.mp4, shown as a
+    still stand-in) with data-start 3.17 and data-duration 2.5. Shot d holds the framed portrait #c205sources-d-frame (.dr-frame, 364 by 454 px,
+    12 px border) with its image #c205sources-d-face, and the name #c205sources-d-who (.dr-who).
+    Timeline: a pushes 0 to 3.17 s and its caption is removed at 3.17 s; b pushes over 2.5 s from
+    3.17 s; c is cut in at 5.67 s and pushes over 3.55 s; d is cut in at 9.22 s and pushes over 3.28 s,
+    its face pushes slightly inside the frame, and the frame and name appear at 9.22 s.
+  CUSTOMIZE: each picture's and the clip's file is named by data-media (ban-top.jpg, footage/v03.mp4,
+    civ-market.jpg, civ-wide2.jpg, f-specklin.jpg); set the src of a picture, or turn the clip back into a
+    video (see MEDIA). The caption text is in #c205sources-a-cap. The
+    portrait frame sits at left 1338 px and top 236 px, its border colour is #e8765a. The name is set in
+    .dr-who (left 1220 px, top 702 px, width 600 px, 44 px, colour #f04a2e). The cut times 3.17, 5.67 and
+    9.22 must match the narration; the clip's data-start and data-duration must match the time the clip
+    runs. The whole beat is data-duration 12.5 in index.html. Grades are in data-color-grading.
+  MEDIA: no media file is bundled. This file has one video slot, four photo slots and one font slot. It
+    has no sound and no CSS image.
+    1. The first picture, img #c205sources-a-img (inside #c205sources-a, shown 0 to 3.17 s, under the
+       caption #c205sources-a-cap, which is plain text). It showed ban-top.jpg, the picture the first
+       caption is set on. It now shows a faint hatch stand-in labeled "PHOTO: assets/generated/ban-top.jpg".
+       To plug in your picture, set the img's src to your file (for example assets/generated/ban-top.jpg).
+       The data-media attribute only names the expected path; it loads nothing. The img's
+       data-color-grading still grades your picture; it adds exposure -0.25 so the caption reads.
+    2. The clip, video slot img #c205sources-b-video (inside #c205sources-b, from 3.17 s for 2.5 s;
+       data-start 3.17, data-duration 2.5, data-track-index 1, data-media-kind="video"). It showed a short
+       muted clip of the nave of a gothic church (footage/v03.mp4). It now shows a faint hatch stand-in
+       labeled "VIDEO: footage/v03.mp4", which does not move. To plug in your clip, turn this img back into
+       a video element (src="footage/v03.mp4", muted and playsinline) with your file path in src. Keep the
+       id c205sources-b-video, the data-start, data-duration, data-track-index and
+       data-hf-media-start-basis attributes, the data-color-grading attribute and data-media-kind="video",
+       so the [data-media-kind="video"] CSS rule still matches. Keep data-duration at the clip's length (2.5 s).
+       If you have only a still of the nave, keep this img and set its src to the still; it holds the same 2.5 s.
+    3. The market picture, img #c205sources-c-img (inside #c205sources-c, shown from 5.67 s). It showed a
+       city market picture (civ-market.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/civ-market.jpg". To plug in your picture, set the img's src to your file.
+    4. The wide city picture, img #c205sources-d-img (inside #c205sources-d, from 9.22 s, behind the
+       portrait). It showed a wide city picture (civ-wide2.jpg). It now shows a stand-in labeled
+       "PHOTO: assets/generated/civ-wide2.jpg". To plug in your picture, set the img's src to your file.
+    5. The portrait, img #c205sources-d-face-img (inside #c205sources-d-face, in the frame
+       #c205sources-d-frame). It showed a portrait of Daniel Specklin (f-specklin.jpg). It now shows a
+       stand-in labeled "PHOTO: assets/generated/f-specklin.jpg". To plug in your portrait, set the img's src
+       to your file. If you have no portrait, the frame and the name still show over the stand-in.
+    6. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap and .dr-who. It was a
+       bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a sourcing beat in which the film names its records and a person with a framed portrait.
+    Pick another pattern when the people need no name or the beat has no clip.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo") for the captions and the name; no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The framed portrait: a small portrait in a thick salmon-red frame, the name in red at its foot. */
+        .dr-frame { position: absolute; left: 1338px; top: 236px; width: 364px; height: 454px; border: 12px solid #e8765a; background: #0f1518; overflow: hidden; box-shadow: 0 10px 34px rgba(4, 8, 10, 0.55); }
+        .dr-face { position: absolute; inset: 0; transform-origin: 50% 40%; }
+        .dr-face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .dr-who { position: absolute; left: 1220px; width: 600px; top: 702px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 44px; line-height: 50px; color: #f04a2e; text-shadow: 0 0 6px #0a0c0d, 0 0 18px #0a0c0d; white-space: nowrap; }
+      </style>
+      <!-- "Kita mengetahuinya dari catatan ..." (220.80 s): ban-top + caption from the start; film: the nave of a gothic church on "khotbah" (223.97 s); civ-market on "Salah" (226.47 s); civ-wide2 + framed portrait Daniel Specklin on "arsitek" (230.02 s). -->
+      <div id="root" data-composition-id="c2-05-sources" data-width="1920" data-height="1080">
+        <!-- Shot a: the first picture, with its caption, until 3.17 s. -->
+        <div class="dr-shot" id="c205sources-a" data-layout-allow-overflow><img id="c205sources-a-img" src="data:image/svg+xml,%3C!--ban-top.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ban-top.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/ban-top.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c205sources-a-cap">Keputusan dewan kota Strasbourg, 2 Agustus 1518<br />Arsip Kota Strasbourg</div>
+        <!-- Shot b: the short muted film clip, from 3.17 s. -->
+        <div class="dr-shot" id="c205sources-b" data-layout-allow-overflow><img id="c205sources-b-video" data-start="3.17" data-hf-media-start-basis="local" data-duration="2.5" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' src="data:image/svg+xml,%3C!--v03.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/v03.mp4%3C/text%3E%3C/svg%3E" data-media="footage/v03.mp4" data-media-kind="video" alt="" /></div>
+        <!-- Shot c: the city market picture, from 5.67 s. -->
+        <div class="dr-shot" id="c205sources-c" data-layout-allow-overflow><img id="c205sources-c-img" src="data:image/svg+xml,%3C!--civ-market.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/civ-market.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/civ-market.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- Shot d: the wide city picture, behind the framed portrait, from 9.22 s. -->
+        <div class="dr-shot" id="c205sources-d" data-layout-allow-overflow><img id="c205sources-d-img" src="data:image/svg+xml,%3C!--civ-wide2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/civ-wide2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/civ-wide2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The framed portrait, with its image inside the frame. -->
+        <div class="dr-frame" id="c205sources-d-frame"><div class="dr-face" id="c205sources-d-face" data-layout-allow-overflow><img id="c205sources-d-face-img" src="data:image/svg+xml,%3C!--f-specklin.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/f-specklin.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/f-specklin.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div></div>
+        <!-- The name under the portrait. -->
+        <div class="dr-who" id="c205sources-d-who">Daniel Specklin</div>
+      </div>
+      <script>
+        /* Timeline: pictures a to d are cut in at 3.17, 5.67 and 9.22 s; the caption is removed at 3.17 s. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c205sources-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.067, x: 6, y: -2, duration: 3.17, ease: "none" }, 0.0);
+        tl.to("#c205sources-a-cap", { opacity: 0, duration: 0.001 }, 3.17);
+        tl.fromTo("#c205sources-b", { scale: 1.0 }, { scale: 1.043, duration: 2.5, ease: "none" }, 3.17);
+        gsap.set("#c205sources-b", { opacity: 0 });
+        tl.to("#c205sources-b", { opacity: 1, duration: 0.001 }, 3.17);
+        tl.fromTo("#c205sources-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.073, x: 4, y: 3, duration: 3.55, ease: "none" }, 5.67);
+        gsap.set("#c205sources-c", { opacity: 0 });
+        tl.to("#c205sources-c", { opacity: 1, duration: 0.001 }, 5.67);
+        tl.fromTo("#c205sources-d", { scale: 1.014, x: 6, y: 3 }, { scale: 1.069, x: -6, y: -3, duration: 3.28, ease: "none" }, 9.22);
+        gsap.set("#c205sources-d", { opacity: 0 });
+        tl.to("#c205sources-d", { opacity: 1, duration: 0.001 }, 9.22);
+        tl.fromTo("#c205sources-d-face", { scale: 1.0 }, { scale: 1.039, duration: 3.28, ease: "none" }, 9.22);
+        gsap.set("#c205sources-d-frame", { opacity: 0 });
+        tl.to("#c205sources-d-frame", { opacity: 1, duration: 0.001 }, 9.22);
+        gsap.set("#c205sources-d-who", { opacity: 0 });
+        tl.to("#c205sources-d-who", { opacity: 1, duration: 0.001 }, 9.22);
+        window.__timelines["c2-05-sources"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

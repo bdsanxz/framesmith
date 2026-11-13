@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/frames/02-cards.html (composition id "cards")
+  WHAT: The middle 8 seconds of the sizzle: four full-screen cards, one per course day, each cut
+    in on a downbeat. Every card has a mono kicker (DAY 1 to DAY 4) and a two-line headline: "ONE
+    COMMAND," with "EVERY AGENT." on a lime pill, "YOUR BRAND," with "MOVING.", "60 SECONDS," with
+    "NOT 400 LINES.", and "THE SONG IS" with "THE EDITOR.". Card 2 is dark ink with light text;
+    the others are sage. index.html mounts it as frame-02 at 2.02 s for 8.011 s. The file plays no sound
+    of its own; the music bed is mounted by index.html.
+  STRUCTURE: Four .cards-card clips inside #root: #cards-1 at 0 s (1.997 s long), #cards-2 at
+    1.997 s (2.02 s long, class flip), #cards-3 at 4.017 s and #cards-4 at 6.014 s (both 1.997 s).
+    In each card the kicker fades up 20 px on its downbeat, the first line pops from scale 1.25,
+    the lime pill (.cards-b) wipes in from scaleX 0 on the next snare, and .cards-head creeps from
+    scale 1 to 1.015 over 2 s. The downbeats array [0, 1.997, 4.017, 6.014] and the snares array
+    [0.511, 2.508, 4.505, 6.502] hold the frame-local times the script uses.
+  CUSTOMIZE: Text: the kicker and the two headline spans of each card in the markup. Colors:
+    #C9D6C2 card ground, #1E2A1C ink, #B6F23A lime pill and, on the flip card, kicker; #F4F7EF
+    light headline on the flip card. Size: 168px headlines, 34px kicker. Timing: data-start and
+    data-duration of each card and the two arrays must agree; the cards tile from 0 to 8.011 s.
+    A card that gets longer needs its data-duration, its downbeat, and the next card's start moved
+    together.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS
+    image slot. Headlines use Inter and kickers use JetBrains Mono, both bundled with HyperFrames, so no font
+    file is needed.
+  WHEN TO USE: A short list of claims, one per beat, each on its own hard-cut card. It fits a beat
+    recap where every card has to read in about two seconds. Pick something else when a card needs
+    an image, a chart, or more reading time.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Root and layout: fills the frame; each card is stacked on it and hard cut. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Inter", sans-serif; }
+        /* Full-frame card with a sage ground; the .flip variant swaps to dark ink. */
+        .cards-card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 36px; padding: 0 140px; background: #C9D6C2; }
+        .cards-card.flip { background: #1E2A1C; }
+        /* Mono kicker line above each headline (DAY n and the topic). */
+        .cards-kicker { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 34px; letter-spacing: 0.14em; color: #1E2A1C; }
+        /* Headline block: the two headline lines stacked with a small gap. */
+        .cards-head { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+        /* Heavy 168px headline text, shared by both lines. */
+        .cards-line { display: block; font-weight: 900; font-size: 168px; line-height: 0.95; letter-spacing: -0.04em; color: #1E2A1C; }
+        /* The lime pill behind the second headline line. */
+        .cards-pill { display: block; background: #B6F23A; color: #1E2A1C; padding: 4px 28px 14px; transform-origin: 0% 50%; }
+        /* Colors on the dark flip card: lime kicker, light headline. */
+        .flip .cards-kicker { color: #B6F23A; }
+        .flip .cards-line { color: #F4F7EF; }
+        .flip .cards-pill { color: #1E2A1C; }
+      </style>
+      <div id="root" data-composition-id="cards" data-width="1920" data-height="1080">
+        <!-- Each card is its own clip: the framework hard-cuts them on the downbeats (frame-local = track − 2.02). -->
+        <div id="cards-1" class="cards-card clip" data-start="0" data-duration="1.997" data-layout-allow-overflow>
+          <div class="cards-kicker">DAY 1 · INSTALL</div>
+          <div class="cards-head"><span class="cards-line cards-a">ONE COMMAND,</span><span class="cards-line cards-b cards-pill">EVERY AGENT.</span></div>
+        </div>
+        <div id="cards-2" class="cards-card flip clip" data-start="1.997" data-duration="2.02" data-layout-allow-overflow>
+          <div class="cards-kicker">DAY 2 · FRAME.MD</div>
+          <div class="cards-head"><span class="cards-line cards-a">YOUR BRAND,</span><span class="cards-line cards-b cards-pill">MOVING.</span></div>
+        </div>
+        <div id="cards-3" class="cards-card clip" data-start="4.017" data-duration="1.997" data-layout-allow-overflow>
+          <div class="cards-kicker">DAY 3 · PR-TO-VIDEO</div>
+          <div class="cards-head"><span class="cards-line cards-a">60 SECONDS,</span><span class="cards-line cards-b cards-pill">NOT 400 LINES.</span></div>
+        </div>
+        <div id="cards-4" class="cards-card clip" data-start="6.014" data-duration="1.997" data-layout-allow-overflow>
+          <div class="cards-kicker">DAY 4 · MUSIC-TO-VIDEO</div>
+          <div class="cards-head"><span class="cards-line cards-a">THE SONG IS</span><span class="cards-line cards-b cards-pill">THE EDITOR.</span></div>
+        </div>
+      </div>
+      <script>
+        /* Paused timeline for the four cards, registered under "cards" below. */
+        const tl = gsap.timeline({ paused: true });
+        // Downbeats 2.02 / 4.017 / 6.037 / 8.034 and the next grid beat after each, as frame-local times.
+        const downbeats = [0, 1.997, 4.017, 6.014];
+        const snares = [0.511, 2.508, 4.505, 6.502];
+        /* Per card: kicker and first line on the downbeat, pill on the snare, and a slow zoom. */
+        ["#cards-1", "#cards-2", "#cards-3", "#cards-4"].forEach((id, i) => {
+          tl.fromTo(id + " .cards-kicker", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.18, ease: "expo.out" }, downbeats[i]);
+          tl.fromTo(id + " .cards-a", { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.18, ease: "expo.out" }, downbeats[i]);
+          tl.fromTo(id + " .cards-b", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.2, ease: "expo.out" }, snares[i]);
+          tl.fromTo(id + " .cards-head", { scale: 1 }, { scale: 1.015, duration: 2, ease: "none" }, downbeats[i]);
+        });
+        /* Register the timeline under its composition id so the host can play it. */
+        window.__timelines["cards"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

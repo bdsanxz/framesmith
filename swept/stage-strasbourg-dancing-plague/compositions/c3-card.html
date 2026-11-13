@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-card.html (composition id "c3-card")
+  WHAT: The title card for chapter 3, one line of small white caps alone on a near-black ground:
+    "RESEP DEWAN KOTA: LEBIH BANYAK TARIAN" (Indonesian for "the council's recipe: more dancing").
+    It fades in from 0.25 s and out from 3.75 s. It runs 4.2 s; index.html mounts it at 290.6 s,
+    just before the chapter's first beat, with a bass hit (sfx-card-3) at 290.73 s.
+  STRUCTURE: One layer. #root (the 1920 by 1080 frame, #0c0f10) holds the single text div #c3-title.
+    The timeline (window.__timelines["c3-card"]) fades #c3-title from opacity 0 to 1 over 0.5 s
+    starting at 0.25 s, then back to 0 over 0.35 s starting at 3.75 s. Nothing else moves.
+  CUSTOMIZE: The words are the text of #c3-title; keep the capitals, since the page does not change
+    case. The rule sets size 38 px, weight 700, colour #e9edea, centred across the full width at
+    top 520 px. The ground is #0c0f10 on #root. The timings are the numbers 0.25, 0.5, 3.75 and 0.35
+    in the two tl calls; the fade out must end before the 4.2 s data-duration in index.html. The
+    bass hit is set in index.html, not here.
+  MEDIA: no media file is bundled. This file has one font slot and no picture, video, sound or CSS image.
+    1. The font, the @font-face for "Arimo" (weights 400 to 700), used by #c3-title. It was a bundled woff2 file
+       (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is used if it is installed,
+       otherwise the browser falls back to the sans-serif family and the card still reads. To plug in your font,
+       add url("your-font.woff2") format("woff2") to the src list of that @font-face.
+    2. Sound: none in this file. The bass hit (sfx-card-3) that goes with this card is placed by index.html, not
+       here, so this file needs no audio element.
+  WHEN TO USE: a chapter title between narrated sections, when one short line on a plain ground is
+    enough. Pick another pattern for a card that needs a picture or a longer title.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The title font, Arimo, is read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The chapter card: one short line of small white caps, alone on black. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0f10; }
+        #c3-title { position: absolute; left: 0; width: 1920px; top: 520px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 38px; line-height: 1.2; color: #e9edea; white-space: nowrap; }
+      </style>
+      <!-- The stage: one full-frame layer that holds the title line alone. -->
+      <div id="root" data-composition-id="c3-card" data-width="1920" data-height="1080">
+        <div id="c3-title">RESEP DEWAN KOTA: LEBIH BANYAK TARIAN</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1, 0.25 to 4.1 s: the title fades in, holds, and fades out from 3.75 s; the timeline is registered at its end. */
+        tl.fromTo("#c3-title", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0.25);
+        tl.to("#c3-title", { opacity: 0, duration: 0.35, ease: "power1.in" }, 3.75);
+        window.__timelines["c3-card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

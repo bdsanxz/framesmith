@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-05-hardship.html (composition id "c1-05-hardship")
+  WHAT: The hardship beat of chapter 1, on the fears and the bad years before the plague. It runs four
+    pictures in turn: Durer's Four Horsemen (horsemen-death.jpg) from the start; a harvest page of a
+    prayer book with the caption "Bulan Agustus: memanen gandum" (August: harvesting wheat) from
+    4.72 s; a hunters picture from 7.65 s; and a market picture from 9.46 s. Each one pushes slowly.
+    It runs 13.3 s; index.html mounts it as c1-05-hardship-slot at 108.16 s.
+  STRUCTURE: four .dr-shot wrappers in document order: #c105hardship-a (horsemen), #c105hardship-b
+    (the harvest page), #c105hardship-c (hunters) and #c105hardship-d (market). The caption
+    #c105hardship-b-cap sits after the harvest page and is hidden again at 7.65 s. The paused GSAP
+    timeline, registered as window.__timelines["c1-05-hardship"], pushes the horsemen from 0 s (scale
+    1.014 to 1.091 over 4.72 s); shows the harvest page and caption at 4.72 s and pushes the page
+    (to 1.063 over 2.93 s); from 7.65 s shows and pushes the hunters (to 1.046 over 1.81 s); and from
+    9.46 s shows and pushes the market (to 1.078 over 3.84 s). Each shot stays on screen after its cut,
+    covered by the next one.
+  CUSTOMIZE: the caption text is in the markup: "Bulan Agustus: memanen gandum" on the first line and
+    "Buku doa karya Simon Bening, sekitar 1515" on the second. Its place is left 207 px and top 800 px
+    in .dr-cap. The cut times 4.72, 7.65 and 9.46 and the push amounts are in the tweens. The grade of
+    every picture is the data-color-grading JSON on its img. The last tween ends at 13.3 s, which must
+    match the data-duration that index.html gives c1-05-hardship-slot. Changing a cut time means
+    changing the duration of the shot before it, so the shots stay back to back.
+  MEDIA: no media file is bundled. This file has four photo slots and one font slot. It has no sound and
+    no CSS image.
+    1. The horsemen, img #c105hardship-a-img (inside #c105hardship-a, on screen from the start). It
+       showed Durer's Four Horsemen (1498). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/horsemen-death.jpg". To plug in your picture, set the img's src to your
+       file (for example assets/generated/horsemen-death.jpg). The data-media attribute only names the
+       expected path; it loads nothing. The img's data-color-grading still grades your picture.
+    2. The harvest page, img #c105hardship-b-img (inside #c105hardship-b, which cuts in at 4.72 s, with
+       the caption #c105hardship-b-cap). It showed a harvest page from a Flemish book of hours (Bening,
+       about 1515). It now shows a stand-in labeled "PHOTO: assets/generated/bening.jpg". To plug in your
+       page, set the img's src to your file.
+    3. The hunters, img #c105hardship-c-img (inside #c105hardship-c, which cuts in at 7.65 s). It showed
+       Bruegel's Hunters in the Snow (1565). It now shows a stand-in labeled
+       "PHOTO: assets/generated/hunters.jpg". To plug in your picture, set the img's src to your file.
+    4. The market, img #c105hardship-d-img (inside #c105hardship-d, which cuts in at 9.46 s). It showed
+       Durer's Peasant Couple at Market (1519). It now shows a stand-in labeled
+       "PHOTO: assets/generated/market.jpg". To plug in your picture, set the img's src to your file.
+    5. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap. It was a bundled font
+       file. It now reads local("Arimo"): the face is used if it is installed, otherwise the sans-serif
+       fallback of the font stack. To plug in your font, add url("your-font.woff2") format("woff2") to the
+       src list of that @font-face.
+    The caption is plain text and needs no file.
+  WHEN TO USE: a beat that lists the fears of an era with several pictures, one of them captioned.
+    Pick another composition when the beat needs one picture only, or a picture of a single place.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+      </style>
+      <!-- "Namun tahun-tahun sebelum wabah ..." (108.16 s): horsemen-death from the start; bening + caption on "Sejarawan" (112.88 s); hunters on "musim" (115.81 s); market on "dan" (117.62 s). -->
+      <div id="root" data-composition-id="c1-05-hardship" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c105hardship-a" data-layout-allow-overflow><img id="c105hardship-a-img" src="data:image/svg+xml,%3C!--horsemen-death.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/horsemen-death.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/horsemen-death.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c105hardship-b" data-layout-allow-overflow><img id="c105hardship-b-img" src="data:image/svg+xml,%3C!--bening.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/bening.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/bening.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c105hardship-b-cap">Bulan Agustus: memanen gandum<br />Buku doa karya Simon Bening, sekitar 1515</div>
+        <div class="dr-shot" id="c105hardship-c" data-layout-allow-overflow><img id="c105hardship-c-img" src="data:image/svg+xml,%3C!--hunters.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hunters.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hunters.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c105hardship-d" data-layout-allow-overflow><img id="c105hardship-d-img" src="data:image/svg+xml,%3C!--market.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/market.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/market.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* The timeline: four shots in turn, each pushed slowly and cut in at its own time. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c105hardship-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.091, x: 6, y: -2, duration: 4.72, ease: "none" }, 0.0);
+        tl.fromTo("#c105hardship-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.063, x: -5, y: 3, duration: 2.93, ease: "none" }, 4.72);
+        gsap.set("#c105hardship-b", { opacity: 0 });
+        tl.to("#c105hardship-b", { opacity: 1, duration: 0.001 }, 4.72);
+        gsap.set("#c105hardship-b-cap", { opacity: 0 });
+        tl.to("#c105hardship-b-cap", { opacity: 1, duration: 0.001 }, 4.72);
+        tl.to("#c105hardship-b-cap", { opacity: 0, duration: 0.001 }, 7.65);
+        tl.fromTo("#c105hardship-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.046, x: 4, y: 3, duration: 1.81, ease: "none" }, 7.65);
+        gsap.set("#c105hardship-c", { opacity: 0 });
+        tl.to("#c105hardship-c", { opacity: 1, duration: 0.001 }, 7.65);
+        tl.fromTo("#c105hardship-d", { scale: 1.014, x: 6, y: 3 }, { scale: 1.078, x: -6, y: -3, duration: 3.84, ease: "none" }, 9.46);
+        gsap.set("#c105hardship-d", { opacity: 0 });
+        tl.to("#c105hardship-d", { opacity: 1, duration: 0.001 }, 9.46);
+        window.__timelines["c1-05-hardship"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

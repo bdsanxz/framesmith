@@ -1,8 +1,8 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 168,
-    "refused": 5,
+    "approximated": 170,
+    "refused": 3,
     "translated": 32
   },
   "duration": 25.5,
@@ -242,10 +242,11 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"0% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"0% 100%\\\"\" snapped to clip origin \"left bottom\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#intro-tab\" at start=5.5800 duration=0.5000",
       "file": "compositions/frames/intro.html",
       "line": 92,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -446,10 +447,11 @@
     },
     {
       "construct": "tl.to",
-      "detail": "property \"filter\" (value \"\\\"blur(6px)\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "blur endpoint resolves from the clip's static blur 0 (converter does not read CSS filter); GSAP animates from the captured authored filter state, so early eval differs",
+      "detail": "tl.to on \"#anatomy-body\" at start=12.4600 duration=0.6000",
       "file": "compositions/frames/anatomy.html",
       "line": 98,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -1583,14 +1585,14 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"start\" is an expression; refusing the call site",
+      "detail": "position \"start\" is outside the numeric grammar (unbound identifier \"start\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/captions.html",
       "line": 77,
       "verdict": "refused"
     },
     {
       "construct": "tl.set",
-      "detail": "position \"end\" is an expression; refusing the call site",
+      "detail": "position \"end\" is outside the numeric grammar (unbound identifier \"end\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/captions.html",
       "line": 78,
       "verdict": "refused"

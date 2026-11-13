@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/archduke.html (composition id "archduke")
+  WHAT: Mounted at 7.16 s for 5.4 s. The Archduke's printed cut-out whips in from the left at 7.16
+    s, smeared with motion blur, and lands with a slight tilt by 7.56 s. A hand-drawn orange stroke
+    runs under it from 7.71 s, and an orange tape strip is pressed on at 8.06 s. The name "FRANZ
+    FERDINAND" comes in out of focus at 8.14 s and sharpens; its marker draws under FERDINAND at
+    8.66 s. The role line "Heir to Austria-Hungary's throne" starts typing at 10.09 s on the word
+    "heir". The whole sea chart drifts in slowly across the shot.
+  STRUCTURE: Back to front: #ad-sea (the sea chart, mirrored with scaleX(-1)), #ad-land and #ad-card
+    (torn paper pieces), #ad-person (the portrait wrapper, whose img carries the blur tween),
+    #ad-stroke (an SVG path drawn with a dash offset), #ad-tape, #ad-name (#ad-name-bg with
+    #ad-name-text and the .ad-mark marker), and #ad-role (#ad-role-bg with #ad-role-text). All of
+    them sit inside #ad-cam, which drifts. Timeline (local seconds): the portrait x -950 to 0 and
+    rotation -5 to -1 over 0.4 s from 0; its image blur 22 px to 0 over 0.4 s; the stroke at 0.55 s
+    over 0.3 s; the tape at 0.9 s over 0.15 s; the name at 0.98 s over 0.3 s (blur 10 px, scale 1.08
+    to 1); the marker at 1.5 s over 0.3 s; the role strip at 2.88 s and typing at 2.93 s (22 per
+    second); the camera scales 1 to 1.05 over 5.4 s.
+  CUSTOMIZE: Name: the text of #ad-name-text (FRANZ, and the span .ad-u around FERDINAND carrying
+    the marker). Role: the text of #ad-role-text. Colours: sea from the image, paper #e0d9bf (land),
+    #dbd7cb (card), #f6f4ec (name and role strips), ink #1b1d14 (name) and #21241a (role), accent
+    #e8702a (tape, stroke, marker). Name size 104px Anton; role 40px Special Elite. Positions: the
+    portrait at 110,150 px, 866x1000 px; the stroke at 420,610 px; the tape at 1010,330 px; the name
+    at 960,380 px; the role at 1000,560 px. The whip distance is x -950 in the portrait's fromTo, so
+    a different portrait width needs a different start. Timings are local seconds in the script; the
+    name note (8.14 s) and the role note (10.09 s) in the comments are film times.
+  MEDIA: No media file is bundled in this file, so it loads nothing from disk. It has two photo slots
+    and two font faces.
+    Photo, #ad-sea (the sea chart, the first img in #ad-cam, data-media "assets/generated/sea.jpg"):
+    it showed a generated sea-chart paper texture, mirrored and oversized so the drift shows no edge.
+    Now it shows a faint hatch with the label "PHOTO: assets/generated/sea.jpg" over the #a3ab7e frame
+    ground. To plug in your own file, set its src to "assets/generated/sea.jpg" (or any sea picture at
+    2112 by 1188 px), replacing the data:image/svg value.
+    Photo, #ad-person img (the portrait inside #ad-person, data-media "assets/generated/ff.png"): it
+    showed a paper-sticker cut-out of the Archduke, made from a public domain Wikimedia Commons photo
+    by cutout.py and paper-cutout.py. Now it shows the same hatch with the label
+    "PHOTO: assets/generated/ff.png", and the whip and the name still show the timing. To plug in, set
+    its src to "assets/generated/ff.png", or to a licensed portrait cut out to the same size (866 by
+    1000 px, object-fit contain) with a paper border and shadow.
+    Font Anton, #ad-name-text (the name): it was assets/fonts/anton-latin.woff2. Now the @font-face
+    uses local("Anton") only, so the installed face shows, or else the sans-serif fallback. To plug in,
+    make the Anton src: local("Anton"), url("assets/fonts/anton-latin.woff2") format("woff2").
+    Font Special Elite, #ad-role-text (the role line): the same, with
+    assets/fonts/special-elite-latin.woff2 as the second source, falling back to monospace.
+    Sound: none, this file plays no sound. CSS image: none; the land, card, tape and strips are plain
+    colour, and the stroke is an SVG path.
+  WHEN TO USE: Introducing a person by a cut-out portrait with a name and a one-line role, when the
+    sentence names them. Pick a different treatment for a group photo (cut-outs do not work well on
+    crowds) or for a person whose role needs more than one line.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton for the name, Special Elite for the role line. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The frame: the olive sea-chart ground, clipped to the stage. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #a3ab7e; }
+        /* The camera wrapper: the pieces move together, scaled from the point 1250px 460px. */
+        #ad-cam { position: absolute; inset: 0; transform-origin: 1250px 460px; }
+        /* The sea chart: an oversized image, mirrored, so the slow drift never shows an edge. */
+        #ad-sea { position: absolute; left: -96px; top: -54px; width: 2112px; height: 1188px; transform: scaleX(-1); }
+        /* Torn paper: the SVG turbulence filter displaces the edge of any piece marked .ad-torn. */
+        .ad-torn { filter: url(#ad-tear); }
+        /* The paper land strip and the blank card behind the portrait. */
+        #ad-land { position: absolute; left: 1350px; top: 880px; width: 700px; height: 260px; background: #e0d9bf; transform: rotate(-3deg); }
+        #ad-card { position: absolute; left: 1560px; top: 640px; width: 250px; height: 300px; background: #dbd7cb; transform: rotate(-4deg); }
+        #ad-card::before { content: ""; position: absolute; left: 28px; top: 30px; width: 190px; height: 14px; background: #303228; }
+        /* The printed cut-out (paper-cutout.py): a paper shadow on the wrapper, motion blur on the image. */
+        #ad-person { position: absolute; left: 110px; top: 150px; width: 866px; height: 1000px; filter: drop-shadow(10px 14px 12px rgba(29, 34, 12, 0.4)); }
+        #ad-person img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 0; }
+        /* The orange hand-drawn stroke: an SVG line drawn on with a dash offset. */
+        #ad-stroke { position: absolute; left: 420px; top: 610px; width: 420px; height: 60px; overflow: visible; }
+        /* The name: a paper strip with the Anton name typed in it, and a marker under the surname. */
+        #ad-name { position: absolute; left: 960px; top: 380px; transform: rotate(-2deg); }
+        #ad-name-bg { position: absolute; inset: 0; background: #f6f4ec; box-shadow: 0 8px 14px rgba(34, 40, 11, 0.28); }
+        #ad-name-text { position: relative; padding: 6px 30px 10px; font-family: "Anton", sans-serif; font-size: 104px; line-height: 1.15; color: #1b1d14; white-space: nowrap; }
+        .ad-u { position: relative; display: inline-block; }
+        /* Marker underline: a rounded orange bar wiped on from the left (an SVG stroke with pathLength
+           breaks into dashes once the SVG is stretched, so a plain bar is the reliable mark). */
+        .ad-mark { position: absolute; left: -6px; right: -6px; bottom: 16px; height: 10px; border-radius: 5px; background: #e8702a; transform: rotate(-1.2deg); transform-origin: 0 50%; }
+        /* The orange tape strip that holds the name strip in place. */
+        #ad-tape { position: absolute; left: 1010px; top: 330px; width: 120px; height: 30px; background: #e8702a; transform: rotate(-7deg); }
+        /* The role: a smaller typed strip under the name. */
+        #ad-role { position: absolute; left: 1000px; top: 560px; transform: rotate(-1deg); }
+        #ad-role-bg { position: absolute; inset: 0; background: #f6f4ec; }
+        #ad-role-text { position: relative; padding: 8px 18px; font-family: "Special Elite", monospace; font-size: 40px; line-height: 1.2; color: #21241a; white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="archduke" data-width="1920" data-height="1080">
+        <!-- The torn-edge filter used by the paper pieces. -->
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="ad-tear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="9" /><feDisplacementMap in="SourceGraphic" scale="14" /></filter>
+        </svg>
+        <div id="ad-cam" data-layout-allow-overflow>
+          <!-- The sea chart at the back, then the paper land and card, the portrait cut-out, the stroke and the tape. -->
+          <img id="ad-sea" src="data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/sea.jpg" alt="" />
+          <div id="ad-land" class="ad-torn"></div>
+          <div id="ad-card" class="ad-torn"></div>
+          <div id="ad-person" data-layout-allow-overflow><img src="data:image/svg+xml,%3C!--ff.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'630' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ff.png%3C/text%3E%3C/svg%3E" data-media="assets/generated/ff.png" alt="" /></div>
+          <svg id="ad-stroke" viewBox="0 0 420 60"><path d="M 6 40 C 120 22, 260 30, 414 14" fill="none" stroke="#e8702a" stroke-width="14" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" /></svg>
+          <div id="ad-tape"></div>
+          <!-- The name strip: FRANZ FERDINAND, with the marker inside the span around FERDINAND. -->
+          <div id="ad-name">
+            <div id="ad-name-bg" class="ad-torn"></div>
+            <div id="ad-name-text">FRANZ <span class="ad-u">FERDINAND<i class="ad-mark"></i></span></div>
+          </div>
+          <!-- The role strip, typed on under the name. -->
+          <div id="ad-role">
+            <div id="ad-role-bg" class="ad-torn"></div>
+            <div id="ad-role-text">Heir to Austria-Hungary's throne</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this scene's paused timeline. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: types a text element one character at a time, from a start time and a rate. */
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            s.style.display = "none";
+            el.appendChild(s);
+            tl.set(s, { display: "inline" }, t + i / cps);
+          });
+        }
+        // The portrait whips in from the left, smeared with motion blur, and lands with a slight tilt.
+        tl.fromTo("#ad-person", { x: -950, rotation: -5 }, { x: 0, rotation: -1, duration: 0.4, ease: "power3.out" }, 0);
+        tl.fromTo("#ad-person img", { filter: "blur(22px)" }, { filter: "blur(0px)", duration: 0.4, ease: "power2.out" }, 0);
+        tl.to("#ad-stroke path", { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 0.55);
+        // The name arrives out of focus on "Archduke" (8.14 s) and sharpens; tape first, then the strip.
+        tl.fromTo("#ad-tape", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.15, ease: "back.out(2)" }, 0.9);
+        tl.fromTo("#ad-name", { opacity: 0, scale: 1.08, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 0.98);
+        tl.fromTo("#ad-name .ad-mark", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 1.5);
+        // The role types on with "heir" (10.09 s).
+        tl.fromTo("#ad-role", { opacity: 0 }, { opacity: 1, duration: 0.05 }, 2.88);
+        typeOn("#ad-role-text", 2.93, 22);
+        // The whole frame drifts in slowly over the shot (the camera scale).
+        tl.fromTo("#ad-cam", { scale: 1 }, { scale: 1.05, duration: 5.4, ease: "sine.inOut" }, 0);
+        /* Registration: the host finds this timeline by the composition id "archduke". */
+        window.__timelines["archduke"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

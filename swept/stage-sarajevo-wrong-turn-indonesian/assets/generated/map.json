@@ -1,0 +1,28 @@
+{
+ "size": [
+  1920,
+  1080
+ ],
+ "pins": {
+  "Sarajevo": [
+   1360.2,
+   558.7
+  ]
+ },
+ "focus_box": [
+  893,
+  211,
+  1565,
+  869
+ ],
+ "highlights": {
+  "Sarajevo": [
+   1289,
+   497,
+   1394,
+   627
+  ]
+ },
+ "scale_px_per_unit": 10001.24,
+ "projection": "mercator"
+}

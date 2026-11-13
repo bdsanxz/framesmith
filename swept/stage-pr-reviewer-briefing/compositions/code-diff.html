@@ -1,0 +1,928 @@
+<!-- hyperframes-registry-item: code-diff -->
+<!--
+  GUIDE: compositions/code-diff.html (composition id "code-diff")
+  WHAT: The middle beat of the 14s reviewer briefing, 6s long, mounted at 4s on track 0 by
+    index.html. On a dark navy stage, a code editor window labelled renderOrchestrator.ts
+    and executeRenderJob() fades in over its first 0.5s and shows a real TypeScript change from
+    heygen-com/hyperframes PR 2026: one row of an if condition (!cfg.lowMemoryMode) is
+    removed and shown red, and two rows are added and shown green, one with a trailing &&
+    and one new check (!deInversionEligible). The rows are drawn from baked Shiki tokens, not
+    typed live.
+  STRUCTURE: #root (1920x1080) holds decorative layers marked data-layout-ignore: .bg-field
+    (a radial navy gradient), .bg-grid (faint 64px blue lines masked toward the centre) and two
+    blurred .bg-glow circles. #editor (a 1380x800 card centred with inset 0 and margin auto)
+    holds a .titlebar with three dots and the .filename label, then #surface (.code-surface),
+    where the engine adds a .scene with a .code column of rows. The first script sets
+    window.__TOKENS (one key "diff", with the old and new code as two states, each token coloured
+    by github-dark) and window.__BLOCK (id code-diff, effect diff, seq diff, duration 6). The
+    second script is the inlined engine: after document.fonts.ready it fades #editor in from
+    opacity 0 and scale 0.985 over 0.5s; the diff builder fades the scene in from 0.45s over
+    0.45s, shrinks the removed row from 46px to 0 over 0.55s starting at 1.2s, grows the added
+    rows from 0 to 46px over 0.6s starting at 1.9s (0.12s apart), pads the timeline to 6s and
+    registers window.__timelines["code-diff"].
+  CUSTOMIZE: The code is the text of window.__TOKENS.diff.states; to show other code, replace the
+    two states and bake new tokens with the Shiki script at scripts/shiki-tokens.mjs (two folders
+    up from the inspiration, so reached as ../../scripts/shiki-tokens.mjs). It takes the diff sequence
+    name, the language ts, the before and after code files, and an inject target of this file,
+    and the inspiration README gives the exact command; use it instead of recolouring by hand. The
+    file label is the .accent span (renderOrchestrator.ts) and the text after it (executeRenderJob()). Sizes: the code is 30px with 46px rows, and the editor is 1380x800; about 15
+    rows fit, so a longer hunk needs a bigger card or a scroll. Timing: the 0.45 start, the 0.3
+    gap before deletions, the 0.55 and 0.6 row durations, and the 0.08 and 0.12 stagger; if the
+    hunk grows, the root data-duration (6) and the host data-duration in index.html must still
+    match. Colours: #0b0f17 editor, #f85149 removed rows, #3fb950 added rows. Keep the editor on
+    inset 0 with margin auto: a translate would fight the scale entrance.
+  MEDIA: no media file is bundled, and this file has no photo, video, sound or CSS image to plug
+    in. The code and colours are inline data in window.__TOKENS. The font family "JetBrains Mono"
+    (used by #root) is named only, with no @font-face rule and no font file, so the browser uses
+    an installed copy or falls back to a generic monospace face. To use a font file of your own,
+    add an @font-face rule to this file's style block with the family name and a
+    url("FILE.woff2") source. The only network file is the gsap.min.js script from
+    cdn.jsdelivr.net, which is code, not media.
+  WHEN TO USE: A PR or code-review explainer that must show the exact lines that changed, with
+    the removal and the addition readable at a glance. Pick another format for long files,
+    many scattered edits, or when the viewer should follow a narration rather than read code.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Code Diff</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset: zero margins and padding, border-box sizing, and a fixed 1920x1080 canvas. */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #05070b;
+      }
+      /* Root: a fixed 1920x1080 stage with a monospace font on the dark background. */
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        font-family: "JetBrains Mono", monospace;
+        color: #e6edf3;
+      }
+      /* Background layers, back to front: a radial navy field, a faint grid, and two blurred glows. */
+      .bg-field {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(1200px 700px at 50% 18%, #0e1726 0%, #070b12 55%, #05070b 100%);
+      }
+      .bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(88, 166, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(88, 166, 255, 0.05) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: radial-gradient(1100px 620px at 50% 42%, #000 0%, transparent 78%);
+      }
+      .bg-glow {
+        position: absolute;
+        width: 900px;
+        height: 900px;
+        border-radius: 50%;
+        filter: blur(120px);
+        opacity: 0.5;
+      }
+      .bg-glow.a {
+        background: #1f6feb55;
+        left: -180px;
+        top: -200px;
+      }
+      .bg-glow.b {
+        background: #2ea04355;
+        right: -200px;
+        bottom: -260px;
+      }
+      /* Editor window: a fixed 1380x800 card centred by inset 0 and margin auto. */
+      .editor {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 1380px;
+        height: 800px;
+        background: #0b0f17;
+        border: 1px solid #1d2733;
+        border-radius: 16px;
+        box-shadow:
+          0 40px 120px rgba(0, 0, 0, 0.6),
+          0 2px 0 rgba(255, 255, 255, 0.03) inset;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Title bar: the three traffic-light dots and the filename label. */
+      .titlebar {
+        height: 56px;
+        flex: 0 0 56px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 22px;
+        background: linear-gradient(#11161f, #0c111a);
+        border-bottom: 1px solid #1b2430;
+      }
+      .dots {
+        display: flex;
+        gap: 10px;
+      }
+      .dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+      }
+      .dot.r {
+        background: #ff5f57;
+      }
+      .dot.y {
+        background: #febc2e;
+      }
+      .dot.g {
+        background: #28c840;
+      }
+      .filename {
+        font-size: 19px;
+        color: #8b98a9;
+        letter-spacing: 0.2px;
+      }
+      .filename .accent {
+        color: #d6e2f0;
+      }
+      /* Surface and scene: the area the engine fills with the diff rows, one full-size scene at a time. */
+      .code-surface {
+        position: relative;
+        flex: 1 1 auto;
+        overflow: hidden;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        will-change: opacity;
+      }
+      /* Code column: 30px monospace rows of 46px, indented past the (unused here) gutter. */
+      .code {
+        position: absolute;
+        top: 38px;
+        left: 0;
+        right: 0;
+        padding: 0 44px 0 104px;
+        font-size: 30px;
+        line-height: 46px;
+        font-variant-ligatures: none;
+        tab-size: 2;
+      }
+      /* Gutter, line, token, caret and highlight rules. .gutter holds line numbers and is off here;
+         .caret and .hl-box come from the shared engine, and the diff effect does not draw them. */
+      .gutter {
+        position: absolute;
+        top: 38px;
+        left: 0;
+        width: 84px;
+        padding-right: 18px;
+        font-size: 30px;
+        line-height: 46px;
+        text-align: right;
+        color: #828c9b;
+        user-select: none;
+      }
+      .ln {
+        display: block;
+        height: 46px;
+      }
+      .line {
+        display: block;
+        min-height: 46px;
+        white-space: pre;
+        position: relative;
+        z-index: 1;
+      }
+      .tok {
+        display: inline-block;
+        white-space: pre;
+        will-change: transform, opacity;
+      }
+      .caret {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 3px;
+        height: 32px;
+        margin-top: 6px;
+        background: #58a6ff;
+        border-radius: 1px;
+        z-index: 3;
+      }
+      .hl-box {
+        position: absolute;
+        background: rgba(88, 166, 255, 0.16);
+        border-left: 3px solid #58a6ff;
+        border-radius: 6px;
+        z-index: 0;
+        overflow: hidden;
+      }
+      /* Diff rows: one 46px row per line, with room on the left for the + or - sign. */
+      .diff-line {
+        display: block;
+        min-height: 0;
+        line-height: 46px;
+        white-space: pre;
+        position: relative;
+        overflow: hidden;
+        padding-left: 14px;
+      }
+      .diff-sign {
+        display: inline-block;
+        width: 22px;
+        color: #41506220;
+      }
+      /* Removed rows are tinted red with a red left bar; added rows are tinted green (below). */
+      .diff-del {
+        background: rgba(248, 81, 73, 0.12);
+        box-shadow: inset 3px 0 #f85149;
+      }
+      .diff-add {
+        background: rgba(63, 185, 80, 0.12);
+        box-shadow: inset 3px 0 #3fb950;
+      }
+      .diff-del .diff-sign {
+        color: #f85149;
+      }
+      .diff-add .diff-sign {
+        color: #3fb950;
+      }
+      /* Flight styles kept from the registry engine; the diff effect in this file does not use them. */
+      .flight-block {
+        position: absolute;
+        white-space: pre;
+        font-size: 27px;
+        line-height: 40px;
+        padding: 11px 22px;
+        border-radius: 11px;
+        background: #0f1722;
+        border: 1px solid #233044;
+        box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+        will-change: transform, opacity;
+      }
+      .flight-target {
+        position: absolute;
+        border: 1.5px dashed #2a3a4f;
+        border-radius: 14px;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Root composition: 6 seconds, sized 1920x1080, mounted at 4s by the pr-reviewer-briefing host. -->
+    <div
+      id="root"
+      data-composition-id="code-diff"
+      data-start="0"
+      data-duration="6"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Background and editor layers; data-layout-ignore keeps the layout check from flagging them. -->
+      <div class="bg-field" data-layout-ignore></div>
+      <div class="bg-grid" data-layout-ignore></div>
+      <div class="bg-glow a" data-layout-ignore></div>
+      <div class="bg-glow b" data-layout-ignore></div>
+      <div class="editor" id="editor" data-layout-ignore>
+        <div class="titlebar">
+          <div class="dots">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          </div>
+          <span class="filename"><span class="accent">renderOrchestrator.ts</span> — executeRenderJob()</span>
+        </div>
+        <!-- Surface the engine fills with the diff rows at runtime. -->
+        <div class="code-surface" id="surface"></div>
+      </div>
+    </div>
+    <!-- Token data: the old and new code for the hunk, with Shiki (github-dark) colours per token. -->
+    <script>
+      window.__TOKENS = {
+  "diff": {
+    "lang": "ts",
+    "theme": "github-dark",
+    "bg": "#24292e",
+    "fg": "#e1e4e8",
+    "states": [
+      {
+        "code": "if (\n  job.config.workers === undefined &&\n  totalFrames >= 60 &&\n  !htmlInCanvasDetected &&\n  !cfg.lowMemoryMode\n) {",
+        "tokens": [
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-0",
+            "content": "if",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-1",
+            "content": " (",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-2",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-3",
+            "content": "  job.config.workers ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-4",
+            "content": "===",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-5",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-6",
+            "content": "undefined",
+            "color": "#79B8FF",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-7",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-8",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-9",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-10",
+            "content": "  totalFrames ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-11",
+            "content": ">=",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-12",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-13",
+            "content": "60",
+            "color": "#79B8FF",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-14",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-15",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-16",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-17",
+            "content": "  ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-18",
+            "content": "!",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-19",
+            "content": "htmlInCanvasDetected ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-20",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-21",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-22",
+            "content": "  ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-23",
+            "content": "!",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-24",
+            "content": "cfg.lowMemoryMode",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-25",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-26",
+            "content": ") {",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-27",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          }
+        ]
+      },
+      {
+        "code": "if (\n  job.config.workers === undefined &&\n  totalFrames >= 60 &&\n  !htmlInCanvasDetected &&\n  !cfg.lowMemoryMode &&\n  !deInversionEligible\n) {",
+        "tokens": [
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-0",
+            "content": "if",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-1",
+            "content": " (",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-2",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-3",
+            "content": "  job.config.workers ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-4",
+            "content": "===",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-5",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-6",
+            "content": "undefined",
+            "color": "#79B8FF",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-7",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-8",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-9",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-10",
+            "content": "  totalFrames ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-11",
+            "content": ">=",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-12",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-13",
+            "content": "60",
+            "color": "#79B8FF",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-14",
+            "content": " ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-15",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-16",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-17",
+            "content": "  ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-18",
+            "content": "!",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-19",
+            "content": "htmlInCanvasDetected ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-20",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-21",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-22",
+            "content": "  ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "zHoISXNFpcL-JNSNIvgtel51tdd243wHocJs85ix9h8-23",
+            "content": "!",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-24",
+            "content": "cfg.lowMemoryMode ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-25",
+            "content": "&&",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-26",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-27",
+            "content": "  ",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-28",
+            "content": "!",
+            "color": "#F97583",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-29",
+            "content": "deInversionEligible",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-30",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-31",
+            "content": ") {",
+            "color": "#E1E4E8",
+            "fontStyle": 0
+          },
+          {
+            "key": "AAbAvtIgCo3soGZTbxYYuSKPqhkS_wZQIGAqe4Kki-o-32",
+            "content": "\n",
+            "color": "#e1e4e8",
+            "fontStyle": 0
+          }
+        ]
+      }
+    ]
+  }
+};
+      /* Block config: the id, the effect to run, the token sequence to read, and the 6s duration. */
+      window.__BLOCK = { id: "code-diff", effect: "diff", seq: "diff", duration: 6 };
+    </script>
+    <!-- Engine script: the inlined code-animation engine that builds the diff timeline. -->
+    <script>
+      // hf-code-anim.js — self-contained code-animation engine for HyperFrames registry blocks.
+      //
+      // Reuses Shiki Magic Move's baked output (window.__TOKENS, baked at author time) and
+      // drives the animation as a PAUSED GSAP timeline the HyperFrames engine seeks per frame —
+      // NOT CSS transitions (those break under non-sequential frame seeking). FLIP measurement
+      // runs once inside document.fonts.ready (glyph metrics must be final). Each block sets
+      // window.__BLOCK = { id, effect, seq, line?, duration } and includes this engine; the
+      // engine builds one scene that fills the composition and registers window.__timelines[id].
+      (function () {
+        "use strict";
+        var T = window.__TOKENS || {};
+
+        /* Helper: a div that holds one line of code. */
+        function lineDiv() {
+          var d = document.createElement("div");
+          d.className = "line";
+          return d;
+        }
+
+        // Render a code state's keyed tokens into codeEl as lines of inline-block .tok spans.
+        function renderState(codeEl, state) {
+          codeEl.textContent = "";
+          var keyToEl = new Map();
+          var line = lineDiv();
+          codeEl.appendChild(line);
+          for (var i = 0; i < state.tokens.length; i++) {
+            var t = state.tokens[i];
+            if (t.content === "\n") {
+              line = lineDiv();
+              codeEl.appendChild(line);
+              continue;
+            }
+            var span = document.createElement("span");
+            span.className = "tok";
+            span.textContent = t.content;
+            span.style.color = t.color;
+            if (t.fontStyle & 1) span.style.fontStyle = "italic";
+            if (t.fontStyle & 2) span.style.fontWeight = "700";
+            line.appendChild(span);
+            keyToEl.set(t.key, span);
+          }
+          var last = codeEl.lastChild;
+          if (last && last.className === "line" && last.children.length === 0)
+            codeEl.removeChild(last);
+          return keyToEl;
+        }
+
+        /* Helper: records each token's position; kept from the engine, not called by the diff effect. */
+        function rectsOf(keyToEl) {
+          var m = new Map();
+          keyToEl.forEach(function (el, k) {
+            var r = el.getBoundingClientRect();
+            m.set(k, { left: r.left, top: r.top });
+          });
+          return m;
+        }
+
+        /* Helper: adds one full-size scene with a code column, and a gutter only when asked for. */
+        function makeScene(surface, withGutter) {
+          var scene = document.createElement("div");
+          scene.className = "scene";
+          if (withGutter) {
+            var g = document.createElement("div");
+            g.className = "gutter";
+            scene.appendChild(g);
+          }
+          var code = document.createElement("div");
+          code.className = "code";
+          scene.appendChild(code);
+          surface.appendChild(scene);
+          return { scene: scene, code: code, gutter: scene.querySelector(".gutter") };
+        }
+
+        function fillGutter(g, n) {
+          var html = "";
+          for (var i = 1; i <= n; i++) html += '<span class="ln">' + i + "</span>";
+          g.innerHTML = html;
+        }
+
+        /* Helper: groups the flat token list into lines, starting a new line at each newline token. */
+        function splitLines(state) {
+          var lines = [{ text: "", tokens: [] }];
+          for (var i = 0; i < state.tokens.length; i++) {
+            var t = state.tokens[i];
+            if (t.content === "\n") {
+              lines.push({ text: "", tokens: [] });
+              continue;
+            }
+            var cur = lines[lines.length - 1];
+            cur.tokens.push(t);
+            cur.text += t.content;
+          }
+          if (lines.length && lines[lines.length - 1].tokens.length === 0) lines.pop();
+          return lines;
+        }
+
+        /* Helper: a longest-common-subsequence diff of two line lists, giving same, del and add steps. */
+        function lineDiff(a, b) {
+          var n = a.length;
+          var m = b.length;
+          var dp = [];
+          for (var i = 0; i <= n; i++) dp.push(new Array(m + 1).fill(0));
+          for (var i = n - 1; i >= 0; i--) {
+            for (var j = m - 1; j >= 0; j--) {
+              dp[i][j] =
+                a[i].text === b[j].text
+                  ? dp[i + 1][j + 1] + 1
+                  : Math.max(dp[i + 1][j], dp[i][j + 1]);
+            }
+          }
+          var ops = [];
+          var i = 0;
+          var j = 0;
+          while (i < n && j < m) {
+            if (a[i].text === b[j].text) {
+              ops.push({ type: "same", line: b[j] });
+              i++;
+              j++;
+            } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+              ops.push({ type: "del", line: a[i] });
+              i++;
+            } else {
+              ops.push({ type: "add", line: b[j] });
+              j++;
+            }
+          }
+          while (i < n) ops.push({ type: "del", line: a[i++] });
+          while (j < m) ops.push({ type: "add", line: b[j++] });
+          return ops;
+        }
+
+        // ---- single-scene effect builders (fade in, play, hold to end) -------------
+        var FADE = 0.45;
+
+        /* Diff effect: fade the scene in, shrink the removed rows, then grow the added rows. */
+        function diff(tl, surface, states, start) {
+          var DEL = 0.55;
+          var ADD = 0.6;
+          var ops = lineDiff(splitLines(states[0]), splitLines(states[1]));
+          var parts = makeScene(surface, false);
+          var code = parts.code;
+          var delEls = [];
+          var addEls = [];
+          ops.forEach(function (op) {
+            var ln = document.createElement("div");
+            ln.className =
+              "diff-line" +
+              (op.type === "del" ? " diff-del" : op.type === "add" ? " diff-add" : "");
+            var sign = document.createElement("span");
+            sign.className = "diff-sign";
+            sign.textContent = op.type === "del" ? "- " : op.type === "add" ? "+ " : "  ";
+            ln.appendChild(sign);
+            op.line.tokens.forEach(function (t) {
+              var s = document.createElement("span");
+              s.className = "tok";
+              s.textContent = t.content;
+              s.style.color = t.color;
+              ln.appendChild(s);
+            });
+            code.appendChild(ln);
+            if (op.type === "del") delEls.push(ln);
+            if (op.type === "add") addEls.push(ln);
+          });
+          tl.set(parts.scene, { opacity: 0 }, 0);
+          tl.to(parts.scene, { opacity: 1, duration: FADE, ease: "power1.out" }, start);
+          var atDel = start + FADE + 0.3;
+          delEls.forEach(function (el, k) {
+            tl.fromTo(
+              el,
+              { height: 46, opacity: 1 },
+              { height: 0, opacity: 0, duration: DEL, ease: "power2.inOut" },
+              atDel + k * 0.08,
+            );
+          });
+          var atAdd = atDel + DEL + 0.15;
+          addEls.forEach(function (el, k) {
+            tl.set(el, { height: 0, opacity: 0 }, 0);
+            tl.fromTo(
+              el,
+              { height: 0, opacity: 0 },
+              { height: 46, opacity: 1, duration: ADD, ease: "power2.out" },
+              atAdd + k * 0.12,
+            );
+          });
+        }
+
+        /* Dispatch: runs the effect named in window.__BLOCK, starting at 0.45s. */
+        function buildEffect(tl, surface, spec) {
+          var start = 0.45;
+          var seq = T[spec.seq];
+          if (spec.effect === "diff") diff(tl, surface, seq.states, start);
+        }
+
+        /* Build and register: after fonts load, add the editor entrance and the effect, pad to 6s, then register the timeline. */
+        function go() {
+          var spec = window.__BLOCK;
+          var surface = document.getElementById("surface");
+          var root = document.getElementById("root");
+          window.__timelines = window.__timelines || {};
+          var tl = gsap.timeline({ paused: true });
+          // Build inside fonts.ready (glyph metrics must be final), then register.
+          // Register ONLY after the timeline is fully built: the runtime's
+          // sub-composition readiness gate treats "key present" as "ready" and
+          // nests the child once. An empty timeline registered before this build
+          // would be nested empty and never re-nested → blank render when used as
+          // a sub-composition. See the contract in engine frameCapture.ts.
+          document.fonts.ready.then(function () {
+            tl.from("#editor", { opacity: 0, scale: 0.985, duration: 0.5, ease: "power2.out" }, 0);
+            buildEffect(tl, surface, spec);
+            var dur = parseFloat(root.dataset.duration) || tl.duration();
+            tl.to({}, { duration: dur }, 0); // pad to full composition length
+            window.__timelines["code-diff"] = tl; // register AFTER setup completes
+            if (typeof window.__hfForceTimelineRebind === "function") {
+              window.__hfForceTimelineRebind(); // re-nest now that we are populated
+            }
+          });
+        }
+
+        /* Start: run go now, or wait for DOMContentLoaded if the document is still loading. */
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go);
+        else go();
+      })();
+    </script>
+  </body>
+</html>

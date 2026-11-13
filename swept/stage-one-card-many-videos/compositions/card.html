@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/card.html (composition id "card")
+  WHAT: A 1920x1080 card on a near-black background: a glow in the top-right, a small monospace
+    label, a large title, a short accent bar and a detail paragraph. Its four variables (label,
+    title, detail, accent) are filled per instance, so one file shows different text and colors.
+    The text enters in order over 0.8 s: the label at 0.05 s, the title at 0.12 s, the bar at
+    0.3 s and the detail at 0.4 s. There is no audio. index.html mounts it eight times: one
+    instance on the declared defaults and three with their own values from 1.8 to 7.9 s, then four
+    quarter-size copies from 7.9 s to 10 s. The card does not animate out; it stays until its host
+    ends.
+  STRUCTURE: back to front, inside #root (1920x1080): #card-glow, a radial gradient of the accent
+    at 80% 20% drawn at 35 percent opacity; #card-body, a column 160 px in from each side and 300 px
+    from the top, holding #card-label (monospace, accent color, data-var-text "label"), #card-title
+    (132 px, weight 900, data-var-text "title"), the #card-rule bar, and #card-detail (40 px, max
+    width 1300 px, data-var-text "detail"). The paused timeline "card" tweens the label (fade and rise,
+    0.35 s), the title (fade and rise, 0.45 s, expo.out), the rule (scaleX from 0, 0.4 s) and the
+    detail (fade, 0.4 s) at the start times above, and is registered in window.__timelines.
+  CUSTOMIZE: the declared defaults in data-composition-variables: label "TEMPLATE", title "Defaults
+    only" (declared maxLength 24), a sentence for detail, and accent #9aa3b5. Each host in index.html
+    overrides them with its data-variable-values JSON. Layout: the 160 px side margins and 300 px
+    top in #card-body, the 132 px title size, and the 40 px detail at 1300 px wide. The background
+    #12141a is set in #root. Timing: the start times 0.05, 0.12, 0.3 and 0.4 s in the tweens. A host
+    whose data-duration is under 0.8 s would end before the detail finishes fading in.
+  MEDIA: No media file is bundled. None is needed: this file has no photo, video, sound, font file or CSS image
+    slot. "Inter" and "JetBrains Mono" are bundled with HyperFrames, so they need no font file.
+  WHEN TO USE: the same card, label or stat tile repeated for many items, where every item has the
+    same look and only the text and accent change. Pick a separate composition when the items need
+    different layouts or different motion.
+-->
+<!-- One template, declared once. Each instance overrides these with data-variable-values on its host. -->
+<html data-composition-variables='[
+  {"id":"label","type":"string","label":"Label","default":"TEMPLATE"},
+  {"id":"title","type":"string","label":"Title","default":"Defaults only","maxLength":24},
+  {"id":"detail","type":"string","label":"Detail","default":"No values passed: this is the card on its declared defaults."},
+  {"id":"accent","type":"color","label":"Accent","default":"#9aa3b5"}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Full-frame root in the dark background color, with Inter as the font. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; background: #12141a; }
+        /* Radial glow in the top-right, tinted by the accent variable and drawn at 35 percent opacity. */
+        #card-glow { position: absolute; inset: 0; background: radial-gradient(circle at 80% 20%, var(--accent, #9aa3b5) 0%, rgba(18,20,26,0) 45%); opacity: 0.35; }
+        /* Text column: fixed 160 px side margins and a 30 px gap between its children. */
+        #card-body { position: absolute; left: 160px; right: 160px; top: 300px; display: flex; flex-direction: column; gap: 30px; }
+        /* Text styles for the label, the title and the detail paragraph. */
+        #card-label { font-family: "JetBrains Mono", monospace; font-size: 30px; letter-spacing: .14em; color: var(--accent, #9aa3b5); }
+        #card-title { font-size: 132px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; color: #f3f4f8; }
+        #card-detail { font-size: 40px; line-height: 1.35; color: #b9bfcc; max-width: 1300px; }
+        /* Short accent bar under the title; the timeline scales it up from zero. */
+        #card-rule { display: block; width: 120px; height: 8px; border-radius: 4px; background: var(--accent, #9aa3b5); transform-origin: 0 50%; }
+      </style>
+      <div id="root" data-composition-id="card" data-width="1920" data-height="1080">
+        <!-- Glow layer, first so the text sits on top of it. -->
+        <div id="card-glow"></div>
+        <!-- Text column: the label, title, rule and detail, in that order. -->
+        <div id="card-body">
+          <div id="card-label" data-var-text="label">TEMPLATE</div>
+          <div id="card-title" data-var-text="title">Defaults only</div>
+          <span id="card-rule"></span>
+          <div id="card-detail" data-var-text="detail">No values passed: this is the card on its declared defaults.</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: one paused timeline for the four text tweens below. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#card-label", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.05);
+        tl.fromTo("#card-title", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0.12);
+        tl.fromTo("#card-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: "power3.out" }, 0.3);
+        tl.fromTo("#card-detail", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 0.4);
+        /* Register the timeline under the composition id so the host can seek it. */
+        window.__timelines["card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

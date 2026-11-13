@@ -1,18 +1,15 @@
 # Fidelity report: seeked-not-played-recut → main
 
-- translated: 23
-- approximated (with deltas): 94
-- refused: 7
+- translated: 25
+- approximated (with deltas): 95
+- refused: 4
 
 ## Refused (cause named; conversion refused)
 
-- `index.html`:71 [asset img] element #aroll references remote asset "data:image/svg+xml,%3C!--aroll.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/aroll.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
 - `compositions/cards/registry.html`:63 [tl.fromTo] property "v" (value "400") has no KDL motion property; refusing the call site
-- `compositions/cards/seek.html`:58 [tl.fromTo] target "[\"#seek-arrow\", \"#seek-video\"]" is not a DOM selector ("[\"#seek-arrow\", \"#seek-video\"]" is runtime state); naming the call site instead of guessing a clip
 - `compositions/captions.html`:68 [tl.set] property "color" (value "\"#8e8e93\"") has no KDL motion property; refusing the call site
-- `compositions/captions.html`:69 [tl.set] position "start" is an expression; refusing the call site
-- `compositions/captions.html`:70 [tl.set] position "end" is an expression; refusing the call site
-- `index.html`:92 [tl.set] property "transformOrigin" (value "\"50% 50%\"") has no KDL motion property; refusing the call site
+- `compositions/captions.html`:69 [tl.set] position "start" is outside the numeric grammar (unbound identifier "start" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/captions.html`:70 [tl.set] position "end" is outside the numeric grammar (unbound identifier "end" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 
 ## Approximated (measured deltas)
 
@@ -109,10 +106,12 @@
 - `compositions/captions.html`:56 [container element] element #captions-l9 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/captions.html`:57 [container element] element #captions-l10 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/captions.html`:58 [container element] element #captions-l11 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:92 [tl.set] tl.set on "#video-wrap" at start=0.0000 duration=0.5000 delta: transformOrigin "\"50% 50%\"" snapped to clip origin "center" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
 - `index.html`:68 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
 
 ## Translated
 
+- `index.html`:71 [asset img] element #aroll data: URI decoded to assets/data-aroll.svg (539 bytes, percent-encoded)
 - `compositions/cards/title.html`:46 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/cards/title.html`:48 [tl.fromTo] tl.fromTo on "#title-a" at start=1.5600 duration=0.3000
 - `compositions/cards/title.html`:49 [tl.fromTo] tl.fromTo on "#title-arrow" at start=1.9000 duration=0.3000
@@ -126,6 +125,7 @@
 - `compositions/cards/seek.html`:53 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/cards/seek.html`:55 [tl.fromTo] tl.fromTo on "#seek-card" at start=10.8500 duration=0.5000
 - `compositions/cards/seek.html`:56 [tl.fromTo] tl.fromTo on "#seek-b" at start=12.6000 duration=0.4000
+- `compositions/cards/seek.html`:58 [tl.fromTo] tl.fromTo on ["#seek-arrow", "#seek-video"] at start=13.7500 duration=0.3000
 - `compositions/cards/close.html`:41 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
 - `compositions/cards/close.html`:43 [tl.fromTo] tl.fromTo on "#close-line" at start=15.9500 duration=0.5000
 - `compositions/cards/close.html`:44 [tl.fromTo] tl.fromTo on "#close-hl" at start=16.5000 duration=0.2500

@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-card.html (composition id "c4-card")
+  WHAT: The title card of chapter 4, 4.2 seconds on black. A single centred line of 38 px bold
+    capitals reads "PENJELASAN: DARI KUTUKAN SAMPAI PENYAKIT PSIKOGENIK MASSAL" (explanation:
+    from the curse to mass psychogenic illness). The line fades in from 0.25 to 0.75 seconds,
+    holds, and fades out from 3.75 to 4.10 seconds, so the last 0.1 seconds of the slot are
+    empty. It plays from 398.68 seconds in index.html, the start of chapter 4, and the card has
+    no sound of its own: index.html plays the bass hit sfx-card-4 at 398.81 seconds.
+  STRUCTURE: One root block (#root, on a #0c0f10 ground) holding one text element, #c4-title,
+    placed across the full width at top 520 px. Timeline: #c4-title goes from opacity 0 to 1
+    over 0.5 seconds starting at 0.25 seconds, with a power1.out ease; then it goes from opacity 1
+    to 0 over 0.35 seconds starting at 3.75 seconds, with a power1.in ease. The timeline ends at
+    4.10 seconds, inside the 4.2 second slot.
+  CUSTOMIZE: The title is the text of #c4-title; it is typed in capitals, and the file does not
+    change case. Its position is top 520 px, its size 38 px, its colour #e9edea, and the ground
+    is #0c0f10 on #root. The fade times are the 0.25, 0.75 and 3.75 second numbers in the tl
+    calls. Keep the title to one line, since it is set with nowrap across 1920 px. The
+    data-duration of c4-card-slot in index.html is 4.2 seconds, which must cover the last fade.
+  MEDIA: No media file is bundled in this composition. It has one font slot and no photo, video,
+    sound or CSS image slot. The font slot is the Arimo face in the @font-face rule at the top of
+    the style block. It was the bundled file assets/fonts/arimo-latin.woff2; now the rule reads
+    src: local("Arimo"), so the title uses Arimo only when it is installed on the machine, and
+    otherwise falls back to the sans-serif in the font stack, and the card still works. To plug in:
+    add url("assets/fonts/arimo-latin.woff2") format("woff2") to the src list of that rule, or point
+    it at your own copy of Arimo.
+  WHEN TO USE: a chapter title on black for a few seconds, as one short line. Pick another layout
+    when the title is longer than one line or the card needs a picture.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The Arimo font for the title: used if installed, else the sans-serif fallback. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The chapter card: one short line of small white caps, alone on black. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0f10; }
+        #c4-title { position: absolute; left: 0; width: 1920px; top: 520px; text-align: center; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 38px; line-height: 1.2; color: #e9edea; white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="c4-card" data-width="1920" data-height="1080">
+        <!-- The chapter title, one centred line near the middle of the frame. -->
+        <div id="c4-title">PENJELASAN: DARI KUTUKAN SAMPAI PENYAKIT PSIKOGENIK MASSAL</div>
+      </div>
+      <script>
+        /* Timeline setup: the title fades in, holds, and fades out before the 4.2 second slot ends. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c4-title", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0.25);
+        tl.to("#c4-title", { opacity: 0, duration: 0.35, ease: "power1.in" }, 3.75);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-card"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

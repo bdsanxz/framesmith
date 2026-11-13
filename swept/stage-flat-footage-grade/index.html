@@ -1,0 +1,168 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main", 24 seconds, 1920 by 1080)
+  WHAT: A 24-second film that grades one flat, cast-tinted clip five ways, in the order source, correct, grade,
+    look, finish, and then it ends on a hue-vs-hue end card. The same footage plays in every instance, and each
+    stage shows its grade payload on a video element (a labelled stand-in picture in this copy, see MEDIA). Stages: 0 to 3 s, a mono grade covered by the
+    color grade wiped on from the left (sting); 3 to 6 s, the ungraded source; 6 to 10 s, a before and after
+    wipe of the correction; 10 to 13.5 s, the grade with split tone and one green selection; 13.5 to 18 s, a
+    2 by 2 grid of four presets; 18 to 21 s, the finish with a LUT faded in, a vignette and grain; 21 to 24 s,
+    a hue shift that turns the cyan mug violet, revealed by an expanding circle.
+  STRUCTURE: Root composition "main" (data-duration 24) holds the video layers and one words sub-composition.
+    Back to front: the base wrappers (.wrap, z-index 1) hold the untimed sting, source, graded and finish
+    layers; the over wrappers (.over, z-index 2, #sting-color-wrap, #corrected-wrap and #hue-wrap) sit on top,
+    so their clip-path wipes and circle reveal the layers under them; the four .tile look cells (z-index 1)
+    make the 2 by 2 grid; and #labels-slot (z-index 10) is on top of all the graded media.
+    Video layers with data-start and data-duration: #sting-mono at 0 for 3 s (track 0); #sting-color at 0.5 for
+    2.5 s (track 1, inside wrapper #sting-color-wrap); #source at 3 for 7 s (track 0); #corrected at 6 for 4 s
+    (track 1, wrapper #corrected-wrap); #graded at 10 for 3.5 s (track 0, wrapper #graded-wrap); four look tiles at 13.5 to 18 s in
+    the grid, #tile-warm, #tile-muted, #tile-deep and #tile-mono (tracks 1 to 4); #finished at 18 for 6 s
+    (track 0); #hue at 21 for 3 s (track 1, wrapper #hue-wrap). Words: #labels-slot mounts
+    compositions/labels.html as composition "labels" at 0 for 24 seconds on track 10. The root timeline,
+    registered as window.__timelines["main"], moves the wrappers: the sting wipe at 0.5 s for 1.4 s; the
+    corrected wipe at 6.2 s for 1.2 s and at 7.8 s for 1.4 s; the tile pops from 13.5 s in steps of 0.15 s;
+    the lut intensity from 18.3 s for 1.6 s; and the end circle from 21.2 s for 1.6 s.
+  CUSTOMIZE: Every video's data-media names the same source, footage/flat.mp4 (24 s). The grade is the
+    data-color-grading JSON on each video: adjust (contrast 0.3, blacks 0.6, shadows -0.1, highlights -0.15,
+    whites 0.1, temperature -0.12, saturation 0.5, vibrance 0.2), wheels (shadows hue 195 at 0.12, highlights
+    hue 40 at 0.08), secondaries (hue 120 with range 30, saturation -0.4), lut (assets/luts/teal-amber.cube at
+    intensity 0.6, in the #finished and #hue payloads) and details (vignette 0.3, grain 0.08). The hue curve is
+    hueCurves.hueVsHue on #hue only, with the points [150, 0], [190, 80] and [230, 0]. Change the same values
+    in labels.html payload lines so the words match the grade. Keep data-media-start equal to data-start on
+    every video, which keeps overlapping instances frame-locked. Stage starts here (0, 3, 6, 10, 13.5, 18, 21
+    and 24 s) must match the stage list in labels.html. The duration 24 must match on #root and #labels-slot.
+  MEDIA: No media file is bundled. The eleven video slots and the LUT are listed below, each with what it
+    showed, where it sits, what shows now, and how to plug in your file.
+    1. Footage, footage/flat.mp4 (a 24 second flat, cast-tinted clip), played by eleven video slots: #sting-mono
+       (0 to 3 s) and #sting-color (0.5 to 3 s) in the sting wrappers; #source (3 to 10 s) and #corrected (6 to
+       10 s) in their wrappers; #graded (10 to 13.5 s) in #graded-wrap; #look-warm, #look-muted, #look-deep and
+       #look-mono (13.5 to 18 s) in the four .tile cells; #finished (18 to 24 s) in #finished-wrap; and #hue
+       (21 to 24 s) in #hue-wrap. Each is an img with data-media-kind="video" and data-media="footage/flat.mp4".
+       In this copy each shows a labelled hatch picture with the text "VIDEO: footage/flat.mp4" in place of the
+       footage, so the layout and timing hold but no footage plays. To plug in your file, place a 24 second clip
+       at footage/flat.mp4 (./make-footage.sh builds one through scripts/make-flat-footage.mjs, or use any flat,
+       low-saturation clip of that length). Then, in each of the eleven img elements, replace the img with
+       a video element (src set to your file, muted and playsinline), keeping its id, class, data-* attributes, the
+       data-media-kind="video" attribute and, on #finished, its style attribute.
+    2. LUT, assets/luts/teal-amber.cube (a 3D LUT). It is not a markup slot: it is the "lut" entry of the
+       data-color-grading JSON on #finished and #hue, with "src": "assets/luts/teal-amber.cube" and intensity 0.6.
+       The file is not bundled, so the finish and end steps have no LUT to read in this copy. To plug in your
+       LUT, place a .cube file at assets/luts/teal-amber.cube, or change lut.src in both payloads to your path.
+       The README builds this file from assets/luts/teal-amber.json with scripts/make-cube-lut.py. To drop the
+       LUT step instead, remove the "lut" entry from both payloads.
+    3. Fonts, sound and CSS images: none in this file. It has no @font-face rule and no url() picture, and no
+       audio. Inter and JetBrains Mono are named in labels.html only.
+  WHEN TO USE: A color-grading walkthrough that shows each step on one clip with its real numbers on screen.
+    Pick another inspiration when the film needs several different sources or no on-screen numbers.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Flat footage, five grades</title>
+    <!-- GSAP core, loaded from jsDelivr; the root timeline in this file uses it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and padding, and size every box from its border. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* Pin the page to the 1920 by 1080 canvas and paint the dark background. */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0d0b09; }
+      /* The composition root fills the canvas and clips anything outside it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0d0b09; }
+
+      /* Every graded video (a labelled stand-in picture in this copy, see MEDIA) sits in an untimed wrapper. The grade is drawn on a sibling WebGL
+         canvas, so clipping, motion, and fades go on the wrapper, never on the video. */
+      /* Base wrapper: a full-canvas layer at z-index 1, under the over layers. */
+      .wrap { position: absolute; inset: 0; z-index: 1; }
+      /* Each video fills its wrapper with cover fit, so the picture crops instead of letterboxing. */
+      .wrap [data-media-kind="video"] { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      /* Over layers sit one step above the base wrappers, so a wipe or a circle reveals them on top. */
+      .over { z-index: 2; }
+      /* The sting and the corrected wrappers start fully clipped, so their wipes reveal them from the left. */
+      #sting-color-wrap, #corrected-wrap { clip-path: inset(0 100% 0 0); }
+      /* The end wrapper starts as a zero-radius circle at x 1340 and y 600, and grows outward. */
+      #hue-wrap { clip-path: circle(0px at 1340px 600px); }
+      /* Look tiles: four 960 by 540 quadrants that form the 2 by 2 preset grid. */
+      .tile { position: absolute; width: 960px; height: 540px; overflow: hidden; z-index: 1; }
+      /* The words layer sits above all of the graded media. */
+      #labels-slot { z-index: 10; }
+    </style>
+  </head>
+  <body>
+    <!-- One flat clip (footage/flat.mp4, 24 s), mounted once per grade. Every instance plays the
+         same moment of the clip as the film (data-media-start = data-start), so instances that
+         overlap stay frame-locked. Overlapping instances start at different times, because two
+         media nodes with the same src/start/duration in one file read as a duplicate to the linter. -->
+    <!-- Root composition main: a 24 second timeline holding every graded video layer and the words layer. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="24" data-width="1920" data-height="1080">
+
+      <!-- 0–3 STING. Under: the clip in mono. Over (from 0.5 s): the finished color, wiped on. -->
+      <div class="wrap" id="sting-mono-wrap">
+        <img id="sting-mono" data-start="0" data-media-start="0" data-duration="3" data-track-index="0" data-color-grading='{"preset":"mono-fade","intensity":1}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+      <div class="wrap over" id="sting-color-wrap">
+        <img id="sting-color" data-start="0.5" data-media-start="0.5" data-duration="2.5" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.3,"blacks":0.6,"shadows":-0.1,"highlights":-0.15,"whites":0.1,"temperature":-0.12,"saturation":0.5,"vibrance":0.2},"wheels":{"shadows":{"hue":195,"amount":0.12},"highlights":{"hue":40,"amount":0.08}}}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+
+      <!-- 3–10 SOURCE, ungraded; from 6 s it is the BEFORE half of the comparison. -->
+      <div class="wrap" id="source-wrap">
+        <img id="source" data-start="3" data-media-start="3" data-duration="7" data-track-index="0" src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+      <!-- 6–10 CORRECT: primary correction answering the numbers from the analyze step, swept across the source. -->
+      <div class="wrap over" id="corrected-wrap">
+        <img id="corrected" data-start="6" data-media-start="6" data-duration="4" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.3,"blacks":0.6,"shadows":-0.1,"highlights":-0.15,"whites":0.1,"temperature":-0.12,"saturation":0.5,"vibrance":0.2}}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+
+      <!-- 10–13.5 GRADE: correction + split-tone wheels + one HSL selection that quiets the greens. -->
+      <div class="wrap" id="graded-wrap">
+        <img id="graded" data-start="10" data-media-start="10" data-duration="3.5" data-track-index="0" data-color-grading='{"adjust":{"contrast":0.3,"blacks":0.6,"shadows":-0.1,"highlights":-0.15,"whites":0.1,"temperature":-0.12,"saturation":0.5,"vibrance":0.2},"wheels":{"shadows":{"hue":195,"amount":0.12},"highlights":{"hue":40,"amount":0.08}},"secondaries":[{"key":{"hue":{"center":120,"range":30,"softness":15},"saturation":{"min":0.15,"max":1,"softness":0.1},"luma":{"min":0.05,"max":0.95,"softness":0.1}},"correction":{"saturation":-0.4,"hueShift":-12}}]}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+
+      <!-- 13.5–18 LOOK: four presets, each alone at full intensity (no adjust patch on top of a preset). -->
+      <div class="tile" id="tile-warm" style="left:0;top:0">
+        <div class="wrap"><img id="look-warm" data-start="13.5" data-media-start="13.5" data-duration="4.5" data-track-index="1" data-color-grading='{"preset":"warm-daylight","intensity":1}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" /></div>
+      </div>
+      <div class="tile" id="tile-muted" style="left:960px;top:0">
+        <div class="wrap"><img id="look-muted" data-start="13.65" data-media-start="13.65" data-duration="4.35" data-track-index="2" data-color-grading='{"preset":"muted-editorial","intensity":1}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" /></div>
+      </div>
+      <div class="tile" id="tile-deep" style="left:0;top:540px">
+        <div class="wrap"><img id="look-deep" data-start="13.8" data-media-start="13.8" data-duration="4.2" data-track-index="3" data-color-grading='{"preset":"deep-contrast","intensity":1}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" /></div>
+      </div>
+      <div class="tile" id="tile-mono" style="left:960px;top:540px">
+        <div class="wrap"><img id="look-mono" data-start="13.95" data-media-start="13.95" data-duration="4.05" data-track-index="4" data-color-grading='{"preset":"mono-clean","intensity":1}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" /></div>
+      </div>
+
+      <!-- 18–24 FINISH: the grade + a project-local LUT (faded in through its seek-safe CSS property) + vignette and grain. -->
+      <div class="wrap" id="finished-wrap">
+        <img id="finished" data-start="18" data-media-start="18" data-duration="6" data-track-index="0" style="--hf-color-grading-lut-intensity: 0" data-color-grading='{"adjust":{"contrast":0.3,"blacks":0.6,"shadows":-0.1,"highlights":-0.15,"whites":0.1,"temperature":-0.12,"saturation":0.5,"vibrance":0.2},"wheels":{"shadows":{"hue":195,"amount":0.12},"highlights":{"hue":40,"amount":0.08}},"secondaries":[{"key":{"hue":{"center":120,"range":30,"softness":15},"saturation":{"min":0.15,"max":1,"softness":0.1},"luma":{"min":0.05,"max":0.95,"softness":0.1}},"correction":{"saturation":-0.4,"hueShift":-12}}],"lut":{"src":"assets/luts/teal-amber.cube","intensity":0.6},"details":{"vignette":0.3,"grain":0.08}}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+      <!-- 21–24 END: the finished grade plus one hue-vs-hue point (cyan → violet), opened from the mug outward. -->
+      <div class="wrap over" id="hue-wrap">
+        <img id="hue" data-start="21" data-media-start="21" data-duration="3" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.3,"blacks":0.6,"shadows":-0.1,"highlights":-0.15,"whites":0.1,"temperature":-0.12,"saturation":0.5,"vibrance":0.2},"wheels":{"shadows":{"hue":195,"amount":0.12},"highlights":{"hue":40,"amount":0.08}},"secondaries":[{"key":{"hue":{"center":120,"range":30,"softness":15},"saturation":{"min":0.15,"max":1,"softness":0.1},"luma":{"min":0.05,"max":0.95,"softness":0.1}},"correction":{"saturation":-0.4,"hueShift":-12}}],"hueCurves":{"hueVsHue":[[150,0],[190,80],[230,0]]},"lut":{"src":"assets/luts/teal-amber.cube","intensity":0.6},"details":{"vignette":0.3,"grain":0.08}}' src="data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E" data-media="footage/flat.mp4" data-media-kind="video" alt="" />
+      </div>
+
+      <!-- All words, on one transparent graphics layer. -->
+      <div id="labels-slot" data-composition-id="labels" data-composition-src="compositions/labels.html"
+        data-start="0" data-duration="24" data-track-index="10" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+
+    <script>
+      /* Setup: the paused root timeline; each stage's tweens are added at its start time in seconds. */
+      const tl = gsap.timeline({ paused: true });
+      // Sting: the color instance wipes on over the mono one.
+      tl.to("#sting-color-wrap", { clipPath: "inset(0 0% 0 0)", duration: 1.4, ease: "power2.inOut" }, 0.5);
+      // Before/after: the corrected wrapper's clip edge (the labels layer's seam follows the same times and eases).
+      tl.to("#corrected-wrap", { clipPath: "inset(0 50% 0 0)", duration: 1.2, ease: "power2.inOut" }, 6.2);
+      tl.to("#corrected-wrap", { clipPath: "inset(0 12% 0 0)", duration: 1.4, ease: "sine.inOut" }, 7.8);
+      // Looks: each tile pops in when its instance starts.
+      ["#tile-warm", "#tile-muted", "#tile-deep", "#tile-mono"].forEach((t, i) =>
+        tl.from(t, { opacity: 0, scale: 0.94, duration: 0.4, ease: "power3.out" }, 13.5 + i * 0.15));
+      // Treatment keyframe: a grade animates only through the runtime's CSS properties, from an inline start value.
+      tl.to("#finished", { "--hf-color-grading-lut-intensity": 0.6, duration: 1.6, ease: "sine.inOut" }, 18.3);
+      // End: the hue-shifted instance opens from the mug.
+      tl.to("#hue-wrap", { clipPath: "circle(2300px at 1340px 600px)", duration: 1.6, ease: "power2.in" }, 21.2);
+      /* Registers the root timeline as main so the renderer can seek it. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

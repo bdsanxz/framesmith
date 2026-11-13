@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/map.html (composition id "map")
+  WHAT: The opening 4.25 s of the film, mounted at 0 s by index.html. A locator map fades in out of
+    a soft blur and slowly settles toward a pin in Sarajevo. The pin drops at 2.75 s, the region
+    fills in highlight at 1.7 s, "SARAJEVO" types on at 2.95 s, a leader line draws to the pin at
+    3.35 s, and the subtitle line (Austria-Hungary, 28 June 1914) types on at 3.3 s.
+  STRUCTURE: Back to front: #mp-cam (one scaled layer with #mp-map, the base map, and #mp-hl, the
+    highlighted region on top), #mp-lead (the leader line), #mp-pin (a shadow ellipse and an SVG
+    teardrop), #mp-label (#mp-city and #mp-sub). Timeline: #mp-cam fades from 0 to 1 over 0.6 s,
+    un-blurs over 1.2 s, and scales 1.14 to 1 over 1.6 s then to 1.05 over 2.65 s (the push toward
+    the pin, 4.25 s in all). #mp-hl fades in at 1.7 s. The pin and its shadow start at 2.75 s.
+    typeOn splits each label into spans and reveals each character at its own time (12 per second
+    for the city, 45 per second for the subtitle). The leader line scales from 0 to 1 at 3.35 s.
+  CUSTOMIZE: City name and subtitle: the text inside #mp-city and #mp-sub. Colours: #cac1a2 ground,
+    #282d16 city name, #3b4322 subtitle and leader line, #e8702a pin with #84390e outline, shadow
+    rgba(42, 52, 9, 0.35). The pin position is fixed by hand: #mp-pin at left 1360px, top 559px, and
+    the camera's transform-origin uses the same point; move all three together, and the leader line
+    (left 700px, top 548px) with them. Typing speed: typeOn(..., 12) and typeOn(..., 45). Times: the
+    pin at 2.75, the city at 2.95, the leader at 3.35, the subtitle at 3.3, the highlight at 1.7.
+    The map image is 3840x2160 at -960,-540, twice the frame, so the push has room to move.
+  MEDIA: No media file is bundled. Bundled drawings (SVG, kept): assets/generated/map.svg, the base map
+    (#mp-map, src "assets/generated/map.svg", drawn by map-svg.py from Natural Earth data; make-footage.sh
+    runs it), and assets/generated/map-hl.svg, the same map with the city's region filled (#mp-hl, fading
+    in at 1.7 s). Both are SVG drawings made for this inspiration, render as they are, and are sized at 3840
+    by 2160 px by the CSS. They are not media slots and need nothing plugged in. To use your own drawing,
+    set both srcs to your own SVGs of the same size, with the highlight matching the base map.
+    Font Anton, #mp-city (the city name): it was assets/fonts/anton-latin.woff2. Now the @font-face
+    uses local("Anton") only, so the installed face shows, or else the sans-serif fallback. To plug in,
+    make the Anton src: local("Anton"), url("assets/fonts/anton-latin.woff2") format("woff2").
+    Font Special Elite, #mp-sub (the typed lines): the same, with
+    assets/fonts/special-elite-latin.woff2 as the second source, falling back to monospace.
+    Sound: none, this file plays no sound. CSS image: none; the ground is a colour and the pin is an
+    inline SVG teardrop.
+  WHEN TO USE: An opening that places the story's city on a real map before any title or photograph.
+    Pick a different opener when the place is not a single point on a map, or when a photograph
+    carries the location better.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: Anton for the city name, Special Elite for the typed lines. */
+        @font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: block; src: local("Anton"); }
+        @font-face { font-family: "Special Elite"; font-style: normal; font-weight: 400; font-display: block; src: local("Special Elite"); }
+        /* The frame: a paper-coloured ground behind the map, clipped to the 1920x1080 stage. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #cac1a2; }
+        /* The map settles into focus and keeps pushing toward the pin (map-svg.py reported it at 1360,559). */
+        #mp-cam { position: absolute; inset: 0; transform-origin: 1360px 559px; }
+        /* map-svg.py draws half a frame beyond each edge, so the images sit at -960,-540 and are twice the frame. */
+        #mp-cam img { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; }
+        /* The pin: an orange teardrop with a soft shadow, anchored on the city. */
+        #mp-pin { position: absolute; left: 1360px; top: 559px; width: 0; height: 0; }
+        #mp-pin svg { position: absolute; left: -22px; top: -62px; width: 44px; height: 62px; }
+        #mp-pin-shadow { position: absolute; left: -16px; top: -5px; width: 32px; height: 10px; border-radius: 50%; background: rgba(42, 52, 9, 0.35); }
+        /* The title block: the city name and the typed subtitle beneath it. */
+        #mp-label { position: absolute; left: 140px; top: 436px; }
+        #mp-city { font-family: "Anton", sans-serif; font-size: 132px; line-height: 1.4; letter-spacing: 0.01em; color: #282d16; white-space: nowrap; }
+        #mp-sub { margin-top: 0; font-family: "Special Elite", monospace; font-size: 32px; line-height: 1.2; color: #3b4322; white-space: nowrap; }
+        /* The leader line: a thin bar from the label to the pin, grown from its left end. */
+        #mp-lead { position: absolute; left: 700px; top: 548px; width: 640px; height: 3px; background: #3b4322; transform-origin: 0 50%; }
+      </style>
+      <div id="root" data-composition-id="map" data-width="1920" data-height="1080">
+        <!-- The camera: the base map and its highlight move together as one scaled, blurred layer. -->
+        <div id="mp-cam" data-layout-allow-overflow>
+          <img id="mp-map" src="assets/generated/map.svg" alt="" />
+          <img id="mp-hl" src="assets/generated/map-hl.svg" alt="" />
+        </div>
+        <div id="mp-lead"></div>
+        <!-- The pin: a shadow ellipse on the ground and an SVG teardrop with a pale centre dot. -->
+        <div id="mp-pin">
+          <div id="mp-pin-shadow"></div>
+          <svg viewBox="0 0 44 62"><path d="M22 61 C14 46 2 36 2 22 A20 20 0 0 1 42 22 C42 36 30 46 22 61 Z" fill="#e8702a" stroke="#84390e" stroke-width="2"/><circle cx="22" cy="22" r="7" fill="#f4f0e3"/></svg>
+        </div>
+        <!-- The label: the city name and the subtitle, both typed on by the script. -->
+        <div id="mp-label">
+          <div id="mp-city">SARAJEVO</div>
+          <div id="mp-sub">Austria-Hungary · 28 June 1914</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this scene's timeline, paused so the host can drive it. */
+        const tl = gsap.timeline({ paused: true });
+        /* Helper: splits a text element into per-character spans and reveals each at its own time. */
+        // Typewriter: characters appear one by one at a fixed rate (this style types at 12-30 per second).
+        function typeOn(sel, t, cps) {
+          const el = document.querySelector(sel);
+          const text = el.textContent;
+          el.textContent = "";
+          [...text].forEach((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            el.appendChild(s);
+            tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.001, immediateRender: true }, t + i / cps);
+          });
+        }
+        // Open: the map comes out of a soft, close focus and settles, then drifts in toward the pin.
+        gsap.set("#mp-cam", { opacity: 0, filter: "blur(8px)", scale: 1.14 });
+        tl.to("#mp-cam", { opacity: 1, duration: 0.6, ease: "power1.out" }, 0);
+        tl.to("#mp-cam", { filter: "blur(0px)", duration: 1.2, ease: "power2.out" }, 0);
+        tl.to("#mp-cam", { keyframes: [{ scale: 1, duration: 1.6, ease: "power2.out" }, { scale: 1.05, duration: 2.65, ease: "sine.inOut" }] }, 0);
+        // The city's region fills, then the pin drops onto it.
+        tl.fromTo("#mp-hl", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 1.7);
+        tl.fromTo("#mp-pin svg", { y: -70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "back.out(2.2)" }, 2.75);
+        tl.fromTo("#mp-pin-shadow", { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "power2.out" }, 2.75);
+        // The name types on as it is spoken (3.06 s), the leader line reaches the pin, the date line types.
+        typeOn("#mp-city", 2.95, 12);
+        tl.fromTo("#mp-lead", { scaleX: 0 }, { scaleX: 1, duration: 0.35, ease: "power2.inOut" }, 3.35);
+        typeOn("#mp-sub", 3.3, 45);
+        /* Registration: the host finds this timeline by the composition id "map". */
+        window.__timelines["map"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

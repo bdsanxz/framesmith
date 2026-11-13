@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/cards/seek.html (composition id "card-seek")
+  WHAT: The quote card for the core principle, mounted by index.html at 10.6 s for 4.6 s. The
+    presenter is back at full frame from 9.4 s. A dark rounded card near the top fades and rises in
+    at 10.85 s and reads "Seeked, not played.". From 12.6 s a detail line appears under it: "same
+    input", a blue arrow, and "same video".
+  STRUCTURE: #root (full frame) holds #seek-card, a centred rounded box 1300 px wide with a dark
+    translucent background. It contains #seek-a (the quote, large type) and #seek-b (a row of three
+    spans: "same input", #seek-arrow and #seek-video, "same video"). Timeline in card-local time (global minus
+    10.6 s): #seek-card fades in and rises 30 px over 0.5 s, starting at 0.25 s; #seek-b fades in
+    over 0.4 s, starting at 2.0 s, showing "same input"; #seek-arrow and #seek-video stay hidden until
+    their own word and fade in over 0.3 s at 3.15 s.
+  CUSTOMIZE: The quote: the text of #seek-a. The detail row: the spans in #seek-b. Colours: card
+    rgba(17, 17, 19, 0.88), arrow #0a84ff, text white and grey #c7c7cc. Shape and placement: 1300 px
+    wide, 140 px from the top, 28 px corner radius. Sizes: quote 80 px Inter 900, detail 38 px
+    JetBrains Mono. Timing: card-local 0.25, 2.0 and 3.15; the card's data-start and data-duration in
+    index.html must cover the last fade.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its fonts are Inter (the quote, from #root) and JetBrains Mono (the detail line, from #seek-b),
+    both named in font stacks with no @font-face rule. HyperFrames bundles both, so no font file is added
+    here. If either is not available where you render, the sans-serif or monospace fallback is used.
+  WHEN TO USE: A quote card that states the central claim over a full-frame speaker. Pick a lower
+    third for a shorter line, or a side panel when the card must sit beside the speaker rather than
+    over the frame.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the card never blocks the video beneath. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #ffffff; pointer-events: none; }
+        /* The quote card: a dark rounded box, centred near the top. */
+        #seek-card { position: absolute; left: 50%; top: 140px; width: 1300px; margin-left: -650px; padding: 36px 56px; border-radius: 28px;
+          background: rgba(17, 17, 19, 0.88); display: flex; flex-direction: column; gap: 14px; align-items: center; }
+        /* The quote in large heavy type. */
+        #seek-a { font-size: 80px; font-weight: 900; letter-spacing: -0.03em; }
+        /* The detail line: "same input", the arrow and "same video", in monospace. */
+        #seek-b { display: flex; gap: 24px; font-family: "JetBrains Mono", monospace; font-size: 38px; color: #c7c7cc; }
+        /* The arrow between the two halves of the detail line, in the accent blue. */
+        #seek-arrow { color: #0a84ff; }
+      </style>
+      <div id="root" data-composition-id="card-seek" data-width="1920" data-height="1080">
+        <!-- The quote card: the quote, then the detail line that restates it. -->
+        <div id="seek-card">
+          <div id="seek-a">Seeked, not played.</div>
+          <div id="seek-b"><span>same input</span><span id="seek-arrow">→</span><span id="seek-video">same video</span></div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this card's paused timeline, in card-local seconds. */
+        const tl = gsap.timeline({ paused: true });
+        // Card-local = global − 10.6: "seeked" 0.31, "same input" 2.0, "same video" 3.15.
+        tl.fromTo("#seek-card", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.25);
+        tl.fromTo("#seek-b", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 2.0);
+        /* The arrow and "same video" wait for their own word, 3.15 s. */
+        tl.fromTo(["#seek-arrow", "#seek-video"], { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 3.15);
+        /* Registration: the host finds this timeline by the composition id "card-seek". */
+        window.__timelines["card-seek"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

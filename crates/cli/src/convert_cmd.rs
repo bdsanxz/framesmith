@@ -1216,9 +1216,8 @@ fn plan_keyframes(
     if kind == "set" {
         return refuse(
             ctx,
-            format!(
-                "property \"keyframes\" on a `set` call has no chained form in GSAP; refusing the call site"
-            ),
+            "property \"keyframes\" on a `set` call has no chained form in GSAP; refusing the call site"
+                .to_string(),
         );
     }
     if kind == "from" {
@@ -3249,11 +3248,11 @@ fn emit_call(
             .iter()
             .find(|(k, _)| map_prop(k).is_some())
             .or_else(|| {
-                from_vars.map(|v| {
+                from_vars.and_then(|v| {
                     v.entries.iter().find(|(k, _)| {
                         map_prop(k).is_some() && !animated.contains(k)
                     })
-                }).flatten()
+                })
             });
         if let Some((k, _)) = sibling {
             ctx.entries.push(Entry::refused(

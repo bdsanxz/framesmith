@@ -1,0 +1,163 @@
+<!-- hyperframes-registry-item: editorial-flash-overlay -->
+<!--
+  GUIDE: compositions/editorial-flash-overlay.html (composition id "editorial-flash-overlay")
+  WHAT: a short white editorial flash, a light burst that lands a cut: a warm white wash, a bright
+    radial core and a diagonal light sweep rise together at the peak, then clear within about
+    0.4 s. The file's own data-duration is 4, but index.html mounts it with a 1 s window at 7.42 s
+    on track 6, so the peak lands on the 8 s cut.
+  STRUCTURE: #ef-flash is a root that extends past the frame edges, with three layers back to front:
+    #ef-wash (solid warm white), #ef-core (a screen-blended radial gradient, scaled and rotated
+    minus 5 degrees) and #ef-sweep (a screen-blended diagonal band). Timeline: an empty tween spans
+    the window; at the hit time the wash, core and sweep switch on (opacity 0.92, 1 and 0.9); from
+    hit plus 0.04 s all three fade out and drift (the core grows to 1.18, the sweep moves 28 percent
+    to the right). The hit is 58 percent of the window length.
+  CUSTOMIZE: the three color triples (wash, warm and cool) are variables on #ef-flash, written as RGB
+    numbers. The core gradient stops and its center (37 percent, 47 percent) are in #ef-core. The
+    sweep angle (108 degrees) is in #ef-sweep. To move the peak, change the host data-start and
+    data-duration in index.html, since the hit is 58 percent into the window (at least 0.12 s). The
+    timings are the 0.04, 0.18, 0.34 and 0.3 values in the script.
+  MEDIA: No media file is bundled. The file has no slots: the wash, the core and the sweep are flat, radial
+    and linear gradients, with no picture, video, sound or font, so nothing is to be plugged in.
+  WHEN TO USE: a hard, bright editorial flash on a cut that opens a new section. Pick the light leak
+    overlay for a softer handoff.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      /* Root of the flash: the wash, warm and cool color variables, and a box that extends past the frame edges. */
+      #ef-flash {
+        --hf-editorial-flash-wash: 255 253 250;
+        --hf-editorial-flash-warm: 255 174 105;
+        --hf-editorial-flash-cool: 183 218 255;
+        position: absolute;
+        inset: -12%;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      /* Shared layer rule: each layer is full size, starts transparent, and is animated by opacity and transform. */
+      #ef-flash .ef-layer {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+
+      /* The warm white wash that covers the frame at the peak. */
+      #ef-wash {
+        background: rgb(var(--hf-editorial-flash-wash));
+      }
+
+      /* A bright, screen-blended radial core, slightly rotated and scaled up. */
+      #ef-core {
+        inset: -18%;
+        background: radial-gradient(
+          ellipse 68% 92% at 37% 47%,
+          rgb(255 255 255) 0%,
+          rgb(255 255 255 / 98%) 20%,
+          rgb(var(--hf-editorial-flash-wash) / 86%) 45%,
+          rgb(var(--hf-editorial-flash-warm) / 32%) 67%,
+          transparent 86%
+        );
+        mix-blend-mode: screen;
+        transform-origin: 38% 48%;
+      }
+
+      /* A diagonal light band that slides across the frame. */
+      #ef-sweep {
+        inset: -28%;
+        background: linear-gradient(
+          108deg,
+          transparent 21%,
+          rgb(var(--hf-editorial-flash-warm) / 10%) 38%,
+          rgb(var(--hf-editorial-flash-wash) / 90%) 49%,
+          rgb(255 255 255 / 98%) 53%,
+          rgb(var(--hf-editorial-flash-cool) / 24%) 62%,
+          transparent 79%
+        );
+        mix-blend-mode: screen;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="editorial-flash-overlay"
+      data-composition-id="editorial-flash-overlay"
+      data-start="0"
+      data-duration="4"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- The flash root holds three layers, from the back: wash, core and sweep. -->
+      <div id="ef-flash" aria-hidden="true">
+        <div id="ef-wash" class="ef-layer"></div>
+        <div id="ef-core" class="ef-layer" data-layout-allow-overflow></div>
+        <div id="ef-sweep" class="ef-layer" data-layout-allow-overflow></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      /* Lookup: the flash root and its composition host, which gives the window length. */
+      var flash = document.getElementById("ef-flash");
+      var host = flash && flash.closest("[data-composition-id]");
+      if (!host) throw new Error("Editorial Flash could not find its composition host");
+
+      var compositionId = host.getAttribute("data-composition-id");
+      var duration = Number(host.getAttribute("data-duration")) || 4;
+      /* Peak time: 58 percent into the window, but never less than 0.12 s after its start. */
+      var hit = Math.max(0.12, duration * 0.58);
+      var tl = gsap.timeline({ paused: true });
+
+      /* Empty tween that gives the timeline the full window length. */
+      tl.to({}, { duration: duration, ease: "none" }, 0);
+      /* Peak: the wash, core and sweep all switch on around the hit time. */
+      tl.to("#ef-wash", { opacity: 0.92, duration: 0.04, ease: "power4.in" }, hit);
+      tl.fromTo(
+        "#ef-core",
+        { opacity: 0, scale: 0.86, rotation: -5 },
+        { opacity: 1, scale: 1, rotation: -5, duration: 0.05, ease: "power4.in" },
+        hit - 0.01,
+      );
+      tl.fromTo(
+        "#ef-sweep",
+        { opacity: 0, xPercent: -12, rotation: -2 },
+        { opacity: 0.9, xPercent: 8, rotation: -2, duration: 0.04, ease: "power4.in" },
+        hit,
+      );
+      /* After the peak: all three layers fade and drift out. */
+      tl.to("#ef-wash", { opacity: 0, duration: 0.18, ease: "power3.out" }, hit + 0.04);
+      tl.to(
+        "#ef-core",
+        { opacity: 0, scale: 1.18, rotation: -5, duration: 0.34, ease: "power2.out" },
+        hit + 0.04,
+      );
+      tl.to(
+        "#ef-sweep",
+        { opacity: 0, xPercent: 28, rotation: -2, duration: 0.3, ease: "power2.out" },
+        hit + 0.04,
+      );
+
+      window.__timelines[compositionId] = tl;
+    </script>
+  </body>
+</html>

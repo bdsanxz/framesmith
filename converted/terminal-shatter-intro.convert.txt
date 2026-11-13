@@ -1,6 +1,4 @@
-framesmith convert refused for terminal-shatter-intro: 5 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/terminal-shatter-intro/fidelity.json.
-  compositions/terminal-type.html:78 [tl.set] position "0.5 + i * 0.06" is an expression; refusing the call site
-  compositions/terminal-type.html:83 [tl.to] duration "blink / 2" is not a non-negative number; refusing the call site
-  compositions/terminal-shatter.html:110 [tl.fromTo] position "rand() * 0.12" is an expression; refusing the call site
-  compositions/kinetic-title.html:60 [tl.fromTo] target "word" is not a DOM selector ("word" is runtime state); naming the call site instead of guessing a clip
-  compositions/kinetic-title.html:63 [tl.fromTo] target "[\"#kinetic-title-l1\", \"#kinetic-title-l2\"]" is not a DOM selector ("[\"#kinetic-title-l1\", \"#kinetic-title-l2\"]" is runtime state); naming the call site instead of guessing a clip
+framesmith convert refused for terminal-shatter-intro: 3 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/terminal-shatter-intro/fidelity.json.
+  compositions/terminal-type.html:78 [tl.set] position "0.5 + i * 0.06" is outside the numeric grammar (unbound identifier "i" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/terminal-shatter.html:110 [tl.fromTo] position "rand() * 0.12" is outside the numeric grammar (unbound identifier "rand" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+  compositions/kinetic-title.html:60 [tl.fromTo] position "at" is outside the numeric grammar (unbound identifier "at" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site

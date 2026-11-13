@@ -1,0 +1,259 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/journey.html (composition id "journey")
+  WHAT: One 17.5 s shot across a wide world of four 1920 px regions side by side: a markup line, a
+    bar chart, a waveform, and a render counter with a file card. A thin accent wire runs through
+    all of them and changes role: it types out as code, becomes the chart baseline, the waveform,
+    and finally the connector into the file. A chip rides the head of the wire, and a ruler at the
+    top tracks playback time. The camera moves are keyed to spoken word starts from
+    assets/transcript.json, from "Every" at 0.01 s to "finished" at 13.84 s. This file has no
+    audio; the voice clips would play from index.html, and none is bundled. index.html mounts this
+    file at 0 s for 17.5 s on track 1.
+  STRUCTURE: inside #root, the camera wrapper #world (7680x1080, moved by applyCamera) holds, back
+    to front: #wire-svg with the wire path #wire and the waveform group #wave-g (path #wave);
+    the region labels; region 1, #editor with the code line #code (one span per character) and
+    the caret #caret; region 2, #chart-title and the .bar-col columns with .bar-val and .bar-name;
+    region 3, the waveform; region 4, #counter, the .frame-cell strip and the #file card; and the
+    chip #chip. The script builds the code characters, the six bars, the wave points, the twelve
+    .frame-cell cells and the ruler ticks at setup. The ruler #ruler (ticks, #playhead, #timecode)
+    sits outside #world, so it does not move with the camera. The paused timeline "journey" runs:
+    the characters appear from 0.2 s with a 0.055 s stagger while the caret steps 20.4 px per
+    character, and the caret hides at 2.82 s; a pull back to 1x from 2.9 s (1.3 s); the chip fades in
+    at 3.4 s and rides the drawn wire at 3.46 s (to x 1880), 4.35 s (to x 2100), 6.56 s (to x 3600),
+    7.55 s (to x 4000), 9.0 s (to x 5700, no ease), 10.5 s (to x 6000) and 12.6 s (to x 6620); a
+    pan to x 2880 from 4.35 s (1.35 s); the chart title slides in at 5.72 s; the bars grow at
+    6.56 s (0.45 s, stagger 0.12); a push to 1.1x from 7.55 s; the waveform group scales to 0.35 at
+    8.57 s and to 1 at 9.41 s; a whip to the render region at 10.5 s (0.6 s); the frame cells light
+    at 11.47 s while the counter runs to 525 over 1.2 s; the chip reaches the file at 12.6 s; the
+    file card rises at 13.07 s; a landing push to 1.2x runs at 13.84 s (1.0 s, power4.out). The
+    ruler playhead moves linearly across the full 17.5 s.
+  CUSTOMIZE: the colors come from the host variables named accent and canvas, with the
+    fallbacks #6ee7c8 and #0f1115. The editor and file card fill is #181c24, the code text is
+    #c9d1de and the region labels are #8d96a8. The code line is the CODE string, a timing tag with
+    data-start 0 and data-duration 17.5 typed one character at a time; the characters at indexes 5 to
+    14 (data-start) and 20 to 32 (data-duration) get the accent. Keep the 20.4 px caret step (0.6 em of the 34 px
+    font) in step with the font size. The chart is the BEATS list of [name, seconds] pairs (markup
+    2.8, wire 2.9, chart 1.8, wave 3.0, render 2.6, file 4.4): bar height is seconds times 100 px,
+    spaced 190 px apart from x 2200. The waveform is the loop from x 4000 to 5700 with its sine
+    terms. The camera poses (cx, cy, s) and wire targets sit in each leg() and ride() call; each
+    time is a word start in assets/transcript.json, so change a time and its pose together. DUR
+    17.5 must match data-duration on the host. The counter target 525 is 17.5 s at 30 fps, so change
+    it with the length, and change the static "frame 0 / 525" text in #counter with it. The wire is
+    the d attribute of #wire (its first leg starts at x 1240 and ends at x 6620). The region labels
+    and the render strip sit at x 200, 2200, 4000 and 5900 in the markup, and the strip cells step
+    108 px. The file card text (name and metadata) is in #file.
+  MEDIA: no media file is bundled, and this file loads none: no photo, video, sound or CSS image. Its
+    cue times are typed into the script as word starts from assets/transcript.json, which the page does
+    not load. Fonts "JetBrains Mono" and "Inter" are named by family only, with no @font-face rule and no
+    font file, so they render when installed and otherwise fall back to monospace and sans-serif. To use a
+    font file of your own, add an @font-face rule with the family name and a url("FILE.woff2") source to
+    the style block.
+  WHEN TO USE: a narrated explainer that follows one object through several stages in one unbroken
+    camera move. Pick cuts when the stages are unrelated, or when one stage needs a full frame.
+-->
+<!-- One continuous shot. Everything lives in one wide world (four 1920 px regions side by side);
+     one camera state moves across it. A single wire runs through every region and carries the
+     story: code line → chart baseline → waveform → render strip → file. Colors come from the
+     host's variables (accent, canvas), so one variables flag on the render command re-skins the whole film. -->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Stage: a full-frame root in the canvas color, with Inter as the body font. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: var(--canvas, #0f1115);
+          font-family: "Inter", sans-serif; color: #eef1f6; }
+        /* The camera: one wrapper, transform-origin 0 0, written only by applyCamera(). */
+        #world { position: absolute; left: 0; top: 0; width: 7680px; height: 1080px; transform-origin: 0 0; }
+        #wire-svg { position: absolute; left: 0; top: 0; width: 7680px; height: 1080px; overflow: visible; }
+        .region-label { position: absolute; top: 120px; font-family: "JetBrains Mono", monospace; font-size: 26px;
+          letter-spacing: 0.14em; color: #8d96a8; }
+
+        /* Region 1: the markup */
+        #editor { position: absolute; left: 200px; top: 330px; width: 1080px; height: 270px; border-radius: 18px;
+          background: #181c24; border: 2px solid #262c38; }
+        #editor .bar { height: 46px; border-bottom: 2px solid #262c38; padding: 15px 18px; }
+        #editor .bar i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #3a4150; margin-right: 8px; }
+        #code { position: absolute; left: 40px; top: 108px; font-family: "JetBrains Mono", monospace; font-size: 34px; white-space: pre; color: #c9d1de; }
+        #code .t { color: var(--accent, #6ee7c8); }
+        #caret { position: absolute; left: 0; top: 2px; width: 3px; height: 40px; background: var(--accent, #6ee7c8); }
+
+        /* Region 2: the chart that stands on the wire */
+        .bar-col { position: absolute; bottom: 320px; width: 130px; border-radius: 10px 10px 0 0; background: var(--accent, #6ee7c8);
+          transform-origin: 50% 100%; opacity: 0.9; }
+        .bar-val { position: absolute; width: 130px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 28px; color: #eef1f6; }
+        .bar-name { position: absolute; top: 780px; width: 130px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 22px; color: #8d96a8; }
+        #chart-title { position: absolute; left: 2200px; top: 196px; font-size: 44px; font-weight: 700; }
+
+        /* Region 4: render strip and the file */
+        .frame-cell { position: absolute; top: 470px; width: 96px; height: 60px; border-radius: 6px; background: #232836; border: 2px solid #2e3544; }
+        #counter { position: absolute; left: 5900px; top: 370px; font-family: "JetBrains Mono", monospace; font-size: 40px; color: #eef1f6; }
+        #file { position: absolute; left: 6620px; top: 560px; width: 560px; height: 160px; border-radius: 18px; background: #181c24;
+          border: 3px solid var(--accent, #6ee7c8); padding: 30px 36px; }
+        #file .name { font-family: "JetBrains Mono", monospace; font-size: 34px; color: #eef1f6; }
+        #file .meta { font-size: 26px; color: #8d96a8; margin-top: 14px; }
+
+        /* The protagonist chip rides the wire. */
+        #chip { position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; border-radius: 50%;
+          background: var(--accent, #6ee7c8); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.08); opacity: 0; }
+
+        /* Chrome: a ruler that tracks playback time, outside the camera. */
+        #ruler { position: absolute; left: 0; right: 0; top: 0; height: 64px; background: rgba(15, 17, 21, 0.92); border-bottom: 2px solid #262c38; }
+        #ruler .tick { position: absolute; bottom: 0; width: 2px; height: 14px; background: #3a4150; }
+        #ruler .tick.major { height: 26px; background: #5b6476; }
+        #playhead { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, #6ee7c8); }
+        #timecode { position: absolute; right: 28px; top: 14px; font-family: "JetBrains Mono", monospace; font-size: 26px; color: #c9d1de;
+          background: rgba(15, 17, 21, 0.92); padding: 0 8px; }
+      </style>
+      <div id="root" data-composition-id="journey" data-width="1920" data-height="1080">
+        <div id="world" data-layout-allow-overflow>
+          <!-- SVG layer for the whole wire: its drawn path, and the waveform group that starts flat on it. -->
+          <svg id="wire-svg" viewBox="0 0 7680 1080">
+            <path id="wire" d="M 1240 465 C 1560 465 1560 760 1880 760 L 6200 760 C 6420 760 6420 640 6620 640"
+              fill="none" stroke="var(--accent, #6ee7c8)" stroke-width="6" stroke-linecap="round" />
+            <!-- The waveform grows out of the wire: at scaleY 0 it IS the wire. -->
+            <g id="wave-g"><path id="wave" fill="none" stroke="var(--accent, #6ee7c8)" stroke-width="6" stroke-linejoin="round" /></g>
+          </svg>
+
+          <!-- Region 1 (markup): the editor window that holds the typed code line. -->
+          <div class="region-label" style="left:200px">01 · MARKUP</div>
+          <div id="editor"><div class="bar"><i></i><i></i><i></i></div>
+            <div id="code"></div></div>
+
+          <!-- Region 2 (chart): the title and the six bars that stand on the wire. -->
+          <div class="region-label" style="left:2200px">02 · CHART</div>
+          <div id="chart-title">Seconds per beat, this film</div>
+          <div id="bars"></div>
+
+          <!-- Region 3 (waveform): the wave itself is the SVG group above, drawn on the wire. -->
+          <div class="region-label" style="left:4000px">03 · WAVEFORM</div>
+
+          <!-- Region 4 (render): the frame counter, the frame strip and the finished file card. -->
+          <div class="region-label" style="left:5900px">04 · RENDER</div>
+          <div id="counter">frame 0 / 525</div>
+          <div id="strip"></div>
+          <div id="file"><div class="name">one-take-journey.mp4</div><div class="meta">17.5 s · 1920×1080 · 30 fps</div></div>
+
+          <!-- The chip rides the wire; applyHead() positions it at the head of the drawn stroke. -->
+          <div id="chip"></div>
+        </div>
+        <!-- Ruler outside the camera, so it stays still while the world moves. -->
+        <div id="ruler"><div id="ticks"></div><div id="playhead"></div><div id="timecode">00:00.0</div></div>
+      </div>
+      <script>
+        /* Setup: the length of the take and the single paused timeline that drives it. */
+        const DUR = 17.5;
+        const tl = gsap.timeline({ paused: true });
+
+        // ---------- build (deterministic, measured once at setup) ----------
+        const CODE = '<div data-start="0" data-duration="17.5">';
+        const code = document.getElementById("code");
+        code.innerHTML = CODE.split("").map((c) => `<span class="ch">${c.replace("<", "&lt;").replace(">", "&gt;")}</span>`).join("") + '<span id="caret"></span>';
+        // Accent the two timing attributes.
+        code.querySelectorAll(".ch").forEach((el, i) => { if ((i >= 5 && i <= 14) || (i >= 20 && i <= 32)) el.classList.add("t"); });
+
+        // Bars: the real lengths of this film's beats (seconds between the spoken cues that start them).
+        const BEATS = [["markup", 2.8], ["wire", 2.9], ["chart", 1.8], ["wave", 3.0], ["render", 2.6], ["file", 4.4]];
+        const bars = document.getElementById("bars");
+        BEATS.forEach(([name, s], i) => {
+          const x = 2200 + i * 190, h = s * 100;
+          bars.insertAdjacentHTML("beforeend",
+            `<div class="bar-col" style="left:${x}px;height:${h}px"></div>` +
+            `<div class="bar-val" style="left:${x}px;top:${760 - h - 44}px">${s.toFixed(1)}</div>` +
+            `<div class="bar-name" style="left:${x}px">${name}</div>`);
+        });
+
+        // Waveform points: a fixed sum of sines under an envelope (no randomness).
+        const pts = [];
+        for (let x = 4000; x <= 5700; x += 10) {
+          const u = (x - 4000) / 1700, env = Math.sin(Math.PI * u);
+          const y = 760 - env * (110 * Math.sin(x / 23) + 60 * Math.sin(x / 9.7) + 30 * Math.sin(x / 4.1));
+          pts.push(`${x} ${y.toFixed(1)}`);
+        }
+        document.getElementById("wave").setAttribute("d", "M " + pts.join(" L "));
+
+        // Render strip: 12 frame cells.
+        const strip = document.getElementById("strip");
+        for (let i = 0; i < 12; i++) strip.insertAdjacentHTML("beforeend", `<div class="frame-cell" style="left:${5900 + i * 108}px"></div>`);
+
+        // Ruler ticks: one per second, major every 5.
+        const ticks = document.getElementById("ticks");
+        for (let s = 0; s <= DUR; s++) ticks.insertAdjacentHTML("beforeend",
+          `<div class="tick${s % 5 === 0 ? " major" : ""}" style="left:${(s / DUR) * 1917}px"></div>`);
+
+        const wire = document.getElementById("wire");
+        const L = wire.getTotalLength();
+        wire.style.strokeDasharray = `${L}`;
+        wire.style.strokeDashoffset = `${L}`;
+        // Arc-length of the wire at given x positions (measured once, so the draw and the chip agree).
+        const lenAtX = (tx) => { let lo = 0, hi = L; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; wire.getPointAtLength(m).x < tx ? (lo = m) : (hi = m); } return lo; };
+
+        // ---------- camera: one state, one writer ----------
+        const cam = { cx: 760, cy: 465, s: 1.7 };
+        const world = document.getElementById("world");
+        const applyCamera = () => { world.style.transform = `translate(${960 - cam.s * cam.cx}px, ${540 - cam.s * cam.cy}px) scale(${cam.s})`; };
+        applyCamera();
+        const leg = (pose, at, dur, ease) => tl.to(cam, { ...pose, duration: dur, ease, onUpdate: applyCamera }, at);
+
+        // ---------- the protagonist: draw head and chip share one progress value ----------
+        const head = { len: 0 };
+        const chip = document.getElementById("chip");
+        const applyHead = () => {
+          wire.style.strokeDashoffset = `${L - head.len}`;
+          const p = wire.getPointAtLength(Math.max(0.01, head.len));
+          chip.style.transform = `translate(${p.x}px, ${p.y}px)`;
+        };
+        applyHead();
+        const ride = (toX, at, dur, ease) => tl.to(head, { len: lenAtX(toX), duration: dur, ease, onUpdate: applyHead }, at);
+
+        // ---------- beats, each on its spoken cue (assets/transcript.json) ----------
+        // 0.01 "Every video here starts as one line of markup": the line types, punched in.
+        tl.from("#code .ch", { opacity: 0, duration: 0.01, stagger: 0.055 }, 0.2);
+        // The caret steps with each character (JetBrains Mono advances 0.6 em = 20.4 px at 34 px).
+        CODE.split("").forEach((_, i) => tl.set("#caret", { x: (i + 1) * 20.4 + 3 }, 0.2 + i * 0.055));
+        tl.set("#caret", { opacity: 0 }, 2.82); // the line is done; it becomes the wire
+        // 2.82 "watch that line become a wire": pull back; the chip appears at the end of the line and the wire draws.
+        leg({ cx: 960, cy: 540, s: 1 }, 2.9, 1.3, "power2.inOut");
+        tl.to(chip, { opacity: 1, duration: 0.3, ease: "power2.out" }, 3.4);
+        ride(1880, 3.46, 0.9, "power2.in");
+        // 4.33 "wire," → travel with it to the chart region.
+        leg({ cx: 2880, cy: 540 }, 4.35, 1.35, "power2.inOut");
+        ride(2100, 4.35, 1.35, "power2.inOut");
+        // 5.72 "chart" → title; 6.56 "bars rise off it" → bars stand up from the wire, left to right.
+        tl.from("#chart-title", { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 5.72);
+        tl.from(".bar-col", { scaleY: 0, duration: 0.45, stagger: 0.12, ease: "power3.out" }, 6.56);
+        tl.from(".bar-val, .bar-name", { opacity: 0, duration: 0.3, stagger: 0.04, ease: "power2.out" }, 6.7);
+        ride(3600, 6.56, 0.95, "power2.inOut");
+        // 7.53 "then it bends into a waveform": move on, push slightly; the wave grows out of the wire.
+        leg({ cx: 4850, cy: 560, s: 1.1 }, 7.55, 1.1, "power2.inOut");
+        ride(4000, 7.55, 1.1, "power2.inOut");
+        tl.fromTo("#wave-g", { scaleY: 0, svgOrigin: "4850 760" }, { scaleY: 0.35, duration: 0.5, ease: "power2.out" }, 8.57);
+        // 9.41 "voice comes in": the amplitude swells while the chip crosses the wave.
+        tl.to("#wave-g", { scaleY: 1, duration: 0.8, ease: "power3.out" }, 9.41);
+        ride(5700, 9.0, 1.45, "none");
+        // 10.51 "now the renderer": a whip to the render region.
+        leg({ cx: 6600, cy: 540, s: 1 }, 10.5, 0.6, "power4.inOut");
+        ride(6000, 10.5, 0.6, "power4.inOut");
+        // 11.47 "walks every frame": cells light left to right and the counter runs to the real frame count.
+        tl.to(".frame-cell", { backgroundColor: "#3b4457", borderColor: "#6b7487", duration: 0.08, stagger: 0.1 }, 11.47);
+        const count = { f: 0 };
+        const counter = document.getElementById("counter");
+        tl.to(count, { f: 525, duration: 1.2, ease: "power1.inOut", onUpdate: () => { counter.textContent = `frame ${Math.round(count.f)} / 525`; } }, 11.47);
+        // 13.07 "the wire ends" → the chip reaches the file; 13.84 "finished video file" → landing push, then rest.
+        ride(6620, 12.6, 0.9, "power2.inOut");
+        tl.from("#file", { y: 40, opacity: 0, duration: 0.5, ease: "power3.out" }, 13.07);
+        leg({ cx: 6650, cy: 500, s: 1.2 }, 13.84, 1.0, "power4.out");
+
+        // Chrome: the ruler tracks playback time, linearly, for the whole film.
+        const clock = { t: 0 };
+        const timecode = document.getElementById("timecode");
+        tl.to("#playhead", { x: 1917, duration: DUR, ease: "none" }, 0);
+        tl.to(clock, { t: DUR, duration: DUR, ease: "none", onUpdate: () => {
+          const t = clock.t; timecode.textContent = `00:${String(Math.floor(t)).padStart(2, "0")}.${Math.floor((t % 1) * 10)}`;
+        } }, 0);
+        /* Register the timeline under the composition id so the host can seek it. */
+        window.__timelines["journey"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

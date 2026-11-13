@@ -1,0 +1,5236 @@
+{
+ "version": 1,
+ "engine": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))",
+ "lead": 8.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "[calm] Pada bulan Juli seribu lima ratus delapan belas... [calm] seorang perempuan mulai menari di sebuah jalan di kota Strasbourg...",
+   "key": "e997c654b2d13e19",
+   "start": 8.0,
+   "duration": 7.44,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Pada",
+     "start": 0.905,
+     "end": 1.302
+    },
+    {
+     "text": "bulan",
+     "start": 1.302,
+     "end": 1.81
+    },
+    {
+     "text": "Juli",
+     "start": 1.81,
+     "end": 2.212
+    },
+    {
+     "text": "1518,",
+     "start": 2.212,
+     "end": 3.166
+    },
+    {
+     "text": "seorang",
+     "start": 3.644,
+     "end": 3.72
+    },
+    {
+     "text": "perempuan",
+     "start": 3.935,
+     "end": 4.461
+    },
+    {
+     "text": "mulai",
+     "start": 4.461,
+     "end": 4.872
+    },
+    {
+     "text": "menari",
+     "start": 4.872,
+     "end": 5.363
+    },
+    {
+     "text": "di",
+     "start": 5.363,
+     "end": 5.47
+    },
+    {
+     "text": "sebuah",
+     "start": 5.47,
+     "end": 5.827
+    },
+    {
+     "text": "jalan",
+     "start": 5.827,
+     "end": 6.112
+    },
+    {
+     "text": "di",
+     "start": 6.112,
+     "end": 6.228
+    },
+    {
+     "text": "kota",
+     "start": 6.228,
+     "end": 6.389
+    },
+    {
+     "text": "Strasbourg.",
+     "start": 6.478,
+     "end": 7.21
+    }
+   ],
+   "voice": "Qwen (sawif-plus (qwen-audio-3.0-tts-plus-sawifplus-25a82c9b3c294c5eaa75e7f9479c8d4c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "[calm] Ia menari berhari-hari... [calm] Dalam sepekan, menurut kronik kota, lebih dari tiga puluh orang ikut menari...",
+   "key": "a2fd57275838bfee",
+   "start": 15.94,
+   "duration": 8.24,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Ia",
+     "start": 0.31,
+     "end": 0.446
+    },
+    {
+     "text": "menari",
+     "start": 0.611,
+     "end": 0.874
+    },
+    {
+     "text": "berhari-hari.",
+     "start": 0.874,
+     "end": 1.516
+    },
+    {
+     "text": "Dalam",
+     "start": 2.27,
+     "end": 2.663
+    },
+    {
+     "text": "sepekan,",
+     "start": 2.663,
+     "end": 3.257
+    },
+    {
+     "text": "menurut",
+     "start": 4.081,
+     "end": 4.131
+    },
+    {
+     "text": "kronik",
+     "start": 4.247,
+     "end": 4.86
+    },
+    {
+     "text": "kota,",
+     "start": 4.957,
+     "end": 5.224
+    },
+    {
+     "text": "lebih",
+     "start": 5.983,
+     "end": 5.983
+    },
+    {
+     "text": "dari",
+     "start": 5.983,
+     "end": 6.216
+    },
+    {
+     "text": "30",
+     "start": 6.216,
+     "end": 6.629
+    },
+    {
+     "text": "orang",
+     "start": 6.629,
+     "end": 6.921
+    },
+    {
+     "text": "ikut",
+     "start": 7.096,
+     "end": 7.271
+    },
+    {
+     "text": "menari.",
+     "start": 7.349,
+     "end": 8.01
+    }
+   ],
+   "voice": "Qwen (sawif-plus (qwen-audio-3.0-tts-plus-sawifplus-25a82c9b3c294c5eaa75e7f9479c8d4c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "[calm] Tabib Paracelsus, yang datang delapan tahun kemudian, mencatat nama perempuan itu... [calm] Frau Troffea.",
+   "key": "754ce66f73dfafe2",
+   "start": 24.68,
+   "duration": 6.8,
+   "gap_after": 0.9,
+   "words": [
+    {
+     "text": "Tapi",
+     "start": 0.339,
+     "end": 0.4
+    },
+    {
+     "text": "para",
+     "start": 0.4,
+     "end": 0.798
+    },
+    {
+     "text": "Celsius",
+     "start": 0.798,
+     "end": 1.345
+    },
+    {
+     "text": "yang",
+     "start": 1.624,
+     "end": 1.763
+    },
+    {
+     "text": "datang",
+     "start": 1.763,
+     "end": 2.101
+    },
+    {
+     "text": "8",
+     "start": 2.101,
+     "end": 2.31
+    },
+    {
+     "text": "tahun",
+     "start": 2.39,
+     "end": 2.699
+    },
+    {
+     "text": "kemudian",
+     "start": 2.699,
+     "end": 3.316
+    },
+    {
+     "text": "mencatat",
+     "start": 3.316,
+     "end": 3.982
+    },
+    {
+     "text": "nama",
+     "start": 3.992,
+     "end": 4.221
+    },
+    {
+     "text": "perempuan",
+     "start": 4.321,
+     "end": 5.067
+    },
+    {
+     "text": "itu,",
+     "start": 5.067,
+     "end": 5.393
+    },
+    {
+     "text": "Frau",
+     "start": 5.893,
+     "end": 5.963
+    },
+    {
+     "text": "Trofea.",
+     "start": 5.963,
+     "end": 6.56
+    }
+   ],
+   "voice": "Qwen (sawif-plus (qwen-audio-3.0-tts-plus-sawifplus-25a82c9b3c294c5eaa75e7f9479c8d4c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "[calm] Dewan kota memanggil para tabib, menyewa pemusik, lalu meminta pertolongan seorang santo... [calm] Peristiwa itu kini dikenal sebagai wabah menari Strasbourg...",
+   "key": "ae807582e4543b42",
+   "start": 32.38,
+   "duration": 10.16,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Dewan",
+     "start": 0.261,
+     "end": 0.4
+    },
+    {
+     "text": "kota",
+     "start": 0.4,
+     "end": 0.651
+    },
+    {
+     "text": "memanggil",
+     "start": 0.731,
+     "end": 1.353
+    },
+    {
+     "text": "para",
+     "start": 1.353,
+     "end": 1.624
+    },
+    {
+     "text": "tabib,",
+     "start": 1.715,
+     "end": 1.982
+    },
+    {
+     "text": "menyewa",
+     "start": 2.457,
+     "end": 2.828
+    },
+    {
+     "text": "pemusik,",
+     "start": 2.898,
+     "end": 3.367
+    },
+    {
+     "text": "lalu",
+     "start": 3.702,
+     "end": 3.751
+    },
+    {
+     "text": "meminta",
+     "start": 3.751,
+     "end": 4.172
+    },
+    {
+     "text": "pertolongan",
+     "start": 4.172,
+     "end": 4.834
+    },
+    {
+     "text": "seorang",
+     "start": 4.834,
+     "end": 5.256
+    },
+    {
+     "text": "santo.",
+     "start": 5.256,
+     "end": 5.807
+    },
+    {
+     "text": "Peristiwa",
+     "start": 5.807,
+     "end": 6.7
+    },
+    {
+     "text": "itu",
+     "start": 6.7,
+     "end": 6.71
+    },
+    {
+     "text": "kini",
+     "start": 6.71,
+     "end": 7.001
+    },
+    {
+     "text": "dikenal",
+     "start": 7.001,
+     "end": 7.472
+    },
+    {
+     "text": "sebagai",
+     "start": 7.563,
+     "end": 8.044
+    },
+    {
+     "text": "wabah",
+     "start": 8.044,
+     "end": 8.415
+    },
+    {
+     "text": "menari",
+     "start": 8.415,
+     "end": 8.656
+    },
+    {
+     "text": "Strasbourg.",
+     "start": 8.857,
+     "end": 9.91
+    }
+   ],
+   "voice": "Qwen (sawif-plus (qwen-audio-3.0-tts-plus-sawifplus-25a82c9b3c294c5eaa75e7f9479c8d4c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s05",
+   "file": "assets/narration/s05.mp3",
+   "text": "[calm] Kota seperti apa yang melahirkan wabah ini? [calm] Bagaimana wabah itu menyebar? [calm] Mengapa para pemimpin kota justru memerintahkan lebih banyak tarian? [calm] Dan bagaimana para ahli menjelaskannya sekarang?",
+   "key": "9be694bcba252024",
+   "start": 43.04,
+   "duration": 12.96,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Kota",
+     "start": 0.343,
+     "end": 0.576
+    },
+    {
+     "text": "seperti",
+     "start": 0.675,
+     "end": 0.999
+    },
+    {
+     "text": "apa",
+     "start": 0.999,
+     "end": 1.157
+    },
+    {
+     "text": "yang",
+     "start": 1.226,
+     "end": 1.413
+    },
+    {
+     "text": "melahirkan",
+     "start": 1.413,
+     "end": 2.003
+    },
+    {
+     "text": "wabah",
+     "start": 2.003,
+     "end": 2.298
+    },
+    {
+     "text": "ini?",
+     "start": 2.298,
+     "end": 2.47
+    },
+    {
+     "text": "Bagaimana",
+     "start": 3.359,
+     "end": 3.666
+    },
+    {
+     "text": "wabah",
+     "start": 3.666,
+     "end": 3.893
+    },
+    {
+     "text": "itu",
+     "start": 4.001,
+     "end": 4.109
+    },
+    {
+     "text": "menyebar?",
+     "start": 4.158,
+     "end": 4.961
+    },
+    {
+     "text": "Mengapa",
+     "start": 5.764,
+     "end": 6.008
+    },
+    {
+     "text": "para",
+     "start": 6.008,
+     "end": 6.028
+    },
+    {
+     "text": "pemimpin",
+     "start": 6.343,
+     "end": 6.825
+    },
+    {
+     "text": "kota",
+     "start": 6.894,
+     "end": 7.189
+    },
+    {
+     "text": "justru",
+     "start": 7.199,
+     "end": 7.799
+    },
+    {
+     "text": "memerintahkan",
+     "start": 7.799,
+     "end": 8.419
+    },
+    {
+     "text": "lebih",
+     "start": 8.429,
+     "end": 8.459
+    },
+    {
+     "text": "banyak",
+     "start": 8.459,
+     "end": 8.852
+    },
+    {
+     "text": "tarian?",
+     "start": 9.118,
+     "end": 9.408
+    },
+    {
+     "text": "Dan",
+     "start": 10.176,
+     "end": 10.176
+    },
+    {
+     "text": "bagaimana",
+     "start": 10.176,
+     "end": 10.292
+    },
+    {
+     "text": "para",
+     "start": 10.292,
+     "end": 10.693
+    },
+    {
+     "text": "ahli",
+     "start": 10.693,
+     "end": 10.889
+    },
+    {
+     "text": "menjelaskannya",
+     "start": 10.889,
+     "end": 11.864
+    },
+    {
+     "text": "sekarang?",
+     "start": 11.864,
+     "end": 12.71
+    }
+   ],
+   "voice": "Qwen (sawif-plus (qwen-audio-3.0-tts-plus-sawifplus-25a82c9b3c294c5eaa75e7f9479c8d4c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s06",
+   "file": "assets/narration/s06.mp3",
+   "text": "[calm] Bersama Ruang Dokumenter, mari kita memahami wabah menari Strasbourg...",
+   "key": "2a43831f17875283",
+   "start": 56.5,
+   "duration": 6.0,
+   "gap_after": 12.3,
+   "words": [
+    {
+     "text": "Bersama",
+     "start": 1.303,
+     "end": 1.946
+    },
+    {
+     "text": "Ruang",
+     "start": 1.946,
+     "end": 2.407
+    },
+    {
+     "text": "Dokumenter,",
+     "start": 2.407,
+     "end": 2.638
+    },
+    {
+     "text": "mari",
+     "start": 3.453,
+     "end": 3.714
+    },
+    {
+     "text": "kita",
+     "start": 3.922,
+     "end": 3.96
+    },
+    {
+     "text": "memahami",
+     "start": 3.96,
+     "end": 4.452
+    },
+    {
+     "text": "wabah",
+     "start": 4.452,
+     "end": 4.76
+    },
+    {
+     "text": "menari",
+     "start": 4.76,
+     "end": 5.129
+    },
+    {
+     "text": "Strasbourg.",
+     "start": 5.129,
+     "end": 5.786
+    }
+   ],
+   "voice": "Qwen (sawif-plus (qwen-audio-3.0-tts-plus-sawifplus-25a82c9b3c294c5eaa75e7f9479c8d4c, qwen-audio-3.0-tts-plus))"
+  },
+  {
+   "id": "s07",
+   "file": "assets/narration/s07.mp3",
+   "text": "[calm] Strasbourg saat itu adalah kota bebas kekaisaran di dekat Sungai Rhein... [calm] yang baru saja melewati gagal panen dan kelaparan...",
+   "key": "acaf84febb56eb7e",
+   "start": 74.8,
+   "duration": 7.92,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Strasbourg",
+     "start": 0.35,
+     "end": 1.062
+    },
+    {
+     "text": "saat",
+     "start": 1.062,
+     "end": 1.341
+    },
+    {
+     "text": "itu",
+     "start": 1.341,
+     "end": 1.553
+    },
+    {
+     "text": "adalah",
+     "start": 1.553,
+     "end": 2.005
+    },
+    {
+     "text": "kota",
+     "start": 2.005,
+     "end": 2.304
+    },
+    {
+     "text": "bebas",
+     "start": 2.304,
+     "end": 2.679
+    },
+    {
+     "text": "kekaisaran",
+     "start": 2.679,
+     "end": 3.468
+    },
+    {
+     "text": "di",
+     "start": 3.468,
+     "end": 3.583
+    },
+    {
+     "text": "dekat",
+     "start": 3.583,
+     "end": 3.843
+    },
+    {
+     "text": "sungai",
+     "start": 3.911,
+     "end": 4.219
+    },
+    {
+     "text": "Rhine",
+     "start": 4.219,
+     "end": 4.43
+    },
+    {
+     "text": "yang",
+     "start": 4.935,
+     "end": 4.935
+    },
+    {
+     "text": "baru",
+     "start": 5.094,
+     "end": 5.142
+    },
+    {
+     "text": "saja",
+     "start": 5.142,
+     "end": 5.441
+    },
+    {
+     "text": "melewati",
+     "start": 5.441,
+     "end": 6.018
+    },
+    {
+     "text": "gagal",
+     "start": 6.018,
+     "end": 6.384
+    },
+    {
+     "text": "panen",
+     "start": 6.384,
+     "end": 6.644
+    },
+    {
+     "text": "dan",
+     "start": 6.759,
+     "end": 6.971
+    },
+    {
+     "text": "kelaparan.",
+     "start": 6.971,
+     "end": 7.76
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s08",
+   "file": "assets/narration/s08.mp3",
+   "text": "[calm] Kota ini bagian dari Kekaisaran Romawi Suci... [calm] tetapi memerintah dirinya sendiri sejak tahun seribu dua ratus enam puluh dua...",
+   "key": "a8f8f5a25fcf7c93",
+   "start": 83.22,
+   "duration": 7.84,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Kota",
+     "start": 0.393,
+     "end": 0.68
+    },
+    {
+     "text": "ini",
+     "start": 0.767,
+     "end": 0.854
+    },
+    {
+     "text": "bagian",
+     "start": 0.922,
+     "end": 1.347
+    },
+    {
+     "text": "dari",
+     "start": 1.347,
+     "end": 1.646
+    },
+    {
+     "text": "Kekaisaran",
+     "start": 1.646,
+     "end": 2.371
+    },
+    {
+     "text": "Romawi",
+     "start": 2.371,
+     "end": 2.854
+    },
+    {
+     "text": "Suciedot",
+     "start": 2.854,
+     "end": 3.347
+    },
+    {
+     "text": "tetapi",
+     "start": 3.453,
+     "end": 3.83
+    },
+    {
+     "text": "memerintah",
+     "start": 3.83,
+     "end": 4.333
+    },
+    {
+     "text": "dirinya",
+     "start": 4.343,
+     "end": 4.7
+    },
+    {
+     "text": "sendiri",
+     "start": 4.7,
+     "end": 4.951
+    },
+    {
+     "text": "sejak",
+     "start": 5.263,
+     "end": 5.589
+    },
+    {
+     "text": "tahun",
+     "start": 5.589,
+     "end": 6.082
+    },
+    {
+     "text": "1262.",
+     "start": 6.082,
+     "end": 7.58
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s09",
+   "file": "assets/narration/s09.mp3",
+   "text": "[calm] Di tengahnya berdiri katedral dengan menara setinggi seratus empat puluh dua meter... [calm] yang rampung pada tahun seribu empat ratus tiga puluh sembilan...",
+   "key": "f7b2cf98a37b5f88",
+   "start": 91.56,
+   "duration": 9.28,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Di",
+     "start": 0.266,
+     "end": 0.28
+    },
+    {
+     "text": "tengahnya",
+     "start": 0.526,
+     "end": 1.049
+    },
+    {
+     "text": "berdiri",
+     "start": 1.049,
+     "end": 1.551
+    },
+    {
+     "text": "katedral",
+     "start": 1.551,
+     "end": 1.993
+    },
+    {
+     "text": "dengan",
+     "start": 2.423,
+     "end": 2.78
+    },
+    {
+     "text": "menara",
+     "start": 2.78,
+     "end": 3.374
+    },
+    {
+     "text": "setinggi",
+     "start": 3.374,
+     "end": 4.05
+    },
+    {
+     "text": "142",
+     "start": 4.122,
+     "end": 4.839
+    },
+    {
+     "text": "meter",
+     "start": 4.839,
+     "end": 5.028
+    },
+    {
+     "text": "yang",
+     "start": 5.843,
+     "end": 5.843
+    },
+    {
+     "text": "rampung",
+     "start": 6.161,
+     "end": 6.478
+    },
+    {
+     "text": "pada",
+     "start": 6.478,
+     "end": 6.909
+    },
+    {
+     "text": "tahun",
+     "start": 6.909,
+     "end": 7.441
+    },
+    {
+     "text": "1439.",
+     "start": 7.441,
+     "end": 9.06
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s10",
+   "file": "assets/narration/s10.mp3",
+   "text": "[calm] Sekretaris kotanya adalah Sebastian Brant... [calm] penulis buku terkenal, Kapal Orang-Orang Bodoh...",
+   "key": "7533b9951f5aece1",
+   "start": 101.34,
+   "duration": 6.32,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Sekretaris",
+     "start": 0.33,
+     "end": 1.119
+    },
+    {
+     "text": "kotanya",
+     "start": 1.119,
+     "end": 1.674
+    },
+    {
+     "text": "adalah",
+     "start": 1.674,
+     "end": 2.153
+    },
+    {
+     "text": "Sebastian",
+     "start": 2.153,
+     "end": 2.694
+    },
+    {
+     "text": "Brandt,",
+     "start": 3.338,
+     "end": 3.412
+    },
+    {
+     "text": "penulis",
+     "start": 3.468,
+     "end": 3.872
+    },
+    {
+     "text": "buku",
+     "start": 3.872,
+     "end": 4.135
+    },
+    {
+     "text": "terkenal",
+     "start": 4.135,
+     "end": 4.475
+    },
+    {
+     "text": "Kapal",
+     "start": 4.873,
+     "end": 4.99
+    },
+    {
+     "text": "Orang-Orang",
+     "start": 4.99,
+     "end": 5.714
+    },
+    {
+     "text": "Bodoh.",
+     "start": 5.714,
+     "end": 6.08
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s11",
+   "file": "assets/narration/s11.mp3",
+   "text": "[calm] Namun tahun-tahun sebelum wabah sangat berat... [calm] Sejarawan John Waller mencatat panen yang gagal, musim dingin yang keras, dan harga roti tertinggi dalam satu generasi...",
+   "key": "813a69a14401b30a",
+   "start": 108.16,
+   "duration": 12.8,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Namun,",
+     "start": 0.324,
+     "end": 0.732
+    },
+    {
+     "text": "tahun-tahun",
+     "start": 0.732,
+     "end": 0.825
+    },
+    {
+     "text": "sebelum",
+     "start": 1.766,
+     "end": 2.318
+    },
+    {
+     "text": "wabah",
+     "start": 2.318,
+     "end": 2.75
+    },
+    {
+     "text": "sangat",
+     "start": 2.75,
+     "end": 3.282
+    },
+    {
+     "text": "berat,",
+     "start": 3.282,
+     "end": 3.729
+    },
+    {
+     "text": "sejarawan",
+     "start": 4.716,
+     "end": 4.748
+    },
+    {
+     "text": "John",
+     "start": 4.778,
+     "end": 5.089
+    },
+    {
+     "text": "Waller",
+     "start": 5.089,
+     "end": 5.601
+    },
+    {
+     "text": "mencatat",
+     "start": 5.601,
+     "end": 6.274
+    },
+    {
+     "text": "panen",
+     "start": 6.274,
+     "end": 6.509
+    },
+    {
+     "text": "yang",
+     "start": 6.726,
+     "end": 7.037
+    },
+    {
+     "text": "gagal,",
+     "start": 7.037,
+     "end": 7.65
+    },
+    {
+     "text": "musim",
+     "start": 7.65,
+     "end": 7.683
+    },
+    {
+     "text": "dingin",
+     "start": 8.312,
+     "end": 8.574
+    },
+    {
+     "text": "yang",
+     "start": 8.574,
+     "end": 8.895
+    },
+    {
+     "text": "keras,",
+     "start": 8.895,
+     "end": 9.457
+    },
+    {
+     "text": "dan",
+     "start": 9.457,
+     "end": 9.621
+    },
+    {
+     "text": "harga",
+     "start": 10.051,
+     "end": 10.1
+    },
+    {
+     "text": "roti",
+     "start": 10.1,
+     "end": 10.421
+    },
+    {
+     "text": "tertinggi",
+     "start": 10.421,
+     "end": 11.054
+    },
+    {
+     "text": "dalam",
+     "start": 11.164,
+     "end": 11.556
+    },
+    {
+     "text": "satu",
+     "start": 11.556,
+     "end": 11.867
+    },
+    {
+     "text": "generasi.",
+     "start": 11.887,
+     "end": 12.63
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s12",
+   "file": "assets/narration/s12.mp3",
+   "text": "[calm] Ribuan petani dan penggarap kebun anggur yang kelaparan datang ke gerbang kota untuk mencari makan...",
+   "key": "65e4bd6b88b7c768",
+   "start": 121.46,
+   "duration": 6.72,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Ribuan",
+     "start": 0.86,
+     "end": 0.86
+    },
+    {
+     "text": "petani",
+     "start": 0.86,
+     "end": 1.779
+    },
+    {
+     "text": "dan",
+     "start": 1.779,
+     "end": 1.963
+    },
+    {
+     "text": "penggarap",
+     "start": 1.963,
+     "end": 2.515
+    },
+    {
+     "text": "kebun",
+     "start": 2.515,
+     "end": 2.873
+    },
+    {
+     "text": "anggur",
+     "start": 2.873,
+     "end": 3.312
+    },
+    {
+     "text": "yang",
+     "start": 3.312,
+     "end": 3.537
+    },
+    {
+     "text": "kelaparan",
+     "start": 3.537,
+     "end": 4.058
+    },
+    {
+     "text": "datang",
+     "start": 4.068,
+     "end": 4.405
+    },
+    {
+     "text": "ke",
+     "start": 4.477,
+     "end": 4.558
+    },
+    {
+     "text": "gerbang",
+     "start": 4.558,
+     "end": 4.988
+    },
+    {
+     "text": "kota",
+     "start": 4.988,
+     "end": 5.182
+    },
+    {
+     "text": "untuk",
+     "start": 5.284,
+     "end": 5.539
+    },
+    {
+     "text": "mencari",
+     "start": 5.539,
+     "end": 5.948
+    },
+    {
+     "text": "makan.",
+     "start": 6.03,
+     "end": 6.52
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s13",
+   "file": "assets/narration/s13.mp3",
+   "text": "[calm] Penyakit ikut menekan... [calm] Kusta dan sampar sudah lama dikenal... [calm] dan sifilis baru saja tiba di Eropa...",
+   "key": "01aeca1e31b33b02",
+   "start": 128.68,
+   "duration": 7.36,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Penyakit",
+     "start": 0.36,
+     "end": 0.887
+    },
+    {
+     "text": "ikut",
+     "start": 0.962,
+     "end": 1.169
+    },
+    {
+     "text": "menekan.",
+     "start": 1.225,
+     "end": 1.592
+    },
+    {
+     "text": "Kusta",
+     "start": 2.171,
+     "end": 2.26
+    },
+    {
+     "text": "dan",
+     "start": 2.26,
+     "end": 2.73
+    },
+    {
+     "text": "Sampar",
+     "start": 2.73,
+     "end": 3.314
+    },
+    {
+     "text": "sudah",
+     "start": 3.379,
+     "end": 3.549
+    },
+    {
+     "text": "lama",
+     "start": 3.624,
+     "end": 3.812
+    },
+    {
+     "text": "dikenal.",
+     "start": 3.831,
+     "end": 4.234
+    },
+    {
+     "text": "Dan",
+     "start": 5.2,
+     "end": 5.251
+    },
+    {
+     "text": "Sifilis",
+     "start": 5.251,
+     "end": 5.27
+    },
+    {
+     "text": "baru",
+     "start": 5.59,
+     "end": 5.778
+    },
+    {
+     "text": "saja",
+     "start": 5.853,
+     "end": 6.267
+    },
+    {
+     "text": "tiba",
+     "start": 6.267,
+     "end": 6.587
+    },
+    {
+     "text": "di",
+     "start": 6.587,
+     "end": 6.681
+    },
+    {
+     "text": "Eropa.",
+     "start": 6.737,
+     "end": 7.17
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s14",
+   "file": "assets/narration/s14.mp3",
+   "text": "[calm] Di pedesaan sekitarnya, para petani berkali-kali bersekongkol melawan tuan tanah... [calm] dalam gerakan yang disebut Bundschuh...",
+   "key": "c84141dd0bed9c9b",
+   "start": 136.54,
+   "duration": 7.68,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Di",
+     "start": 0.265,
+     "end": 0.28
+    },
+    {
+     "text": "pedesaan",
+     "start": 0.522,
+     "end": 0.936
+    },
+    {
+     "text": "sekitarnya,",
+     "start": 0.966,
+     "end": 1.525
+    },
+    {
+     "text": "para",
+     "start": 2.176,
+     "end": 2.196
+    },
+    {
+     "text": "petani",
+     "start": 2.196,
+     "end": 2.7
+    },
+    {
+     "text": "berkali-kali",
+     "start": 2.7,
+     "end": 3.325
+    },
+    {
+     "text": "bersekongkol",
+     "start": 3.325,
+     "end": 3.991
+    },
+    {
+     "text": "melawan",
+     "start": 3.991,
+     "end": 4.374
+    },
+    {
+     "text": "tuan",
+     "start": 4.374,
+     "end": 4.596
+    },
+    {
+     "text": "tanah.",
+     "start": 4.596,
+     "end": 4.753
+    },
+    {
+     "text": "Dalam",
+     "start": 5.678,
+     "end": 5.987
+    },
+    {
+     "text": "gerakan",
+     "start": 5.987,
+     "end": 6.007
+    },
+    {
+     "text": "yang",
+     "start": 6.25,
+     "end": 6.381
+    },
+    {
+     "text": "disebut",
+     "start": 6.441,
+     "end": 6.965
+    },
+    {
+     "text": "Bunshu.",
+     "start": 7.036,
+     "end": 7.52
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s15",
+   "file": "assets/narration/s15.mp3",
+   "text": "[calm] Bagi orang masa itu, bencana bukan kebetulan... [calm] Kelaparan dan penyakit dibaca sebagai hukuman dari langit...",
+   "key": "f9c7d475cab8da1f",
+   "start": 144.72,
+   "duration": 7.36,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Bagi",
+     "start": 0.35,
+     "end": 0.661
+    },
+    {
+     "text": "orang",
+     "start": 0.68,
+     "end": 1.067
+    },
+    {
+     "text": "masa",
+     "start": 1.067,
+     "end": 1.387
+    },
+    {
+     "text": "itu,",
+     "start": 1.387,
+     "end": 1.457
+    },
+    {
+     "text": "bencana",
+     "start": 2.018,
+     "end": 2.245
+    },
+    {
+     "text": "bukan",
+     "start": 2.255,
+     "end": 2.585
+    },
+    {
+     "text": "kebetulan.",
+     "start": 2.585,
+     "end": 3.31
+    },
+    {
+     "text": "Kelaparan",
+     "start": 4.314,
+     "end": 4.314
+    },
+    {
+     "text": "dan",
+     "start": 4.314,
+     "end": 4.404
+    },
+    {
+     "text": "penyakit",
+     "start": 4.404,
+     "end": 4.782
+    },
+    {
+     "text": "dibaca",
+     "start": 4.782,
+     "end": 5.196
+    },
+    {
+     "text": "sebagai",
+     "start": 5.196,
+     "end": 5.677
+    },
+    {
+     "text": "hukuman",
+     "start": 5.677,
+     "end": 6.055
+    },
+    {
+     "text": "dari",
+     "start": 6.309,
+     "end": 6.422
+    },
+    {
+     "text": "langit.",
+     "start": 6.422,
+     "end": 7.12
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s16",
+   "file": "assets/narration/s16.mp3",
+   "text": "[calm] Salah satu yang paling ditakuti adalah Santo Vitus... [calm] Menurut kepercayaan setempat, santo ini bisa mengutuk orang berdosa untuk menari tanpa henti...",
+   "key": "4f71e9731e2527d9",
+   "start": 152.58,
+   "duration": 9.36,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Salah",
+     "start": 0.32,
+     "end": 0.641
+    },
+    {
+     "text": "satu",
+     "start": 0.69,
+     "end": 0.904
+    },
+    {
+     "text": "yang",
+     "start": 0.904,
+     "end": 1.07
+    },
+    {
+     "text": "paling",
+     "start": 1.167,
+     "end": 1.556
+    },
+    {
+     "text": "ditakuti",
+     "start": 1.556,
+     "end": 2.072
+    },
+    {
+     "text": "adalah",
+     "start": 2.072,
+     "end": 2.501
+    },
+    {
+     "text": "Santo",
+     "start": 2.501,
+     "end": 2.89
+    },
+    {
+     "text": "Vitus.",
+     "start": 2.978,
+     "end": 3.188
+    },
+    {
+     "text": "Menurut",
+     "start": 3.702,
+     "end": 3.941
+    },
+    {
+     "text": "kepercayaan",
+     "start": 3.941,
+     "end": 4.584
+    },
+    {
+     "text": "setempat,",
+     "start": 4.584,
+     "end": 5.074
+    },
+    {
+     "text": "Santo",
+     "start": 5.655,
+     "end": 5.665
+    },
+    {
+     "text": "ini",
+     "start": 5.665,
+     "end": 5.986
+    },
+    {
+     "text": "bisa",
+     "start": 5.986,
+     "end": 6.171
+    },
+    {
+     "text": "mengutuk",
+     "start": 6.171,
+     "end": 6.716
+    },
+    {
+     "text": "orang",
+     "start": 6.794,
+     "end": 7.086
+    },
+    {
+     "text": "berdosa",
+     "start": 7.096,
+     "end": 7.591
+    },
+    {
+     "text": "untuk",
+     "start": 7.787,
+     "end": 7.943
+    },
+    {
+     "text": "menari",
+     "start": 7.952,
+     "end": 8.225
+    },
+    {
+     "text": "tanpa",
+     "start": 8.313,
+     "end": 8.624
+    },
+    {
+     "text": "henti.",
+     "start": 8.624,
+     "end": 9.14
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s17",
+   "file": "assets/narration/s17.mp3",
+   "text": "[calm] Kutukan itu punya riwayat... [calm] Pada tahun seribu tiga ratus tujuh puluh empat... [calm] wabah menari melanda puluhan kota di sepanjang Sungai Rhein...",
+   "key": "b7464ea75ff3682a",
+   "start": 162.44,
+   "duration": 8.08,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Kutukan",
+     "start": 0.37,
+     "end": 0.864
+    },
+    {
+     "text": "itu",
+     "start": 0.864,
+     "end": 1.073
+    },
+    {
+     "text": "punya",
+     "start": 1.073,
+     "end": 1.434
+    },
+    {
+     "text": "riwayat.",
+     "start": 1.434,
+     "end": 1.581
+    },
+    {
+     "text": "Pada",
+     "start": 2.354,
+     "end": 3.095
+    },
+    {
+     "text": "tahun",
+     "start": 3.095,
+     "end": 3.124
+    },
+    {
+     "text": "1374,",
+     "start": 3.124,
+     "end": 4.715
+    },
+    {
+     "text": "wabah",
+     "start": 4.963,
+     "end": 5.128
+    },
+    {
+     "text": "menari",
+     "start": 5.156,
+     "end": 5.507
+    },
+    {
+     "text": "melanda",
+     "start": 5.507,
+     "end": 5.954
+    },
+    {
+     "text": "puluhan",
+     "start": 5.954,
+     "end": 6.4
+    },
+    {
+     "text": "kota",
+     "start": 6.4,
+     "end": 6.704
+    },
+    {
+     "text": "di",
+     "start": 6.789,
+     "end": 6.837
+    },
+    {
+     "text": "sepanjang",
+     "start": 6.837,
+     "end": 7.169
+    },
+    {
+     "text": "sungai",
+     "start": 7.454,
+     "end": 7.616
+    },
+    {
+     "text": "Rhein.",
+     "start": 7.616,
+     "end": 7.91
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s18",
+   "file": "assets/narration/s18.mp3",
+   "text": "[calm] Sejak itu, menurut Waller, kawasan ini mengalami sekitar sepuluh wabah serupa... [calm] Wabah di Strasbourg adalah yang paling banyak dicatat...",
+   "key": "697950f0138cb1b5",
+   "start": 171.02,
+   "duration": 9.44,
+   "gap_after": 4.5,
+   "words": [
+    {
+     "text": "Sejak",
+     "start": 0.32,
+     "end": 0.732
+    },
+    {
+     "text": "itu,",
+     "start": 0.732,
+     "end": 0.995
+    },
+    {
+     "text": "menurut",
+     "start": 1.262,
+     "end": 1.719
+    },
+    {
+     "text": "Waller,",
+     "start": 1.719,
+     "end": 2.077
+    },
+    {
+     "text": "kawasan",
+     "start": 2.613,
+     "end": 3.003
+    },
+    {
+     "text": "ini",
+     "start": 3.003,
+     "end": 3.348
+    },
+    {
+     "text": "mengalami",
+     "start": 3.348,
+     "end": 3.904
+    },
+    {
+     "text": "sekitar",
+     "start": 3.904,
+     "end": 4.383
+    },
+    {
+     "text": "10",
+     "start": 4.393,
+     "end": 4.814
+    },
+    {
+     "text": "wabah",
+     "start": 4.814,
+     "end": 5.15
+    },
+    {
+     "text": "serupa.",
+     "start": 5.15,
+     "end": 5.563
+    },
+    {
+     "text": "Wabah",
+     "start": 6.551,
+     "end": 6.551
+    },
+    {
+     "text": "di",
+     "start": 6.551,
+     "end": 6.606
+    },
+    {
+     "text": "Strasbourg",
+     "start": 6.606,
+     "end": 6.616
+    },
+    {
+     "text": "adalah",
+     "start": 6.932,
+     "end": 7.277
+    },
+    {
+     "text": "yang",
+     "start": 7.277,
+     "end": 7.507
+    },
+    {
+     "text": "paling",
+     "start": 7.813,
+     "end": 8.024
+    },
+    {
+     "text": "banyak",
+     "start": 8.024,
+     "end": 8.455
+    },
+    {
+     "text": "dicatat.",
+     "start": 8.455,
+     "end": 9.27
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s19",
+   "file": "assets/narration/s19.mp3",
+   "text": "[calm] Menurut John Waller, semuanya bermula sekitar tanggal empat belas Juli... [calm] Frau Troffea keluar dari rumahnya dan menari di jalan, tanpa musik...",
+   "key": "cead5aaf0f54498b",
+   "start": 184.96,
+   "duration": 8.24,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Menurut",
+     "start": 0.4,
+     "end": 0.863
+    },
+    {
+     "text": "John",
+     "start": 0.863,
+     "end": 1.08
+    },
+    {
+     "text": "Waller,",
+     "start": 1.137,
+     "end": 1.414
+    },
+    {
+     "text": "semuanya",
+     "start": 1.725,
+     "end": 2.261
+    },
+    {
+     "text": "bermula",
+     "start": 2.261,
+     "end": 2.752
+    },
+    {
+     "text": "sekitar",
+     "start": 2.752,
+     "end": 3.243
+    },
+    {
+     "text": "tanggal",
+     "start": 3.243,
+     "end": 3.725
+    },
+    {
+     "text": "14",
+     "start": 3.772,
+     "end": 4.159
+    },
+    {
+     "text": "Juli.",
+     "start": 4.159,
+     "end": 4.297
+    },
+    {
+     "text": "Frau",
+     "start": 4.815,
+     "end": 4.991
+    },
+    {
+     "text": "Trofea",
+     "start": 4.991,
+     "end": 5.095
+    },
+    {
+     "text": "keluar",
+     "start": 5.368,
+     "end": 5.463
+    },
+    {
+     "text": "dari",
+     "start": 5.463,
+     "end": 5.671
+    },
+    {
+     "text": "rumahnya",
+     "start": 5.718,
+     "end": 6.2
+    },
+    {
+     "text": "dan",
+     "start": 6.2,
+     "end": 6.313
+    },
+    {
+     "text": "menari",
+     "start": 6.578,
+     "end": 6.757
+    },
+    {
+     "text": "di",
+     "start": 6.757,
+     "end": 6.88
+    },
+    {
+     "text": "jalan",
+     "start": 6.88,
+     "end": 7.182
+    },
+    {
+     "text": "tanpa",
+     "start": 7.182,
+     "end": 7.484
+    },
+    {
+     "text": "musik.",
+     "start": 7.484,
+     "end": 8.07
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s20",
+   "file": "assets/narration/s20.mp3",
+   "text": "[calm] Keesokan paginya ia menari lagi, dengan kaki yang bengkak... [calm] Pada hari ketiga, orang-orang berkerumun untuk menonton...",
+   "key": "37c25556144da2e4",
+   "start": 193.7,
+   "duration": 7.68,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Keesokan",
+     "start": 0.29,
+     "end": 0.823
+    },
+    {
+     "text": "paginya",
+     "start": 0.891,
+     "end": 1.385
+    },
+    {
+     "text": "ia",
+     "start": 1.385,
+     "end": 1.53
+    },
+    {
+     "text": "menari",
+     "start": 1.53,
+     "end": 1.976
+    },
+    {
+     "text": "lagi",
+     "start": 1.976,
+     "end": 2.306
+    },
+    {
+     "text": "dengan",
+     "start": 2.306,
+     "end": 2.606
+    },
+    {
+     "text": "kaki",
+     "start": 2.654,
+     "end": 2.761
+    },
+    {
+     "text": "yang",
+     "start": 2.868,
+     "end": 3.081
+    },
+    {
+     "text": "bengkak.",
+     "start": 3.081,
+     "end": 3.246
+    },
+    {
+     "text": "Pada",
+     "start": 4.388,
+     "end": 4.388
+    },
+    {
+     "text": "hari",
+     "start": 4.388,
+     "end": 4.747
+    },
+    {
+     "text": "ketiga,",
+     "start": 4.747,
+     "end": 5.269
+    },
+    {
+     "text": "orang-orang",
+     "start": 5.721,
+     "end": 5.949
+    },
+    {
+     "text": "berkerumun",
+     "start": 5.949,
+     "end": 6.492
+    },
+    {
+     "text": "untuk",
+     "start": 6.492,
+     "end": 6.792
+    },
+    {
+     "text": "menonton.",
+     "start": 6.792,
+     "end": 7.48
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s21",
+   "file": "assets/narration/s21.mp3",
+   "text": "[calm] Tarian itu berlangsung empat sampai enam hari... [calm] Pemerintah kota lalu mengirimnya dengan gerobak ke Saverne... [calm] lebih dari empat puluh kilometer jauhnya, ke tempat ziarah Santo Vitus...",
+   "key": "8bc2dafb97df3e43",
+   "start": 201.88,
+   "duration": 12.4,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Tarian",
+     "start": 0.384,
+     "end": 0.907
+    },
+    {
+     "text": "itu",
+     "start": 0.907,
+     "end": 1.171
+    },
+    {
+     "text": "berlangsung",
+     "start": 1.171,
+     "end": 2.117
+    },
+    {
+     "text": "4",
+     "start": 2.205,
+     "end": 2.322
+    },
+    {
+     "text": "sampai",
+     "start": 2.4,
+     "end": 2.927
+    },
+    {
+     "text": "6",
+     "start": 2.927,
+     "end": 3.191
+    },
+    {
+     "text": "hari.",
+     "start": 3.191,
+     "end": 3.248
+    },
+    {
+     "text": "Pemerintah",
+     "start": 4.37,
+     "end": 4.616
+    },
+    {
+     "text": "kota",
+     "start": 4.616,
+     "end": 4.636
+    },
+    {
+     "text": "lalu",
+     "start": 4.84,
+     "end": 5.094
+    },
+    {
+     "text": "mengirimnya",
+     "start": 5.094,
+     "end": 6.1
+    },
+    {
+     "text": "dengan",
+     "start": 6.1,
+     "end": 6.353
+    },
+    {
+     "text": "gerobak",
+     "start": 6.441,
+     "end": 6.802
+    },
+    {
+     "text": "ke",
+     "start": 6.812,
+     "end": 6.919
+    },
+    {
+     "text": "Savern,",
+     "start": 6.919,
+     "end": 7.137
+    },
+    {
+     "text": "dan",
+     "start": 7.768,
+     "end": 7.974
+    },
+    {
+     "text": "lebih",
+     "start": 7.974,
+     "end": 7.993
+    },
+    {
+     "text": "dari",
+     "start": 8.344,
+     "end": 8.53
+    },
+    {
+     "text": "40",
+     "start": 8.53,
+     "end": 9.155
+    },
+    {
+     "text": "km",
+     "start": 9.155,
+     "end": 9.36
+    },
+    {
+     "text": "jauhnya",
+     "start": 9.36,
+     "end": 10.007
+    },
+    {
+     "text": "ke",
+     "start": 10.51,
+     "end": 10.51
+    },
+    {
+     "text": "tempat",
+     "start": 10.51,
+     "end": 10.716
+    },
+    {
+     "text": "ziarah",
+     "start": 10.716,
+     "end": 11.136
+    },
+    {
+     "text": "Santo",
+     "start": 11.146,
+     "end": 11.165
+    },
+    {
+     "text": "Vitus.",
+     "start": 11.487,
+     "end": 12.19
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s22",
+   "file": "assets/narration/s22.mp3",
+   "text": "[calm] Tetapi sudah terlambat... [calm] Dalam beberapa hari, lebih dari tiga puluh orang lain mulai menari...",
+   "key": "1001e570de846c82",
+   "start": 214.78,
+   "duration": 5.52,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Tetapi",
+     "start": 0.41,
+     "end": 0.839
+    },
+    {
+     "text": "sudah",
+     "start": 0.839,
+     "end": 1.203
+    },
+    {
+     "text": "terlambat.",
+     "start": 1.203,
+     "end": 1.503
+    },
+    {
+     "text": "Dalam",
+     "start": 2.184,
+     "end": 2.555
+    },
+    {
+     "text": "beberapa",
+     "start": 2.555,
+     "end": 2.797
+    },
+    {
+     "text": "hari",
+     "start": 2.937,
+     "end": 3.087
+    },
+    {
+     "text": "lebih",
+     "start": 3.087,
+     "end": 3.45
+    },
+    {
+     "text": "dari",
+     "start": 3.45,
+     "end": 3.786
+    },
+    {
+     "text": "30",
+     "start": 3.786,
+     "end": 3.917
+    },
+    {
+     "text": "orang",
+     "start": 4.131,
+     "end": 4.485
+    },
+    {
+     "text": "lain",
+     "start": 4.709,
+     "end": 4.756
+    },
+    {
+     "text": "mulai",
+     "start": 4.756,
+     "end": 4.97
+    },
+    {
+     "text": "menari.",
+     "start": 4.97,
+     "end": 5.39
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s23",
+   "file": "assets/narration/s23.mp3",
+   "text": "[calm] Kita mengetahuinya dari catatan dewan kota, khotbah di katedral, dan sejumlah kronik... [calm] Salah satunya ditulis puluhan tahun kemudian oleh arsitek kota, Daniel Specklin...",
+   "key": "2b6783add17da84e",
+   "start": 220.8,
+   "duration": 12.0,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Kita",
+     "start": 0.327,
+     "end": 0.36
+    },
+    {
+     "text": "mengetahuinya",
+     "start": 0.36,
+     "end": 1.231
+    },
+    {
+     "text": "dari",
+     "start": 1.231,
+     "end": 1.511
+    },
+    {
+     "text": "catatan",
+     "start": 1.511,
+     "end": 2.001
+    },
+    {
+     "text": "dewan",
+     "start": 2.001,
+     "end": 2.342
+    },
+    {
+     "text": "kota,",
+     "start": 2.402,
+     "end": 2.771
+    },
+    {
+     "text": "kotbah",
+     "start": 3.166,
+     "end": 3.333
+    },
+    {
+     "text": "di",
+     "start": 3.403,
+     "end": 3.483
+    },
+    {
+     "text": "katedral,",
+     "start": 3.483,
+     "end": 4.253
+    },
+    {
+     "text": "dan",
+     "start": 4.253,
+     "end": 4.336
+    },
+    {
+     "text": "sejumlah",
+     "start": 4.544,
+     "end": 5.084
+    },
+    {
+     "text": "kronik.",
+     "start": 5.084,
+     "end": 5.665
+    },
+    {
+     "text": "Salah",
+     "start": 5.665,
+     "end": 5.669
+    },
+    {
+     "text": "satunya",
+     "start": 6.553,
+     "end": 6.666
+    },
+    {
+     "text": "ditulis",
+     "start": 6.666,
+     "end": 7.226
+    },
+    {
+     "text": "puluhan",
+     "start": 7.226,
+     "end": 7.807
+    },
+    {
+     "text": "tahun",
+     "start": 7.807,
+     "end": 8.177
+    },
+    {
+     "text": "kemudian",
+     "start": 8.247,
+     "end": 8.877
+    },
+    {
+     "text": "oleh",
+     "start": 8.877,
+     "end": 9.128
+    },
+    {
+     "text": "arsitek",
+     "start": 9.218,
+     "end": 9.778
+    },
+    {
+     "text": "kota,",
+     "start": 9.828,
+     "end": 10.248
+    },
+    {
+     "text": "Daniel",
+     "start": 10.807,
+     "end": 10.807
+    },
+    {
+     "text": "Specklin.",
+     "start": 10.807,
+     "end": 11.79
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s24",
+   "file": "assets/narration/s24.mp3",
+   "text": "[calm] Sebuah syair dalam kronik Strasbourg menggambarkannya begini... [calm] ratusan orang menari dan melompat di pasar, di gang, dan di jalan... [calm] siang dan malam...",
+   "key": "33523d0c9a709d8c",
+   "start": 233.3,
+   "duration": 11.36,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Sebuah",
+     "start": 0.32,
+     "end": 0.719
+    },
+    {
+     "text": "syair",
+     "start": 0.728,
+     "end": 1.059
+    },
+    {
+     "text": "dalam",
+     "start": 1.078,
+     "end": 1.418
+    },
+    {
+     "text": "Kronik",
+     "start": 1.418,
+     "end": 1.827
+    },
+    {
+     "text": "Strasbourg",
+     "start": 1.827,
+     "end": 2.397
+    },
+    {
+     "text": "menggambarkannya",
+     "start": 2.799,
+     "end": 3.547
+    },
+    {
+     "text": "begini.",
+     "start": 3.547,
+     "end": 3.687
+    },
+    {
+     "text": "Ratusan",
+     "start": 4.63,
+     "end": 4.811
+    },
+    {
+     "text": "orang",
+     "start": 4.811,
+     "end": 4.831
+    },
+    {
+     "text": "menari",
+     "start": 5.113,
+     "end": 5.375
+    },
+    {
+     "text": "dan",
+     "start": 5.375,
+     "end": 5.608
+    },
+    {
+     "text": "melompat",
+     "start": 5.608,
+     "end": 6.231
+    },
+    {
+     "text": "di",
+     "start": 6.231,
+     "end": 6.386
+    },
+    {
+     "text": "pasar,",
+     "start": 6.386,
+     "end": 7.006
+    },
+    {
+     "text": "di",
+     "start": 7.407,
+     "end": 7.407
+    },
+    {
+     "text": "gang,",
+     "start": 7.407,
+     "end": 7.708
+    },
+    {
+     "text": "dan",
+     "start": 7.776,
+     "end": 7.969
+    },
+    {
+     "text": "di",
+     "start": 8.2,
+     "end": 8.2
+    },
+    {
+     "text": "jalan.",
+     "start": 8.2,
+     "end": 8.873
+    },
+    {
+     "text": "Siang",
+     "start": 10.241,
+     "end": 10.241
+    },
+    {
+     "text": "dan",
+     "start": 10.241,
+     "end": 10.654
+    },
+    {
+     "text": "malam.",
+     "start": 10.654,
+     "end": 11.13
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s25",
+   "file": "assets/narration/s25.mp3",
+   "text": "[calm] Kronik keluarga Imlin mencatat angka terbesar... [calm] Dalam sebulan, empat ratus orang disebut telah terjangkit...",
+   "key": "986b6fc77c2186de",
+   "start": 245.16,
+   "duration": 7.44,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Kronik",
+     "start": 0.343,
+     "end": 0.739
+    },
+    {
+     "text": "keluarga",
+     "start": 0.739,
+     "end": 1.279
+    },
+    {
+     "text": "Imlin",
+     "start": 1.279,
+     "end": 1.649
+    },
+    {
+     "text": "mencatat",
+     "start": 1.649,
+     "end": 2.133
+    },
+    {
+     "text": "angka",
+     "start": 2.257,
+     "end": 2.456
+    },
+    {
+     "text": "terbesar.",
+     "start": 2.456,
+     "end": 2.884
+    },
+    {
+     "text": "Dalam",
+     "start": 3.706,
+     "end": 3.889
+    },
+    {
+     "text": "sebulan,",
+     "start": 3.889,
+     "end": 4.582
+    },
+    {
+     "text": "400",
+     "start": 5.086,
+     "end": 5.255
+    },
+    {
+     "text": "orang",
+     "start": 5.255,
+     "end": 5.549
+    },
+    {
+     "text": "disebut",
+     "start": 5.625,
+     "end": 6.043
+    },
+    {
+     "text": "telah",
+     "start": 6.119,
+     "end": 6.46
+    },
+    {
+     "text": "terjangkit",
+     "start": 6.46,
+     "end": 7.21
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s26",
+   "file": "assets/narration/s26.mp3",
+   "text": "[calm] Satu kronik bahkan menyebut, pada puncaknya... [calm] lima belas orang meninggal setiap hari...",
+   "key": "f0fa96ed6f7e4159",
+   "start": 253.1,
+   "duration": 5.92,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Satu",
+     "start": 0.32,
+     "end": 0.595
+    },
+    {
+     "text": "kronik",
+     "start": 0.633,
+     "end": 1.002
+    },
+    {
+     "text": "bahkan",
+     "start": 1.002,
+     "end": 1.419
+    },
+    {
+     "text": "menyebut,",
+     "start": 1.419,
+     "end": 1.822
+    },
+    {
+     "text": "pada",
+     "start": 2.427,
+     "end": 2.622
+    },
+    {
+     "text": "puncaknya,",
+     "start": 2.622,
+     "end": 3.331
+    },
+    {
+     "text": "15",
+     "start": 3.919,
+     "end": 3.995
+    },
+    {
+     "text": "orang",
+     "start": 3.995,
+     "end": 4.336
+    },
+    {
+     "text": "meninggal",
+     "start": 4.346,
+     "end": 4.971
+    },
+    {
+     "text": "setiap",
+     "start": 4.971,
+     "end": 5.378
+    },
+    {
+     "text": "hari.",
+     "start": 5.378,
+     "end": 5.7
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s27",
+   "file": "assets/narration/s27.mp3",
+   "text": "[calm] Angka-angka ini masih diperdebatkan... [calm] Sejarawan Élisabeth Clementz menilai, sumber yang sezaman hanya menunjuk lima puluh hingga dua ratus penari...",
+   "key": "ee1c80b8a92196a4",
+   "start": 259.52,
+   "duration": 9.36,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Angka-angka",
+     "start": 0.31,
+     "end": 0.951
+    },
+    {
+     "text": "ini",
+     "start": 0.951,
+     "end": 1.125
+    },
+    {
+     "text": "masih",
+     "start": 1.125,
+     "end": 1.416
+    },
+    {
+     "text": "diperdebatkan.",
+     "start": 1.416,
+     "end": 2.199
+    },
+    {
+     "text": "Sejarawan",
+     "start": 2.543,
+     "end": 3.619
+    },
+    {
+     "text": "Elizabeth",
+     "start": 3.619,
+     "end": 3.959
+    },
+    {
+     "text": "Clements",
+     "start": 3.998,
+     "end": 4.638
+    },
+    {
+     "text": "menilai",
+     "start": 4.638,
+     "end": 5.164
+    },
+    {
+     "text": "sumber",
+     "start": 5.583,
+     "end": 5.696
+    },
+    {
+     "text": "yang",
+     "start": 5.696,
+     "end": 5.977
+    },
+    {
+     "text": "sezaman",
+     "start": 5.977,
+     "end": 6.453
+    },
+    {
+     "text": "hanya",
+     "start": 6.453,
+     "end": 6.793
+    },
+    {
+     "text": "menunjuk",
+     "start": 6.793,
+     "end": 7.297
+    },
+    {
+     "text": "50",
+     "start": 7.453,
+     "end": 7.744
+    },
+    {
+     "text": "hingga",
+     "start": 7.744,
+     "end": 8.151
+    },
+    {
+     "text": "200",
+     "start": 8.151,
+     "end": 8.763
+    },
+    {
+     "text": "penari.",
+     "start": 8.792,
+     "end": 9.18
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s28",
+   "file": "assets/narration/s28.mp3",
+   "text": "[calm] Para penulis yang hidup saat itu juga tidak mencatat satu pun kematian... [calm] Kisah tentang korban jiwa baru muncul dalam tulisan yang lebih kemudian...",
+   "key": "547999c3ccc55618",
+   "start": 269.38,
+   "duration": 9.28,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Para",
+     "start": 0.367,
+     "end": 0.459
+    },
+    {
+     "text": "penulis",
+     "start": 0.459,
+     "end": 0.817
+    },
+    {
+     "text": "yang",
+     "start": 0.817,
+     "end": 1.076
+    },
+    {
+     "text": "hidup",
+     "start": 1.076,
+     "end": 1.374
+    },
+    {
+     "text": "saat",
+     "start": 1.434,
+     "end": 1.653
+    },
+    {
+     "text": "itu",
+     "start": 1.722,
+     "end": 1.911
+    },
+    {
+     "text": "juga",
+     "start": 1.911,
+     "end": 2.18
+    },
+    {
+     "text": "tidak",
+     "start": 2.18,
+     "end": 2.508
+    },
+    {
+     "text": "mencatat",
+     "start": 2.508,
+     "end": 3.035
+    },
+    {
+     "text": "satupun",
+     "start": 3.035,
+     "end": 3.432
+    },
+    {
+     "text": "kematian.",
+     "start": 3.562,
+     "end": 4.235
+    },
+    {
+     "text": "Kisah",
+     "start": 5.257,
+     "end": 5.257
+    },
+    {
+     "text": "tentang",
+     "start": 5.257,
+     "end": 5.331
+    },
+    {
+     "text": "korban",
+     "start": 5.331,
+     "end": 5.351
+    },
+    {
+     "text": "jiwa",
+     "start": 5.689,
+     "end": 5.838
+    },
+    {
+     "text": "baru",
+     "start": 5.928,
+     "end": 6.147
+    },
+    {
+     "text": "muncul",
+     "start": 6.147,
+     "end": 6.584
+    },
+    {
+     "text": "dalam",
+     "start": 6.584,
+     "end": 6.882
+    },
+    {
+     "text": "tulisan",
+     "start": 6.952,
+     "end": 7.449
+    },
+    {
+     "text": "yang",
+     "start": 7.459,
+     "end": 7.757
+    },
+    {
+     "text": "lebih",
+     "start": 7.757,
+     "end": 8.125
+    },
+    {
+     "text": "kemudian.",
+     "start": 8.125,
+     "end": 9.03
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s29",
+   "file": "assets/narration/s29.mp3",
+   "text": "[calm] Yang disepakati para saksi adalah ini... [calm] tarian itu dianggap penyakit, bukan hiburan...",
+   "key": "511a9c15b1a2af63",
+   "start": 279.16,
+   "duration": 6.8,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Yang",
+     "start": 0.84,
+     "end": 1.167
+    },
+    {
+     "text": "disepakati",
+     "start": 1.167,
+     "end": 1.901
+    },
+    {
+     "text": "para",
+     "start": 1.99,
+     "end": 2.29
+    },
+    {
+     "text": "saksi",
+     "start": 2.29,
+     "end": 2.688
+    },
+    {
+     "text": "adalah",
+     "start": 2.759,
+     "end": 3.051
+    },
+    {
+     "text": "ini,",
+     "start": 3.538,
+     "end": 3.538
+    },
+    {
+     "text": "tarian",
+     "start": 3.538,
+     "end": 4.068
+    },
+    {
+     "text": "itu",
+     "start": 4.068,
+     "end": 4.28
+    },
+    {
+     "text": "dianggap",
+     "start": 4.28,
+     "end": 4.881
+    },
+    {
+     "text": "penyakit,",
+     "start": 4.881,
+     "end": 5.153
+    },
+    {
+     "text": "bukan",
+     "start": 5.854,
+     "end": 5.969
+    },
+    {
+     "text": "hiburan.",
+     "start": 6.013,
+     "end": 6.57
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s30",
+   "file": "assets/narration/s30.mp3",
+   "text": "[calm] Dan bagi dewan kota, penyakit itu harus segera diobati...",
+   "key": "d2258587e3c823ce",
+   "start": 286.46,
+   "duration": 3.84,
+   "gap_after": 4.5,
+   "words": [
+    {
+     "text": "Dan",
+     "start": 0.265,
+     "end": 0.265
+    },
+    {
+     "text": "bagi",
+     "start": 0.265,
+     "end": 0.606
+    },
+    {
+     "text": "Dewan",
+     "start": 0.606,
+     "end": 1.044
+    },
+    {
+     "text": "Kota,",
+     "start": 1.044,
+     "end": 1.553
+    },
+    {
+     "text": "penyakit",
+     "start": 1.553,
+     "end": 2.001
+    },
+    {
+     "text": "itu",
+     "start": 2.093,
+     "end": 2.286
+    },
+    {
+     "text": "harus",
+     "start": 2.286,
+     "end": 2.683
+    },
+    {
+     "text": "segera",
+     "start": 2.683,
+     "end": 3.111
+    },
+    {
+     "text": "diobati.",
+     "start": 3.111,
+     "end": 3.62
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s31",
+   "file": "assets/narration/s31.mp3",
+   "text": "[calm] Menurut Waller, para tabib menolak penjelasan perbintangan maupun campur tangan gaib...",
+   "key": "5b66eb9e0fa7d7f9",
+   "start": 294.8,
+   "duration": 5.44,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Menurut",
+     "start": 0.402,
+     "end": 0.864
+    },
+    {
+     "text": "Waller,",
+     "start": 0.864,
+     "end": 1.225
+    },
+    {
+     "text": "para",
+     "start": 1.605,
+     "end": 1.605
+    },
+    {
+     "text": "tabib",
+     "start": 1.828,
+     "end": 1.971
+    },
+    {
+     "text": "menolak",
+     "start": 2.051,
+     "end": 2.417
+    },
+    {
+     "text": "penjelasan",
+     "start": 2.417,
+     "end": 3.042
+    },
+    {
+     "text": "perbintangan",
+     "start": 3.042,
+     "end": 3.81
+    },
+    {
+     "text": "maupun",
+     "start": 3.81,
+     "end": 4.158
+    },
+    {
+     "text": "campur",
+     "start": 4.158,
+     "end": 4.497
+    },
+    {
+     "text": "tangan",
+     "start": 4.551,
+     "end": 4.854
+    },
+    {
+     "text": "gaib.",
+     "start": 4.854,
+     "end": 5.22
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s32",
+   "file": "assets/narration/s32.mp3",
+   "text": "[calm] Mereka menyebutnya penyakit alami, akibat darah yang terlalu panas... [calm] Obatnya, menurut mereka, adalah menari sampai tuntas...",
+   "key": "8bb9ef303ecfe8cd",
+   "start": 300.74,
+   "duration": 9.28,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Mereka",
+     "start": 0.405,
+     "end": 0.805
+    },
+    {
+     "text": "menyebutnya",
+     "start": 0.805,
+     "end": 1.575
+    },
+    {
+     "text": "penyakit",
+     "start": 1.575,
+     "end": 2.076
+    },
+    {
+     "text": "alami,",
+     "start": 2.076,
+     "end": 2.157
+    },
+    {
+     "text": "akibat",
+     "start": 2.815,
+     "end": 3.04
+    },
+    {
+     "text": "darah",
+     "start": 3.117,
+     "end": 3.425
+    },
+    {
+     "text": "yang",
+     "start": 3.425,
+     "end": 3.743
+    },
+    {
+     "text": "terlalu",
+     "start": 3.743,
+     "end": 4.253
+    },
+    {
+     "text": "panas.",
+     "start": 4.33,
+     "end": 4.55
+    },
+    {
+     "text": "Obatnya",
+     "start": 6.228,
+     "end": 6.228
+    },
+    {
+     "text": "menurut",
+     "start": 6.228,
+     "end": 6.373
+    },
+    {
+     "text": "mereka",
+     "start": 6.373,
+     "end": 6.392
+    },
+    {
+     "text": "adalah",
+     "start": 6.758,
+     "end": 7.105
+    },
+    {
+     "text": "menari",
+     "start": 7.105,
+     "end": 7.644
+    },
+    {
+     "text": "sampai",
+     "start": 7.644,
+     "end": 8.193
+    },
+    {
+     "text": "tuntas.",
+     "start": 8.193,
+     "end": 9.07
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s33",
+   "file": "assets/narration/s33.mp3",
+   "text": "[calm] Bagi kedokteran masa itu, tubuh diatur oleh empat cairan... [calm] Darah yang terlalu panas dianggap bisa mengganggu otak...",
+   "key": "01827bd9db67ec9a",
+   "start": 310.52,
+   "duration": 7.84,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Bagi",
+     "start": 0.846,
+     "end": 0.846
+    },
+    {
+     "text": "kedokteran",
+     "start": 0.846,
+     "end": 1.319
+    },
+    {
+     "text": "masa",
+     "start": 1.678,
+     "end": 1.707
+    },
+    {
+     "text": "itu,",
+     "start": 1.707,
+     "end": 2.116
+    },
+    {
+     "text": "tubuh",
+     "start": 2.708,
+     "end": 2.708
+    },
+    {
+     "text": "diatur",
+     "start": 2.708,
+     "end": 2.954
+    },
+    {
+     "text": "oleh",
+     "start": 2.984,
+     "end": 3.033
+    },
+    {
+     "text": "empat",
+     "start": 3.492,
+     "end": 3.632
+    },
+    {
+     "text": "cairan.",
+     "start": 3.632,
+     "end": 4.33
+    },
+    {
+     "text": "Darah",
+     "start": 4.33,
+     "end": 4.401
+    },
+    {
+     "text": "yang",
+     "start": 5.08,
+     "end": 5.08
+    },
+    {
+     "text": "terlalu",
+     "start": 5.08,
+     "end": 5.347
+    },
+    {
+     "text": "panas",
+     "start": 5.446,
+     "end": 5.666
+    },
+    {
+     "text": "dianggap",
+     "start": 5.666,
+     "end": 6.144
+    },
+    {
+     "text": "bisa",
+     "start": 6.204,
+     "end": 6.334
+    },
+    {
+     "text": "mengganggu",
+     "start": 6.443,
+     "end": 7.081
+    },
+    {
+     "text": "otak.",
+     "start": 7.081,
+     "end": 7.58
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s34",
+   "file": "assets/narration/s34.mp3",
+   "text": "[calm] Maka dewan mengosongkan dua balai serikat dan pasar gandum... [calm] lalu mendirikan panggung kayu di seberang pasar kuda...",
+   "key": "f0bd0bd6002b9ccd",
+   "start": 318.86,
+   "duration": 7.6,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Maka",
+     "start": 0.81,
+     "end": 0.81
+    },
+    {
+     "text": "Dewan",
+     "start": 0.81,
+     "end": 0.83
+    },
+    {
+     "text": "mengosongkan",
+     "start": 1.182,
+     "end": 2.138
+    },
+    {
+     "text": "dua",
+     "start": 2.138,
+     "end": 2.329
+    },
+    {
+     "text": "balai",
+     "start": 2.329,
+     "end": 2.641
+    },
+    {
+     "text": "serikat",
+     "start": 2.641,
+     "end": 3.104
+    },
+    {
+     "text": "dan",
+     "start": 3.104,
+     "end": 3.335
+    },
+    {
+     "text": "pasar",
+     "start": 3.335,
+     "end": 3.708
+    },
+    {
+     "text": "gandum,",
+     "start": 3.798,
+     "end": 4.211
+    },
+    {
+     "text": "lalu",
+     "start": 4.211,
+     "end": 4.694
+    },
+    {
+     "text": "mendirikan",
+     "start": 4.694,
+     "end": 5.116
+    },
+    {
+     "text": "panggung",
+     "start": 5.116,
+     "end": 5.619
+    },
+    {
+     "text": "kayu",
+     "start": 5.619,
+     "end": 5.871
+    },
+    {
+     "text": "di",
+     "start": 5.871,
+     "end": 6.002
+    },
+    {
+     "text": "seberang",
+     "start": 6.002,
+     "end": 6.485
+    },
+    {
+     "text": "pasar",
+     "start": 6.515,
+     "end": 6.837
+    },
+    {
+     "text": "kuda.",
+     "start": 6.837,
+     "end": 7.36
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s35",
+   "file": "assets/narration/s35.mp3",
+   "text": "[calm] Para penari dikumpulkan di tempat-tempat itu... [calm] Dewan bahkan membayar pemusik dan penari sewaan, agar mereka terus bergerak...",
+   "key": "e64bb474ce61b49f",
+   "start": 326.96,
+   "duration": 8.4,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Para",
+     "start": 0.366,
+     "end": 0.429
+    },
+    {
+     "text": "penari",
+     "start": 0.429,
+     "end": 0.787
+    },
+    {
+     "text": "dikumpulkan",
+     "start": 0.787,
+     "end": 1.6
+    },
+    {
+     "text": "di",
+     "start": 1.6,
+     "end": 1.68
+    },
+    {
+     "text": "tempat-tempat",
+     "start": 1.68,
+     "end": 2.236
+    },
+    {
+     "text": "itu.",
+     "start": 2.236,
+     "end": 2.495
+    },
+    {
+     "text": "Dewan",
+     "start": 3.304,
+     "end": 3.694
+    },
+    {
+     "text": "bahkan",
+     "start": 3.694,
+     "end": 4.161
+    },
+    {
+     "text": "membayar",
+     "start": 4.161,
+     "end": 4.597
+    },
+    {
+     "text": "pemusik",
+     "start": 4.667,
+     "end": 5.113
+    },
+    {
+     "text": "dan",
+     "start": 5.113,
+     "end": 5.292
+    },
+    {
+     "text": "penari",
+     "start": 5.362,
+     "end": 5.719
+    },
+    {
+     "text": "sewaan",
+     "start": 5.788,
+     "end": 6.219
+    },
+    {
+     "text": "agar",
+     "start": 6.742,
+     "end": 6.742
+    },
+    {
+     "text": "mereka",
+     "start": 6.742,
+     "end": 6.969
+    },
+    {
+     "text": "terus",
+     "start": 6.969,
+     "end": 7.297
+    },
+    {
+     "text": "bergerak.",
+     "start": 7.396,
+     "end": 8.17
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s36",
+   "file": "assets/narration/s36.mp3",
+   "text": "[calm] Hasilnya berlawanan dengan harapan... [calm] Menurut Waller, tontonan itu justru meyakinkan warga bahwa Santo Vitus sedang murka... [calm] dan makin banyak orang ikut menari...",
+   "key": "94f270e548e98638",
+   "start": 335.86,
+   "duration": 11.04,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Hasilnya",
+     "start": 0.63,
+     "end": 0.65
+    },
+    {
+     "text": "berlawanan",
+     "start": 0.881,
+     "end": 1.634
+    },
+    {
+     "text": "dengan",
+     "start": 1.634,
+     "end": 1.905
+    },
+    {
+     "text": "harapan.",
+     "start": 1.905,
+     "end": 2.377
+    },
+    {
+     "text": "Menurut",
+     "start": 2.377,
+     "end": 3.26
+    },
+    {
+     "text": "Waller,",
+     "start": 3.26,
+     "end": 3.983
+    },
+    {
+     "text": "tontonan",
+     "start": 3.983,
+     "end": 4.565
+    },
+    {
+     "text": "itu",
+     "start": 4.565,
+     "end": 4.786
+    },
+    {
+     "text": "justru",
+     "start": 4.786,
+     "end": 5.198
+    },
+    {
+     "text": "meyakinkan",
+     "start": 5.238,
+     "end": 5.84
+    },
+    {
+     "text": "warga",
+     "start": 5.931,
+     "end": 6.242
+    },
+    {
+     "text": "bahwa",
+     "start": 6.493,
+     "end": 6.704
+    },
+    {
+     "text": "Santo",
+     "start": 6.704,
+     "end": 7.045
+    },
+    {
+     "text": "Vitus",
+     "start": 7.045,
+     "end": 7.286
+    },
+    {
+     "text": "sedang",
+     "start": 7.567,
+     "end": 7.778
+    },
+    {
+     "text": "murka.",
+     "start": 7.778,
+     "end": 8.16
+    },
+    {
+     "text": "Dan",
+     "start": 8.16,
+     "end": 8.17
+    },
+    {
+     "text": "makin",
+     "start": 8.972,
+     "end": 8.972
+    },
+    {
+     "text": "banyak",
+     "start": 8.972,
+     "end": 9.294
+    },
+    {
+     "text": "orang",
+     "start": 9.605,
+     "end": 9.706
+    },
+    {
+     "text": "ikut",
+     "start": 9.706,
+     "end": 10.027
+    },
+    {
+     "text": "menari.",
+     "start": 10.027,
+     "end": 10.81
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s37",
+   "file": "assets/narration/s37.mp3",
+   "text": "[calm] Dewan pun berbalik arah... [calm] Panggung-panggung itu dibongkar... [calm] dan hampir semua musik serta tarian dilarang sampai bulan September...",
+   "key": "da26969ecff4126d",
+   "start": 347.4,
+   "duration": 8.16,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Dewan",
+     "start": 0.262,
+     "end": 0.391
+    },
+    {
+     "text": "pun",
+     "start": 0.391,
+     "end": 0.592
+    },
+    {
+     "text": "berbalik",
+     "start": 0.592,
+     "end": 1.126
+    },
+    {
+     "text": "arah.",
+     "start": 1.126,
+     "end": 1.571
+    },
+    {
+     "text": "Panggung-panggung",
+     "start": 2.716,
+     "end": 3.119
+    },
+    {
+     "text": "itu",
+     "start": 3.119,
+     "end": 3.3
+    },
+    {
+     "text": "dibongkar",
+     "start": 3.38,
+     "end": 4.206
+    },
+    {
+     "text": "dan",
+     "start": 4.206,
+     "end": 4.266
+    },
+    {
+     "text": "hampir",
+     "start": 4.407,
+     "end": 4.84
+    },
+    {
+     "text": "semua",
+     "start": 4.84,
+     "end": 5.192
+    },
+    {
+     "text": "musik",
+     "start": 5.373,
+     "end": 5.575
+    },
+    {
+     "text": "serta",
+     "start": 5.575,
+     "end": 5.907
+    },
+    {
+     "text": "tarian",
+     "start": 5.907,
+     "end": 6.319
+    },
+    {
+     "text": "dilarang",
+     "start": 6.319,
+     "end": 6.782
+    },
+    {
+     "text": "sampai",
+     "start": 6.782,
+     "end": 7.084
+    },
+    {
+     "text": "bulan",
+     "start": 7.084,
+     "end": 7.276
+    },
+    {
+     "text": "September.",
+     "start": 7.346,
+     "end": 7.95
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s38",
+   "file": "assets/narration/s38.mp3",
+   "text": "[calm] Larangan itu dicatat oleh Sebastian Brant... [calm] Pesta pernikahan masih boleh memakai alat musik berdawai... [calm] tetapi tidak rebana dan genderang...",
+   "key": "48fd6839f6f3254c",
+   "start": 356.06,
+   "duration": 9.68,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Larangan",
+     "start": 0.37,
+     "end": 0.92
+    },
+    {
+     "text": "itu",
+     "start": 0.92,
+     "end": 1.103
+    },
+    {
+     "text": "dicatat",
+     "start": 1.122,
+     "end": 1.594
+    },
+    {
+     "text": "oleh",
+     "start": 1.594,
+     "end": 1.855
+    },
+    {
+     "text": "Sebastian",
+     "start": 1.874,
+     "end": 2.501
+    },
+    {
+     "text": "Brand.",
+     "start": 2.501,
+     "end": 2.661
+    },
+    {
+     "text": "Pesta",
+     "start": 4.147,
+     "end": 4.323
+    },
+    {
+     "text": "pernikahan",
+     "start": 4.323,
+     "end": 4.342
+    },
+    {
+     "text": "masih",
+     "start": 4.679,
+     "end": 4.969
+    },
+    {
+     "text": "boleh",
+     "start": 4.969,
+     "end": 5.489
+    },
+    {
+     "text": "memakai",
+     "start": 5.489,
+     "end": 6.26
+    },
+    {
+     "text": "alat",
+     "start": 6.27,
+     "end": 6.54
+    },
+    {
+     "text": "musik",
+     "start": 6.54,
+     "end": 6.858
+    },
+    {
+     "text": "berdawai",
+     "start": 6.868,
+     "end": 7.465
+    },
+    {
+     "text": "tetapi",
+     "start": 7.465,
+     "end": 7.832
+    },
+    {
+     "text": "tidak",
+     "start": 7.832,
+     "end": 8.14
+    },
+    {
+     "text": "rebana",
+     "start": 8.314,
+     "end": 8.507
+    },
+    {
+     "text": "dan",
+     "start": 8.507,
+     "end": 8.69
+    },
+    {
+     "text": "jenderang.",
+     "start": 8.69,
+     "end": 9.49
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s39",
+   "file": "assets/narration/s39.mp3",
+   "text": "[calm] Kini penyakit itu ditangani sebagai urusan rohani... [calm] Para penari yang paling parah dinaikkan ke gerobak dan dibawa ke Saverne...",
+   "key": "3821ec54c2d5e581",
+   "start": 366.24,
+   "duration": 7.76,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Kini",
+     "start": 0.313,
+     "end": 0.581
+    },
+    {
+     "text": "penyakit",
+     "start": 0.658,
+     "end": 1.122
+    },
+    {
+     "text": "itu",
+     "start": 1.122,
+     "end": 1.267
+    },
+    {
+     "text": "ditangani",
+     "start": 1.325,
+     "end": 1.934
+    },
+    {
+     "text": "sebagai",
+     "start": 1.934,
+     "end": 2.436
+    },
+    {
+     "text": "urusan",
+     "start": 2.436,
+     "end": 2.929
+    },
+    {
+     "text": "rohani.",
+     "start": 2.929,
+     "end": 3.197
+    },
+    {
+     "text": "Para",
+     "start": 3.718,
+     "end": 3.886
+    },
+    {
+     "text": "penari",
+     "start": 3.886,
+     "end": 4.147
+    },
+    {
+     "text": "yang",
+     "start": 4.234,
+     "end": 4.427
+    },
+    {
+     "text": "paling",
+     "start": 4.427,
+     "end": 4.833
+    },
+    {
+     "text": "parah",
+     "start": 4.9,
+     "end": 5.219
+    },
+    {
+     "text": "dinaikkan",
+     "start": 5.297,
+     "end": 5.78
+    },
+    {
+     "text": "ke",
+     "start": 5.78,
+     "end": 5.896
+    },
+    {
+     "text": "gerobak",
+     "start": 5.896,
+     "end": 6.36
+    },
+    {
+     "text": "dan",
+     "start": 6.36,
+     "end": 6.524
+    },
+    {
+     "text": "dibawa",
+     "start": 6.524,
+     "end": 6.853
+    },
+    {
+     "text": "ke",
+     "start": 6.853,
+     "end": 6.93
+    },
+    {
+     "text": "Safern.",
+     "start": 6.959,
+     "end": 7.498
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s40",
+   "file": "assets/narration/s40.mp3",
+   "text": "[calm] Di sana, di sebuah kapel gua di atas kota... [calm] para imam menempatkan mereka di bawah patung kayu Santo Vitus...",
+   "key": "3b4a569fe7a009e2",
+   "start": 374.5,
+   "duration": 6.72,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Disana",
+     "start": 0.265,
+     "end": 0.491
+    },
+    {
+     "text": "di",
+     "start": 0.491,
+     "end": 0.642
+    },
+    {
+     "text": "sebuah",
+     "start": 0.642,
+     "end": 1.095
+    },
+    {
+     "text": "kapel",
+     "start": 1.095,
+     "end": 1.478
+    },
+    {
+     "text": "gua",
+     "start": 1.478,
+     "end": 1.739
+    },
+    {
+     "text": "di",
+     "start": 1.739,
+     "end": 1.88
+    },
+    {
+     "text": "atas",
+     "start": 1.88,
+     "end": 2.112
+    },
+    {
+     "text": "kota,",
+     "start": 2.192,
+     "end": 2.523
+    },
+    {
+     "text": "para",
+     "start": 3.127,
+     "end": 3.127
+    },
+    {
+     "text": "imam",
+     "start": 3.127,
+     "end": 3.199
+    },
+    {
+     "text": "menempatkan",
+     "start": 3.199,
+     "end": 3.934
+    },
+    {
+     "text": "mereka",
+     "start": 4.014,
+     "end": 4.447
+    },
+    {
+     "text": "di",
+     "start": 4.447,
+     "end": 4.507
+    },
+    {
+     "text": "bawah",
+     "start": 4.598,
+     "end": 4.95
+    },
+    {
+     "text": "patung",
+     "start": 4.95,
+     "end": 5.393
+    },
+    {
+     "text": "kayu",
+     "start": 5.393,
+     "end": 5.685
+    },
+    {
+     "text": "Santo",
+     "start": 5.685,
+     "end": 6.047
+    },
+    {
+     "text": "Vitus.",
+     "start": 6.047,
+     "end": 6.49
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s41",
+   "file": "assets/narration/s41.mp3",
+   "text": "[calm] Tangan mereka diberi salib kecil... [calm] Kaki mereka dipakaikan sepatu merah, yang diperciki air suci dan ditandai salib dengan minyak...",
+   "key": "a557a71c21d04ef7",
+   "start": 381.72,
+   "duration": 8.4,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Tangan",
+     "start": 0.37,
+     "end": 0.73
+    },
+    {
+     "text": "mereka",
+     "start": 0.73,
+     "end": 1.061
+    },
+    {
+     "text": "diberi",
+     "start": 1.137,
+     "end": 1.44
+    },
+    {
+     "text": "salib",
+     "start": 1.44,
+     "end": 1.638
+    },
+    {
+     "text": "kecil,",
+     "start": 1.742,
+     "end": 1.859
+    },
+    {
+     "text": "kaki",
+     "start": 2.433,
+     "end": 2.528
+    },
+    {
+     "text": "mereka",
+     "start": 2.802,
+     "end": 2.992
+    },
+    {
+     "text": "dipakaikan",
+     "start": 2.992,
+     "end": 3.749
+    },
+    {
+     "text": "sepatu",
+     "start": 3.749,
+     "end": 4.146
+    },
+    {
+     "text": "merah",
+     "start": 4.203,
+     "end": 4.546
+    },
+    {
+     "text": "yang",
+     "start": 5.201,
+     "end": 5.201
+    },
+    {
+     "text": "diperciki",
+     "start": 5.216,
+     "end": 5.803
+    },
+    {
+     "text": "air",
+     "start": 5.897,
+     "end": 6.181
+    },
+    {
+     "text": "suci",
+     "start": 6.181,
+     "end": 6.39
+    },
+    {
+     "text": "dan",
+     "start": 6.475,
+     "end": 6.598
+    },
+    {
+     "text": "ditandai",
+     "start": 6.598,
+     "end": 7.071
+    },
+    {
+     "text": "salib",
+     "start": 7.071,
+     "end": 7.364
+    },
+    {
+     "text": "dengan",
+     "start": 7.364,
+     "end": 7.724
+    },
+    {
+     "text": "minyak.",
+     "start": 7.724,
+     "end": 8.15
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s42",
+   "file": "assets/narration/s42.mp3",
+   "text": "[calm] Pada awal September, wabah menari itu mereda... [calm] sekitar tujuh pekan setelah Frau Troffea melangkah ke jalan...",
+   "key": "6dad6f3cebba4c78",
+   "start": 390.62,
+   "duration": 7.76,
+   "gap_after": 4.5,
+   "words": [
+    {
+     "text": "Pada",
+     "start": 0.38,
+     "end": 0.658
+    },
+    {
+     "text": "awal",
+     "start": 0.744,
+     "end": 0.917
+    },
+    {
+     "text": "September,",
+     "start": 0.917,
+     "end": 1.602
+    },
+    {
+     "text": "wabah",
+     "start": 1.949,
+     "end": 2.143
+    },
+    {
+     "text": "menari",
+     "start": 2.249,
+     "end": 2.622
+    },
+    {
+     "text": "itu",
+     "start": 2.622,
+     "end": 2.862
+    },
+    {
+     "text": "meredas",
+     "start": 2.862,
+     "end": 3.427
+    },
+    {
+     "text": "sekitar",
+     "start": 3.427,
+     "end": 3.992
+    },
+    {
+     "text": "tujuh",
+     "start": 3.992,
+     "end": 4.395
+    },
+    {
+     "text": "pekan",
+     "start": 4.395,
+     "end": 4.73
+    },
+    {
+     "text": "setelah",
+     "start": 5.088,
+     "end": 5.382
+    },
+    {
+     "text": "Frau",
+     "start": 5.382,
+     "end": 5.631
+    },
+    {
+     "text": "Trofea",
+     "start": 5.784,
+     "end": 6.158
+    },
+    {
+     "text": "melangkah",
+     "start": 6.158,
+     "end": 6.838
+    },
+    {
+     "text": "ke",
+     "start": 6.896,
+     "end": 6.992
+    },
+    {
+     "text": "jalan.",
+     "start": 6.992,
+     "end": 7.49
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s43",
+   "file": "assets/narration/s43.mp3",
+   "text": "[calm] Mengapa begitu banyak orang menari melawan kehendak mereka sendiri? [calm] Selama lima abad, jawabannya terus berubah...",
+   "key": "707786a26efa49dd",
+   "start": 402.88,
+   "duration": 7.44,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Mengapa",
+     "start": 0.33,
+     "end": 0.527
+    },
+    {
+     "text": "begitu",
+     "start": 0.527,
+     "end": 0.922
+    },
+    {
+     "text": "banyak",
+     "start": 0.922,
+     "end": 1.317
+    },
+    {
+     "text": "orang",
+     "start": 1.317,
+     "end": 1.663
+    },
+    {
+     "text": "menari",
+     "start": 1.663,
+     "end": 2.018
+    },
+    {
+     "text": "melawan",
+     "start": 2.018,
+     "end": 2.363
+    },
+    {
+     "text": "kehendak",
+     "start": 2.363,
+     "end": 2.758
+    },
+    {
+     "text": "mereka",
+     "start": 2.758,
+     "end": 3.025
+    },
+    {
+     "text": "sendiri?",
+     "start": 3.094,
+     "end": 3.578
+    },
+    {
+     "text": "Selama",
+     "start": 3.578,
+     "end": 4.723
+    },
+    {
+     "text": "lima",
+     "start": 4.723,
+     "end": 4.742
+    },
+    {
+     "text": "abad,",
+     "start": 5.048,
+     "end": 5.631
+    },
+    {
+     "text": "jawabannya",
+     "start": 5.631,
+     "end": 6.331
+    },
+    {
+     "text": "terus",
+     "start": 6.331,
+     "end": 6.687
+    },
+    {
+     "text": "berubah.",
+     "start": 6.687,
+     "end": 7.21
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s44",
+   "file": "assets/narration/s44.mp3",
+   "text": "[calm] Bagi warga Strasbourg, jawabannya jelas... [calm] kutukan Santo Vitus... [calm] Karena itu obatnya pun dicari di tempat ziarahnya...",
+   "key": "a122072728283467",
+   "start": 410.82,
+   "duration": 9.52,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Bagi",
+     "start": 0.804,
+     "end": 1.181
+    },
+    {
+     "text": "warga",
+     "start": 1.327,
+     "end": 1.663
+    },
+    {
+     "text": "Strasburg",
+     "start": 1.663,
+     "end": 1.915
+    },
+    {
+     "text": "Jawabannya",
+     "start": 2.96,
+     "end": 3.816
+    },
+    {
+     "text": "jelas",
+     "start": 3.816,
+     "end": 4.279
+    },
+    {
+     "text": "kutukan",
+     "start": 4.461,
+     "end": 4.96
+    },
+    {
+     "text": "Santo",
+     "start": 5.251,
+     "end": 5.414
+    },
+    {
+     "text": "Vitus",
+     "start": 5.414,
+     "end": 5.621
+    },
+    {
+     "text": "Karena",
+     "start": 6.692,
+     "end": 6.822
+    },
+    {
+     "text": "itu",
+     "start": 6.822,
+     "end": 7.304
+    },
+    {
+     "text": "obatnya",
+     "start": 7.304,
+     "end": 7.594
+    },
+    {
+     "text": "pun",
+     "start": 7.649,
+     "end": 7.939
+    },
+    {
+     "text": "dicari",
+     "start": 7.939,
+     "end": 8.321
+    },
+    {
+     "text": "di",
+     "start": 8.321,
+     "end": 8.43
+    },
+    {
+     "text": "tempat",
+     "start": 8.557,
+     "end": 8.775
+    },
+    {
+     "text": "ziarahnya",
+     "start": 8.775,
+     "end": 9.32
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s45",
+   "file": "assets/narration/s45.mp3",
+   "text": "[calm] Paracelsus termasuk yang pertama mencari penyebabnya pada manusia, bukan pada langit...",
+   "key": "c3a21f40cdc67592",
+   "start": 420.84,
+   "duration": 5.76,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Paracelsus",
+     "start": 0.367,
+     "end": 1.006
+    },
+    {
+     "text": "termasuk",
+     "start": 1.006,
+     "end": 1.532
+    },
+    {
+     "text": "yang",
+     "start": 1.532,
+     "end": 1.726
+    },
+    {
+     "text": "pertama",
+     "start": 1.809,
+     "end": 2.316
+    },
+    {
+     "text": "mencari",
+     "start": 2.316,
+     "end": 2.722
+    },
+    {
+     "text": "penyebabnya",
+     "start": 2.722,
+     "end": 3.303
+    },
+    {
+     "text": "pada",
+     "start": 3.368,
+     "end": 3.589
+    },
+    {
+     "text": "manusia,",
+     "start": 3.589,
+     "end": 4.005
+    },
+    {
+     "text": "bukan",
+     "start": 4.647,
+     "end": 4.65
+    },
+    {
+     "text": "pada",
+     "start": 4.65,
+     "end": 4.955
+    },
+    {
+     "text": "langit.",
+     "start": 4.955,
+     "end": 5.49
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s46",
+   "file": "assets/narration/s46.mp3",
+   "text": "[calm] Ia membagi penyakit menari menjadi tiga jenis... [calm] yang lahir dari khayalan, dari nafsu, dan dari tubuh...",
+   "key": "683d9226bf9e4cf5",
+   "start": 427.1,
+   "duration": 7.2,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Ia",
+     "start": 0.305,
+     "end": 0.434
+    },
+    {
+     "text": "membagi",
+     "start": 0.587,
+     "end": 0.998
+    },
+    {
+     "text": "penyakit",
+     "start": 0.998,
+     "end": 1.6
+    },
+    {
+     "text": "menari",
+     "start": 1.687,
+     "end": 2.088
+    },
+    {
+     "text": "menjadi",
+     "start": 2.088,
+     "end": 2.691
+    },
+    {
+     "text": "tiga",
+     "start": 2.691,
+     "end": 2.939
+    },
+    {
+     "text": "jenis",
+     "start": 2.939,
+     "end": 3.039
+    },
+    {
+     "text": "yang",
+     "start": 3.647,
+     "end": 3.704
+    },
+    {
+     "text": "lahir",
+     "start": 3.704,
+     "end": 4.134
+    },
+    {
+     "text": "dari",
+     "start": 4.134,
+     "end": 4.479
+    },
+    {
+     "text": "khayalan,",
+     "start": 4.479,
+     "end": 4.98
+    },
+    {
+     "text": "dari",
+     "start": 5.371,
+     "end": 5.722
+    },
+    {
+     "text": "nafsu,",
+     "start": 5.722,
+     "end": 6.121
+    },
+    {
+     "text": "dan",
+     "start": 6.716,
+     "end": 7.051
+    },
+    {
+     "text": "dari",
+     "start": 7.051,
+     "end": 7.051
+    },
+    {
+     "text": "tubuh",
+     "start": 7.051,
+     "end": 7.07
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s47",
+   "file": "assets/narration/s47.mp3",
+   "text": "[calm] Pada tahun seribu delapan ratus tiga puluh dua... [calm] dokter Jerman Justus Hecker menulis sejarah wabah-wabah ini, dan menyebutnya mania menari...",
+   "key": "6b81420a605cb5b0",
+   "start": 434.8,
+   "duration": 10.24,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Pada",
+     "start": 0.866,
+     "end": 1.412
+    },
+    {
+     "text": "tahun",
+     "start": 1.651,
+     "end": 2.101
+    },
+    {
+     "text": "1832,",
+     "start": 2.101,
+     "end": 3.423
+    },
+    {
+     "text": "dokter",
+     "start": 4.112,
+     "end": 4.52
+    },
+    {
+     "text": "Jerman",
+     "start": 4.612,
+     "end": 5.062
+    },
+    {
+     "text": "Justus",
+     "start": 5.09,
+     "end": 5.623
+    },
+    {
+     "text": "Hecker",
+     "start": 5.623,
+     "end": 6.193
+    },
+    {
+     "text": "menulis",
+     "start": 6.193,
+     "end": 6.607
+    },
+    {
+     "text": "sejarah",
+     "start": 6.607,
+     "end": 7.021
+    },
+    {
+     "text": "wabah-wabah",
+     "start": 7.021,
+     "end": 7.664
+    },
+    {
+     "text": "ini",
+     "start": 7.664,
+     "end": 7.806
+    },
+    {
+     "text": "dan",
+     "start": 8.238,
+     "end": 8.238
+    },
+    {
+     "text": "menyebutnya",
+     "start": 8.238,
+     "end": 8.924
+    },
+    {
+     "text": "Mania",
+     "start": 9.025,
+     "end": 9.301
+    },
+    {
+     "text": "Menari.",
+     "start": 9.301,
+     "end": 10.0
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s48",
+   "file": "assets/narration/s48.mp3",
+   "text": "[calm] Pada abad kedua puluh muncul tersangka baru... [calm] ergot, jamur pada gandum hitam yang bisa memicu kejang dan halusinasi...",
+   "key": "4d1130d5bd9e726e",
+   "start": 445.54,
+   "duration": 8.72,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Pada",
+     "start": 0.863,
+     "end": 0.863
+    },
+    {
+     "text": "abad",
+     "start": 0.863,
+     "end": 0.87
+    },
+    {
+     "text": "ke-20",
+     "start": 0.87,
+     "end": 1.899
+    },
+    {
+     "text": "muncul",
+     "start": 1.899,
+     "end": 2.174
+    },
+    {
+     "text": "tersangka",
+     "start": 2.307,
+     "end": 2.816
+    },
+    {
+     "text": "baru",
+     "start": 2.816,
+     "end": 3.06
+    },
+    {
+     "text": "ergot.",
+     "start": 3.06,
+     "end": 3.532
+    },
+    {
+     "text": "Jamur",
+     "start": 4.748,
+     "end": 4.748
+    },
+    {
+     "text": "pada",
+     "start": 4.748,
+     "end": 4.894
+    },
+    {
+     "text": "gandum",
+     "start": 4.894,
+     "end": 5.617
+    },
+    {
+     "text": "hitam",
+     "start": 5.77,
+     "end": 6.208
+    },
+    {
+     "text": "yang",
+     "start": 6.341,
+     "end": 6.565
+    },
+    {
+     "text": "bisa",
+     "start": 6.667,
+     "end": 6.83
+    },
+    {
+     "text": "memicu",
+     "start": 6.83,
+     "end": 7.176
+    },
+    {
+     "text": "kejang",
+     "start": 7.196,
+     "end": 7.553
+    },
+    {
+     "text": "dan",
+     "start": 7.573,
+     "end": 7.706
+    },
+    {
+     "text": "halusinasi.",
+     "start": 7.767,
+     "end": 8.49
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s49",
+   "file": "assets/narration/s49.mp3",
+   "text": "[calm] Waller menolak dugaan itu... [calm] Keracunan ergot menghambat aliran darah ke tangan dan kaki... [calm] sehingga orang hampir mustahil menari berhari-hari...",
+   "key": "30d2edc3d1b4e851",
+   "start": 454.76,
+   "duration": 9.36,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Waller",
+     "start": 0.37,
+     "end": 0.535
+    },
+    {
+     "text": "menolak",
+     "start": 0.535,
+     "end": 1.122
+    },
+    {
+     "text": "dugaan",
+     "start": 1.122,
+     "end": 1.627
+    },
+    {
+     "text": "itu.",
+     "start": 1.627,
+     "end": 1.886
+    },
+    {
+     "text": "Keracunan",
+     "start": 2.792,
+     "end": 2.895
+    },
+    {
+     "text": "ergot",
+     "start": 2.895,
+     "end": 3.338
+    },
+    {
+     "text": "menghambat",
+     "start": 3.338,
+     "end": 4.389
+    },
+    {
+     "text": "aliran",
+     "start": 4.399,
+     "end": 4.801
+    },
+    {
+     "text": "darah",
+     "start": 4.801,
+     "end": 5.151
+    },
+    {
+     "text": "ke",
+     "start": 5.151,
+     "end": 5.285
+    },
+    {
+     "text": "tangan",
+     "start": 5.285,
+     "end": 5.697
+    },
+    {
+     "text": "dan",
+     "start": 5.769,
+     "end": 5.903
+    },
+    {
+     "text": "kaki",
+     "start": 5.903,
+     "end": 6.108
+    },
+    {
+     "text": "sehingga",
+     "start": 6.452,
+     "end": 6.769
+    },
+    {
+     "text": "orang",
+     "start": 6.769,
+     "end": 7.099
+    },
+    {
+     "text": "hampir",
+     "start": 7.099,
+     "end": 7.48
+    },
+    {
+     "text": "mustahil",
+     "start": 7.48,
+     "end": 7.995
+    },
+    {
+     "text": "menari",
+     "start": 7.995,
+     "end": 8.387
+    },
+    {
+     "text": "berhari-hari.",
+     "start": 8.387,
+     "end": 9.18
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s50",
+   "file": "assets/narration/s50.mp3",
+   "text": "[calm] Penjelasan Waller sendiri adalah penyakit psikogenik massal... [calm] gangguan yang menular lewat rasa takut dan keyakinan, bukan lewat kuman...",
+   "key": "601d8c8a6f833425",
+   "start": 464.62,
+   "duration": 9.28,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Penjelasan",
+     "start": 0.878,
+     "end": 0.89
+    },
+    {
+     "text": "Waller",
+     "start": 0.89,
+     "end": 1.412
+    },
+    {
+     "text": "sendiri",
+     "start": 1.743,
+     "end": 2.074
+    },
+    {
+     "text": "adalah",
+     "start": 2.074,
+     "end": 2.396
+    },
+    {
+     "text": "penyakit",
+     "start": 2.396,
+     "end": 2.918
+    },
+    {
+     "text": "psikogenik",
+     "start": 2.918,
+     "end": 3.56
+    },
+    {
+     "text": "masal.",
+     "start": 3.65,
+     "end": 3.981
+    },
+    {
+     "text": "Gangguan",
+     "start": 3.981,
+     "end": 4.724
+    },
+    {
+     "text": "yang",
+     "start": 4.724,
+     "end": 4.744
+    },
+    {
+     "text": "menular",
+     "start": 5.106,
+     "end": 5.407
+    },
+    {
+     "text": "lewat",
+     "start": 5.557,
+     "end": 5.778
+    },
+    {
+     "text": "rasa",
+     "start": 5.778,
+     "end": 6.079
+    },
+    {
+     "text": "takut",
+     "start": 6.079,
+     "end": 6.45
+    },
+    {
+     "text": "dan",
+     "start": 6.45,
+     "end": 6.671
+    },
+    {
+     "text": "keyakinan,",
+     "start": 6.671,
+     "end": 7.52
+    },
+    {
+     "text": "bukan",
+     "start": 8.083,
+     "end": 8.083
+    },
+    {
+     "text": "lewat",
+     "start": 8.083,
+     "end": 8.388
+    },
+    {
+     "text": "kuman.",
+     "start": 8.388,
+     "end": 9.04
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s51",
+   "file": "assets/narration/s51.mp3",
+   "text": "[calm] Warga yang lapar, sakit, dan cemas itu percaya pada kutukan Santo Vitus... [calm] Menurut Waller, keyakinan itulah yang membawa mereka ke dalam keadaan trans...",
+   "key": "db9176111c711338",
+   "start": 474.4,
+   "duration": 11.44,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Warga",
+     "start": 0.38,
+     "end": 0.751
+    },
+    {
+     "text": "yang",
+     "start": 0.751,
+     "end": 1.053
+    },
+    {
+     "text": "lapar,",
+     "start": 1.053,
+     "end": 1.297
+    },
+    {
+     "text": "sakit,",
+     "start": 1.648,
+     "end": 2.166
+    },
+    {
+     "text": "dan",
+     "start": 2.253,
+     "end": 2.429
+    },
+    {
+     "text": "cemas",
+     "start": 2.429,
+     "end": 2.81
+    },
+    {
+     "text": "itu",
+     "start": 2.839,
+     "end": 2.87
+    },
+    {
+     "text": "percaya",
+     "start": 3.367,
+     "end": 3.707
+    },
+    {
+     "text": "pada",
+     "start": 3.707,
+     "end": 4.059
+    },
+    {
+     "text": "kutukan",
+     "start": 4.059,
+     "end": 4.615
+    },
+    {
+     "text": "Santo",
+     "start": 4.683,
+     "end": 5.093
+    },
+    {
+     "text": "Vitus.",
+     "start": 5.093,
+     "end": 5.361
+    },
+    {
+     "text": "Menurut",
+     "start": 6.93,
+     "end": 7.132
+    },
+    {
+     "text": "Waller,",
+     "start": 7.132,
+     "end": 7.668
+    },
+    {
+     "text": "keyakinan",
+     "start": 8.165,
+     "end": 8.371
+    },
+    {
+     "text": "itulah",
+     "start": 8.371,
+     "end": 8.762
+    },
+    {
+     "text": "yang",
+     "start": 8.762,
+     "end": 9.016
+    },
+    {
+     "text": "membawa",
+     "start": 9.016,
+     "end": 9.455
+    },
+    {
+     "text": "mereka",
+     "start": 9.455,
+     "end": 9.835
+    },
+    {
+     "text": "ke",
+     "start": 9.835,
+     "end": 9.923
+    },
+    {
+     "text": "dalam",
+     "start": 9.952,
+     "end": 9.962
+    },
+    {
+     "text": "keadaan",
+     "start": 10.401,
+     "end": 10.713
+    },
+    {
+     "text": "trans.",
+     "start": 10.713,
+     "end": 11.25
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s52",
+   "file": "assets/narration/s52.mp3",
+   "text": "[calm] Dalam keadaan trans, rasa sakit dan lelah menumpul... [calm] Itu menjelaskan mengapa mereka sanggup menari melampaui batas tubuh...",
+   "key": "e4e5240f4d6e44e1",
+   "start": 486.34,
+   "duration": 8.24,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Dalam",
+     "start": 0.265,
+     "end": 0.408
+    },
+    {
+     "text": "keadaan",
+     "start": 0.408,
+     "end": 0.923
+    },
+    {
+     "text": "trans,",
+     "start": 0.923,
+     "end": 1.394
+    },
+    {
+     "text": "rasa",
+     "start": 1.834,
+     "end": 1.933
+    },
+    {
+     "text": "sakit",
+     "start": 1.933,
+     "end": 2.408
+    },
+    {
+     "text": "dan",
+     "start": 2.457,
+     "end": 2.774
+    },
+    {
+     "text": "lelah",
+     "start": 2.774,
+     "end": 2.972
+    },
+    {
+     "text": "menumpul.",
+     "start": 2.972,
+     "end": 3.506
+    },
+    {
+     "text": "Itu",
+     "start": 3.506,
+     "end": 3.54
+    },
+    {
+     "text": "menjelaskan",
+     "start": 4.509,
+     "end": 4.516
+    },
+    {
+     "text": "mengapa",
+     "start": 4.753,
+     "end": 5.169
+    },
+    {
+     "text": "mereka",
+     "start": 5.169,
+     "end": 5.644
+    },
+    {
+     "text": "sanggup",
+     "start": 5.644,
+     "end": 6.188
+    },
+    {
+     "text": "menari",
+     "start": 6.287,
+     "end": 6.713
+    },
+    {
+     "text": "melampaui",
+     "start": 6.713,
+     "end": 7.208
+    },
+    {
+     "text": "batas",
+     "start": 7.208,
+     "end": 7.485
+    },
+    {
+     "text": "tubuh.",
+     "start": 7.485,
+     "end": 7.96
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s53",
+   "file": "assets/narration/s53.mp3",
+   "text": "[calm] Waller membandingkannya dengan wabah tertawa di Tanganyika, pada awal tahun enam puluhan... [calm] yang menyebar dari satu sekolah ke desa-desa sekitarnya...",
+   "key": "fd5dde819221bba1",
+   "start": 495.08,
+   "duration": 9.28,
+   "gap_after": 0.5,
+   "words": [
+    {
+     "text": "Waller",
+     "start": 0.368,
+     "end": 0.498
+    },
+    {
+     "text": "membandingkannya",
+     "start": 0.498,
+     "end": 1.624
+    },
+    {
+     "text": "dengan",
+     "start": 1.624,
+     "end": 1.901
+    },
+    {
+     "text": "wabah",
+     "start": 1.901,
+     "end": 2.227
+    },
+    {
+     "text": "tertawa",
+     "start": 2.227,
+     "end": 2.701
+    },
+    {
+     "text": "di",
+     "start": 2.701,
+     "end": 2.829
+    },
+    {
+     "text": "Tanganyika",
+     "start": 2.839,
+     "end": 3.55
+    },
+    {
+     "text": "pada",
+     "start": 3.55,
+     "end": 3.569
+    },
+    {
+     "text": "awal",
+     "start": 4.149,
+     "end": 4.281
+    },
+    {
+     "text": "tahun",
+     "start": 4.281,
+     "end": 4.745
+    },
+    {
+     "text": "60-an",
+     "start": 4.745,
+     "end": 5.584
+    },
+    {
+     "text": "yang",
+     "start": 5.584,
+     "end": 5.626
+    },
+    {
+     "text": "menyebar",
+     "start": 6.214,
+     "end": 6.473
+    },
+    {
+     "text": "dari",
+     "start": 6.473,
+     "end": 6.76
+    },
+    {
+     "text": "satu",
+     "start": 6.76,
+     "end": 7.046
+    },
+    {
+     "text": "sekolah",
+     "start": 7.046,
+     "end": 7.491
+    },
+    {
+     "text": "ke",
+     "start": 7.57,
+     "end": 7.678
+    },
+    {
+     "text": "desa-desa",
+     "start": 7.678,
+     "end": 8.32
+    },
+    {
+     "text": "sekitarnya.",
+     "start": 8.32,
+     "end": 9.13
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  },
+  {
+   "id": "s54",
+   "file": "assets/narration/s54.mp3",
+   "text": "[calm] Belum ada penjelasan yang disepakati semua ahli... [calm] Tetapi sumber-sumber sezaman sepakat tentang satu hal... [calm] pada musim panas itu, orang-orang Strasbourg benar-benar menari...",
+   "key": "a754879bebb5c338",
+   "start": 504.86,
+   "duration": 11.84,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Belum",
+     "start": 0.84,
+     "end": 1.362
+    },
+    {
+     "text": "ada",
+     "start": 1.622,
+     "end": 1.678
+    },
+    {
+     "text": "penjelasan",
+     "start": 1.678,
+     "end": 2.74
+    },
+    {
+     "text": "yang",
+     "start": 2.74,
+     "end": 2.871
+    },
+    {
+     "text": "disepakati",
+     "start": 2.871,
+     "end": 3.43
+    },
+    {
+     "text": "semua",
+     "start": 3.43,
+     "end": 3.774
+    },
+    {
+     "text": "ahli",
+     "start": 3.774,
+     "end": 4.063
+    },
+    {
+     "text": "tetapi",
+     "start": 4.063,
+     "end": 4.436
+    },
+    {
+     "text": "sumber-sumber",
+     "start": 4.436,
+     "end": 5.237
+    },
+    {
+     "text": "sezaman",
+     "start": 5.237,
+     "end": 5.665
+    },
+    {
+     "text": "sepakat",
+     "start": 5.665,
+     "end": 6.159
+    },
+    {
+     "text": "tentang",
+     "start": 6.326,
+     "end": 6.68
+    },
+    {
+     "text": "satu",
+     "start": 6.68,
+     "end": 6.862
+    },
+    {
+     "text": "hal",
+     "start": 7.57,
+     "end": 7.57
+    },
+    {
+     "text": "Pada",
+     "start": 7.57,
+     "end": 7.603
+    },
+    {
+     "text": "musim",
+     "start": 7.929,
+     "end": 8.143
+    },
+    {
+     "text": "panas",
+     "start": 8.143,
+     "end": 8.683
+    },
+    {
+     "text": "itu,",
+     "start": 8.683,
+     "end": 8.893
+    },
+    {
+     "text": "orang-orang",
+     "start": 9.28,
+     "end": 9.847
+    },
+    {
+     "text": "Strasbourg",
+     "start": 9.857,
+     "end": 10.425
+    },
+    {
+     "text": "benar-benar",
+     "start": 10.49,
+     "end": 11.142
+    },
+    {
+     "text": "menari",
+     "start": 11.142,
+     "end": 11.58
+    }
+   ],
+   "voice": "Qwen (sawif (qwen-audio-3.0-tts-flash-sawif-4fa0d3d3c3854603bff7d29a8c5673de, qwen-audio-3.0-tts-flash))"
+  }
+ ],
+ "duration": 516.7
+}

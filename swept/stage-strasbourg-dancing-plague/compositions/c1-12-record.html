@@ -1,0 +1,80 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c1-12-record.html (composition id "c1-12-record")
+  WHAT: A beat on how the dancers were recorded in pictures. It opens on a woodcut of dancers on a
+    bridge (dancers1-close.jpg, fol. 188r of the Nuremberg Chronicle, 1493) with the
+    caption "Para penari di atas jembatan" (the dancers on the bridge) and "Kronik Nürnberg, 1493",
+    which goes at 2.61 s. Then a painting of dancers at Molenbeek (1592) cuts in at
+    2.61 s and runs to 6.55 s, and a view of Strasbourg from the Nuremberg Chronicle (1493) cuts in
+    to the end at 9.74 s. index.html mounts it as c1-12-record-slot at 171.02 s.
+  STRUCTURE: three .dr-shot wrappers in document order: #c112record-a (the bridge woodcut) with its
+    caption #c112record-a-cap after it, #c112record-b (Molenbeek) and #c112record-c (Strasbourg). The
+    paused GSAP timeline, registered as window.__timelines["c1-12-record"], pushes the bridge woodcut
+    from 0 s (scale 1.014 to 1.058 over 2.61 s) and hides the caption at 2.61 s. From 2.61 s it shows
+    the Molenbeek picture and pushes it (to 1.079 over 3.94 s). From 6.55 s it shows the Strasbourg
+    picture and pushes it (to 1.067 over 3.19 s).
+  CUSTOMIZE: the caption text is in the markup: "Para penari di atas jembatan" on the first line and
+    "Kronik Nürnberg, 1493" on the second. Its place is left 207 px and top 800 px in .dr-cap. The cut
+    times 2.61 and 6.55 and the push amounts are in the tweens. The caption is hidden at 2.61 s, the
+    moment the Molenbeek picture covers it, so the two must change together. The last tween ends at
+    9.74 s, which must match the data-duration that index.html gives c1-12-record-slot. All three
+    pictures use the standard grade in their data-color-grading.
+  MEDIA: no media file is bundled. This file has three photo slots and one font slot. It has no sound
+    and no CSS image.
+    1. The bridge woodcut, img #c112record-a-img (inside #c112record-a, on screen from the start). It
+       showed dancers on a bridge, fol. 188r of the Nuremberg Chronicle (1493). It now shows a faint hatch
+       stand-in labeled "PHOTO: assets/generated/dancers1-close.jpg". To plug in your picture, set the
+       img's src to your file (for example assets/generated/dancers1-close.jpg). The data-media attribute
+       only names the expected path; it loads nothing. The img's data-color-grading still grades your
+       picture. The caption #c112record-a-cap is plain text and needs no file.
+    2. The Molenbeek picture, img #c112record-b-img (inside #c112record-b, which cuts in at 2.61 s over the
+       caption). It showed Brueghel the Younger's dancers of Molenbeek (1592). It now shows a stand-in
+       labeled "PHOTO: assets/generated/molenbeek.jpg". To plug in your picture, set the img's src to your file.
+    3. The Strasbourg picture, img #c112record-c-img (inside #c112record-c, which cuts in at 6.55 s). It
+       showed a view of Strasbourg from the Nuremberg Chronicle (1493). It now shows a stand-in labeled
+       "PHOTO: assets/generated/stras-wide2.jpg". To plug in your picture, set the img's src to your file.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap. It was a bundled font
+       file. It now reads local("Arimo"): the face is used if it is installed, otherwise the sans-serif
+       fallback of the font stack. To plug in your font, add url("your-font.woff2") format("woff2") to the
+       src list of that @font-face.
+  WHEN TO USE: a beat that shows the same dancing in three records, with a sourced caption on the
+    first. Pick another composition when the beat needs no caption or no dated source.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+      </style>
+      <!-- "Sejak itu, menurut Waller, ..." (171.02 s): dancers1-close + caption from the start; molenbeek on "kawasan" (173.63 s); stras-wide2 on "Wabah" (177.57 s). -->
+      <div id="root" data-composition-id="c1-12-record" data-width="1920" data-height="1080">
+        <div class="dr-shot" id="c112record-a" data-layout-allow-overflow><img id="c112record-a-img" src="data:image/svg+xml,%3C!--dancers1-close.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/dancers1-close.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/dancers1-close.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c112record-a-cap">Para penari di atas jembatan<br />Kronik Nürnberg, 1493</div>
+        <!-- The Molenbeek picture, cut in at 2.61 s over the caption. -->
+        <div class="dr-shot" id="c112record-b" data-layout-allow-overflow><img id="c112record-b-img" src="data:image/svg+xml,%3C!--molenbeek.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/molenbeek.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/molenbeek.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c112record-c" data-layout-allow-overflow><img id="c112record-c-img" src="data:image/svg+xml,%3C!--stras-wide2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'801' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/stras-wide2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/stras-wide2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        /* The timeline: the bridge woodcut push and caption, then the Molenbeek and Strasbourg pictures. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c112record-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.058, x: 6, y: -2, duration: 2.61, ease: "none" }, 0.0);
+        tl.to("#c112record-a-cap", { opacity: 0, duration: 0.001 }, 2.61);
+        tl.fromTo("#c112record-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.079, x: -5, y: 3, duration: 3.94, ease: "none" }, 2.61);
+        gsap.set("#c112record-b", { opacity: 0 });
+        tl.to("#c112record-b", { opacity: 1, duration: 0.001 }, 2.61);
+        tl.fromTo("#c112record-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.067, x: 4, y: 3, duration: 3.19, ease: "none" }, 6.55);
+        gsap.set("#c112record-c", { opacity: 0 });
+        tl.to("#c112record-c", { opacity: 1, duration: 0.001 }, 6.55);
+        window.__timelines["c1-12-record"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

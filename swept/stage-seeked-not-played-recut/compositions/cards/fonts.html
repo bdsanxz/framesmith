@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+  GUIDE: compositions/cards/fonts.html (composition id "card-fonts")
+  WHAT: The second stat card. It replaces the registry panel in the same right-hand position:
+    index.html mounts it at 6.77 s for 2.8 s, while the presenter says "18 font families". The
+    number 18 slams in at once, shrinking from 120 percent to full size over 0.25 s from 6.77 s,
+    because the number is spoken first; the label "font families, bundled and offline" rises at 7.21
+    s. The kicker reads INSIDE THE RENDERER.
+  STRUCTURE: #root (full frame) holds #fonts-panel (class .panel, the dark right-half box) with the
+    .kicker, #fonts-num (.num, the number 18) and #fonts-label (.label). Timeline in card-local time
+    (global minus 6.77 s): #fonts-num fades in and scales from 1.2 to 1 over 0.25 s, starting at 0
+    s; #fonts-label fades in and rises 20 px over 0.4 s, starting at 0.44 s. Unlike the registry
+    card, the number does not count up.
+  CUSTOMIZE: The number: the text of #fonts-num. The label and the kicker: their text. Timing: the
+    card-local 0.0 and 0.44. The panel, colours, font sizes and placement are shared with
+    registry.html (panel at left 960 px; number 260 px Inter 900; label 44 px; kicker 26 px
+    JetBrains Mono in blue #0a84ff). Keep the two panel cards consistent when one changes.
+  MEDIA: none. No media file is bundled with this composition, and it has no picture, video, sound or CSS
+    image slot. Its fonts are Inter (the number and label, from #root) and JetBrains Mono (the kicker, from
+    .kicker), both named in font stacks with no @font-face rule. HyperFrames bundles both, so no font file is
+    added here. If either is not available where you render, the sans-serif or monospace fallback is used.
+  WHEN TO USE: A second stat in the same panel, when the figure is spoken first and should land at
+    once. Pick the count-up of registry.html when the number must build as it is spoken.
+-->
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <style>
+        /* The full-frame layer: no pointer events, so the card never blocks the video beneath. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #ffffff; pointer-events: none; }
+        /* The stat panel: the right half of the frame, dark, with its content centred vertically. */
+        .panel { position: absolute; left: 960px; top: 0; width: 960px; height: 1080px; background: #111113;
+          display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 0 120px 240px; }
+        /* The small blue kicker line above the number. */
+        .kicker { font-family: "JetBrains Mono", monospace; font-size: 26px; letter-spacing: 0.06em; color: #0a84ff; }
+        /* The big number: tabular figures, so the digits keep their width. */
+        .num { font-size: 260px; font-weight: 900; letter-spacing: -0.05em; line-height: 0.9; font-variant-numeric: tabular-nums; }
+        /* The line under the number, in soft grey. */
+        .label { font-size: 44px; color: #c7c7cc; line-height: 1.2; }
+      </style>
+      <div id="root" data-composition-id="card-fonts" data-width="1920" data-height="1080">
+        <!-- The panel: kicker, number and label, from top to bottom. -->
+        <div id="fonts-panel" class="panel">
+          <div class="kicker">INSIDE THE RENDERER</div>
+          <div id="fonts-num" class="num">18</div>
+          <div id="fonts-label" class="label">font families, bundled and offline</div>
+        </div>
+      </div>
+      <script>
+        /* Setup: this card's paused timeline, in card-local seconds. */
+        const tl = gsap.timeline({ paused: true });
+        // Card-local = global − 6.77: the number is spoken first (0.0), so it slams in at once; label on "font" (0.44).
+        tl.fromTo("#fonts-num", { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power3.out" }, 0.0);
+        tl.fromTo("#fonts-label", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.44);
+        /* Registration: the host finds this timeline by the composition id "card-fonts". */
+        window.__timelines["card-fonts"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c2-03-saverne.html (composition id "c2-03-saverne")
+  WHAT: The third beat of chapter 2, 12.9 s, from 201.88 s in index.html, narrated by segment s21
+    (opening "Tarian itu berlangsung empat", the dance lasted four). Four parts follow one another: a
+    picture, hon-feet (0 to 4.37 s); a second picture, cart2 (4.37 to 6.92 s); a map of Alsace (6.92
+    to 10.51 s), which pushes in slowly on Saverne while a red road line draws from Strasbourg to
+    Saverne and the dot at Saverne glows; and a chapel picture from 10.51 s to the end, with the
+    caption "Kapel Santo Vitus di dekat Saverne" (St Vitus chapel near Saverne) and its source line.
+    The map labels are Saverne, Strasbourg, Sungai Rhein (the Rhine) and lebih dari 40 km (more than
+    40 km).
+  STRUCTURE: #root holds four .dr-shot wrappers: #c203saverne-a and -b (pictures), -c (the map) and
+    -d (the chapel), plus the caption #c203saverne-d-cap. The map wrapper -c is layered back to front:
+    .mp-sea (blue fill), img .mp-map (map-alsace.svg, 3840 by 2160 px, offset -960 and -540 px), an
+    svg .mp-lines with the red route path #c203saverne-c-route, an svg .mp-grain of paper noise, the
+    .mp-shade edge darkening, the glow #c203saverne-c-glow, then the two dots and their labels.
+    Timeline: picture a pushes 0 to 4.37 s; b is cut in at 4.37 s; the map is cut in at 6.92 s and
+    pushes from scale 2.0 to 2.14 over 3.59 s; the glow pulses from 6.92 s; the route draws over 1.6 s
+    from 7.22 s; the chapel and its caption are cut in at 10.51 s.
+  CUSTOMIZE: each picture's file is named by data-media on its img (hon-feet.jpg, cart2.jpg, chapel.jpg);
+    set the src to swap in your own (see MEDIA). On the
+    map, the dot and label positions are inline pixel values in the 1920 by 1080 frame; move them
+    together with the route path d (M972.9,521.7 Q925,470 865.1,454.6) and the glow at left 850.6
+    and top 440.1 px. Keep the route stroke-dasharray (140) at least as long as the path. Colours:
+    sea #3f7f9f, route #c63a24, labels #170f08, glow rgba(255, 244, 205). Town labels are 14.5 px and
+    the notes 11.6 px. The glow repeat count is computed from the 3.59 s push. The cut times 4.37,
+    6.92 and 10.51 appear in several tweens; change them together and keep the end inside
+    data-duration (12.9 in index.html).
+  MEDIA: no media file is bundled. This file has three photo slots and one font slot.
+    It has no sound, no video and no CSS image. Bundled drawing (SVG, kept): the map of Alsace, img
+    #c203saverne-c-map, src assets/generated/map-alsace.svg, described after the numbered slots.
+    1. The first picture, img #c203saverne-a-img (inside #c203saverne-a, shown 0 to 4.37 s). It showed the
+       first opening picture (hon-feet.jpg). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/hon-feet.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/hon-feet.jpg). The data-media attribute only names the expected path; it
+       loads nothing. The img's data-color-grading still grades your picture.
+    2. The second picture, img #c203saverne-b-img (inside #c203saverne-b, shown 4.37 to 6.92 s). It showed
+       cart2.jpg. It now shows a stand-in labeled "PHOTO: assets/generated/cart2.jpg". To plug in your
+       picture, set the img's src to your file.
+    3. The chapel picture, img #c203saverne-d-img (inside #c203saverne-d, which cuts in at 10.51 s, with the
+       caption #c203saverne-d-cap). It showed the chapel picture the caption credits to Henri-Charles Muller
+       (around 1820). It now shows a stand-in labeled "PHOTO: assets/generated/chapel.jpg". To plug in your
+       picture, set the img's src to your file. Its grade adds exposure -0.25 so the caption reads.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap and the map labels. It was
+       a bundled font file. It now reads local("Arimo"): the face is used if it is installed, otherwise the
+       sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+    Bundled drawing (SVG, kept), the map: img #c203saverne-c-map (.mp-map, 3840 x 2160 px at left -960 and
+       top -540, inside #c203saverne-c, which cuts in at 6.92 s), src assets/generated/map-alsace.svg, a
+       vector map of Alsace: orange land with dark borders on the blue sea. It is an SVG file made for this
+       inspiration and renders as it is. It is not a media slot and needs nothing plugged in. To use your own
+       drawing, set the img's src to your own map SVG of the same size. It must put Saverne and Strasbourg
+       under the two dots, or move the dots, the glow and the route path together (see CUSTOMIZE).
+    The route, the glow and the grain are SVG and CSS drawn, with no file.
+  WHEN TO USE: when the film must show where a place lies, with a map that pushes in and a route drawn
+    across it. Pick another pattern when no place or route is needed.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The font: Arimo, read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+        /* The map: orange land on a blue sea, dark borders, paper grain, a glowing dot, small dark labels. */
+        .mp-sea { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: #3f7f9f; }
+        .mp-map { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; max-width: none; }
+        .mp-lines { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        .mp-grain { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; mix-blend-mode: multiply; opacity: 0.34; }
+        .mp-shade { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(42, 33, 24, 0) 55%, rgba(42, 33, 24, 0.32) 100%); }
+        .mp-glow { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255, 244, 205, 0.95) 0%, rgba(255, 226, 150, 0.55) 35%, rgba(255, 226, 150, 0) 70%); }
+        .mp-dot { position: absolute; border-radius: 50%; background: #fff6da; }
+        .mp-label { position: absolute; font-family: "Arimo", sans-serif; font-weight: 700; color: #170f08; white-space: nowrap; }
+        .mp-note { position: absolute; font-family: "Arimo", sans-serif; font-weight: 400; font-style: italic; font-weight: 700; color: #170f08; white-space: nowrap; }
+      </style>
+      <!-- "Tarian itu berlangsung empat ..." (201.88 s): hon-feet from the start; cart2 on "Pemerintah" (206.25 s); graphic on "Saverne" (208.80 s); chapel + caption on "tempat" (212.39 s). -->
+      <div id="root" data-composition-id="c2-03-saverne" data-width="1920" data-height="1080">
+        <!-- Pictures a and b: the two opening pictures. -->
+        <div class="dr-shot" id="c203saverne-a" data-layout-allow-overflow><img id="c203saverne-a-img" src="data:image/svg+xml,%3C!--hon-feet.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'744' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hon-feet.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hon-feet.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c203saverne-b" data-layout-allow-overflow><img id="c203saverne-b-img" src="data:image/svg+xml,%3C!--cart2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/cart2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/cart2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <!-- The map: sea, map image, route, grain, shade, glow, then the dots and labels, in that order. -->
+        <div class="dr-shot" id="c203saverne-c" data-layout-allow-overflow style="transform-origin: 920px 488px;">
+          <div class="mp-sea" data-layout-allow-overflow></div>
+          <img class="mp-map" id="c203saverne-c-map" src="assets/generated/map-alsace.svg" alt="" data-layout-allow-overflow />
+          <svg class="mp-lines" viewBox="0 0 1920 1080"><path id="c203saverne-c-route" d="M972.9,521.7 Q925,470 865.1,454.6" fill="none" stroke="#c63a24" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="140" stroke-dashoffset="140" /></svg>
+          <svg class="mp-grain" viewBox="0 0 1920 1080" preserveAspectRatio="none" data-layout-allow-overflow><filter id="c203saverne-c-noise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" /><feColorMatrix type="matrix" values="0 0 0 0 0.16  0 0 0 0 0.13  0 0 0 0 0.09  0 0 0 0.55 0" /></filter><rect width="1920" height="1080" filter="url(#c203saverne-c-noise)" /></svg>
+          <div class="mp-shade" data-layout-allow-overflow></div>
+          <div class="mp-glow" id="c203saverne-c-glow" data-layout-allow-overflow style="left: 850.6px; top: 440.1px; width: 29.0px; height: 29.0px;"></div>
+          <div class="mp-dot" style="left: 861.2px; top: 450.7px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 792.6px; top: 445.9px; font-size: 14.5px; line-height: 17.4px;">Saverne</div>
+          <div class="mp-dot" style="left: 969.0px; top: 517.8px; width: 7.7px; height: 7.7px; box-shadow: 0 0 0 1.0px #2a2118;"></div>
+          <div class="mp-label" style="left: 982.6px; top: 514.9px; font-size: 14.5px; line-height: 17.4px;">Strasbourg</div>
+          <div class="mp-note" style="left: 1046.0px; top: 418.0px; font-size: 11.6px; line-height: 13.9px;">Sungai Rhein</div>
+          <div class="mp-note" style="left: 832.0px; top: 506.0px; font-size: 11.6px; line-height: 13.9px;">lebih dari 40 km</div>
+        </div>
+        <!-- The chapel picture with its source caption, shown from 10.51 s. -->
+        <div class="dr-shot" id="c203saverne-d" data-layout-allow-overflow><img id="c203saverne-d-img" src="data:image/svg+xml,%3C!--chapel.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/chapel.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/chapel.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c203saverne-d-cap">Kapel Santo Vitus di dekat Saverne<br />Gambar Henri-Charles Müller, sekitar 1820</div>
+      </div>
+      <script>
+        /* Timeline: pictures a and b, then the map, then the chapel; each cut is an opacity change. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#c203saverne-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.086, x: 6, y: -2, duration: 4.37, ease: "none" }, 0.0);
+        tl.fromTo("#c203saverne-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.058, x: -5, y: 3, duration: 2.55, ease: "none" }, 4.37);
+        gsap.set("#c203saverne-b", { opacity: 0 });
+        tl.to("#c203saverne-b", { opacity: 1, duration: 0.001 }, 4.37);
+        // The map: a slow push toward the place, and the dot's glow breathing. Nothing else moves.
+        tl.fromTo("#c203saverne-c", { scale: 2.0 }, { scale: 2.14, duration: 3.59, ease: "none" }, 6.92);
+        tl.fromTo("#c203saverne-c-glow", { scale: 0.8, opacity: 0.55 }, { scale: 1.25, opacity: 0.95, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: Math.max(1, Math.floor(3.59 / 1.1) - 1) }, 6.92);
+        // The road to the shrine draws from Strasbourg to Saverne.
+        tl.to("#c203saverne-c-route", { strokeDashoffset: 0, duration: 1.6, ease: "power1.inOut" }, 6.92 + 0.3);
+        gsap.set("#c203saverne-c", { opacity: 0 });
+        tl.to("#c203saverne-c", { opacity: 1, duration: 0.001 }, 6.92);
+        tl.fromTo("#c203saverne-d", { scale: 1.014, x: 6, y: 3 }, { scale: 1.055, x: -6, y: -3, duration: 2.39, ease: "none" }, 10.51);
+        gsap.set("#c203saverne-d", { opacity: 0 });
+        tl.to("#c203saverne-d", { opacity: 1, duration: 0.001 }, 10.51);
+        gsap.set("#c203saverne-d-cap", { opacity: 0 });
+        tl.to("#c203saverne-d-cap", { opacity: 1, duration: 0.001 }, 10.51);
+        window.__timelines["c2-03-saverne"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

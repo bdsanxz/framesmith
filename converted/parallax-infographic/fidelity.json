@@ -291,14 +291,14 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"`#pi-fill-${i}`\" is not a DOM selector (\"`#pi-fill-${i}`\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "position \"at\" is outside the numeric grammar (unbound identifier \"at\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/stage.html",
       "line": 146,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"at + 0.25\" is an expression; refusing the call site",
+      "detail": "position \"at + 0.25\" is outside the numeric grammar (unbound identifier \"at\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/stage.html",
       "line": 147,
       "verdict": "refused"

@@ -1,0 +1,370 @@
+{
+ "version": 1,
+ "engine": "adopted from narration.mp3",
+ "lead": 0.0,
+ "segments": [
+  {
+   "id": "s01",
+   "file": "assets/narration/s01.mp3",
+   "text": "June twenty-eighth, nineteen fourteen. Sarajevo.",
+   "key": "19c4772859ddcf8a",
+   "start": 0.0,
+   "duration": 3.735,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "June",
+     "start": 0.04,
+     "end": 0.46
+    },
+    {
+     "text": "28,",
+     "start": 0.46,
+     "end": 1.39
+    },
+    {
+     "text": "1914.",
+     "start": 1.39,
+     "end": 3.06
+    },
+    {
+     "text": "Sarajevo,",
+     "start": 3.06,
+     "end": 3.735
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "file": "assets/narration/s02.mp3",
+   "text": "One wrong turn is about to start a world war.",
+   "key": "3b83044aa2be910c",
+   "start": 3.735,
+   "duration": 3.295,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "one",
+     "start": 0.195,
+     "end": 0.455
+    },
+    {
+     "text": "wrong",
+     "start": 0.455,
+     "end": 0.895
+    },
+    {
+     "text": "turn,",
+     "start": 0.895,
+     "end": 1.465
+    },
+    {
+     "text": "is",
+     "start": 1.485,
+     "end": 1.575
+    },
+    {
+     "text": "about",
+     "start": 1.575,
+     "end": 1.815
+    },
+    {
+     "text": "to",
+     "start": 1.905,
+     "end": 1.965
+    },
+    {
+     "text": "start",
+     "start": 1.965,
+     "end": 2.335
+    },
+    {
+     "text": "a",
+     "start": 2.365,
+     "end": 2.385
+    },
+    {
+     "text": "world",
+     "start": 2.385,
+     "end": 2.965
+    },
+    {
+     "text": "war.",
+     "start": 2.965,
+     "end": 3.295
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "file": "assets/narration/s03.mp3",
+   "text": "In the back seat rides Archduke [Franz](/fɹˈænts/) Ferdinand, heir to Austria-Hungary's throne.",
+   "key": "6f46d47b9169728a",
+   "start": 7.03,
+   "duration": 5.27,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "In",
+     "start": 0.13,
+     "end": 0.19
+    },
+    {
+     "text": "the",
+     "start": 0.19,
+     "end": 0.28
+    },
+    {
+     "text": "backseat",
+     "start": 0.28,
+     "end": 0.73
+    },
+    {
+     "text": "rides",
+     "start": 0.77,
+     "end": 1.1
+    },
+    {
+     "text": "Archduke-France",
+     "start": 1.11,
+     "end": 2.23
+    },
+    {
+     "text": "Ferdinand,",
+     "start": 2.23,
+     "end": 3.06
+    },
+    {
+     "text": "heir",
+     "start": 3.06,
+     "end": 3.32
+    },
+    {
+     "text": "to",
+     "start": 3.47,
+     "end": 3.51
+    },
+    {
+     "text": "Austria-Hungary's",
+     "start": 3.51,
+     "end": 4.78
+    },
+    {
+     "text": "throne.",
+     "start": 4.78,
+     "end": 5.27
+    }
+   ]
+  },
+  {
+   "id": "s04",
+   "file": "assets/narration/s04.mp3",
+   "text": "Along his route wait six young assassins.",
+   "key": "07aa8beec486ae7e",
+   "start": 12.3,
+   "duration": 2.735,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "Along",
+     "start": 0.26,
+     "end": 0.38
+    },
+    {
+     "text": "his",
+     "start": 0.38,
+     "end": 0.68
+    },
+    {
+     "text": "route",
+     "start": 0.68,
+     "end": 0.82
+    },
+    {
+     "text": "wait",
+     "start": 0.86,
+     "end": 1.13
+    },
+    {
+     "text": "six",
+     "start": 1.13,
+     "end": 1.36
+    },
+    {
+     "text": "young",
+     "start": 1.36,
+     "end": 1.69
+    },
+    {
+     "text": "assassins.",
+     "start": 2.08,
+     "end": 2.65
+    }
+   ]
+  },
+  {
+   "id": "s05",
+   "file": "assets/narration/s05.mp3",
+   "text": "At the Latin Bridge, the driver turns right. The wrong way.",
+   "key": "3008142cc5d16318",
+   "start": 15.035,
+   "duration": 4.14,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "At",
+     "start": 0.025,
+     "end": 0.075
+    },
+    {
+     "text": "the",
+     "start": 0.075,
+     "end": 0.285
+    },
+    {
+     "text": "Latin",
+     "start": 0.325,
+     "end": 0.675
+    },
+    {
+     "text": "bridge,",
+     "start": 0.835,
+     "end": 1.295
+    },
+    {
+     "text": "the",
+     "start": 1.295,
+     "end": 1.525
+    },
+    {
+     "text": "driver",
+     "start": 1.525,
+     "end": 1.985
+    },
+    {
+     "text": "turns",
+     "start": 1.985,
+     "end": 2.365
+    },
+    {
+     "text": "right.",
+     "start": 2.365,
+     "end": 3.005
+    },
+    {
+     "text": "The",
+     "start": 3.005,
+     "end": 3.305
+    },
+    {
+     "text": "wrong",
+     "start": 3.305,
+     "end": 3.445
+    },
+    {
+     "text": "way,",
+     "start": 3.445,
+     "end": 4.14
+    }
+   ]
+  },
+  {
+   "id": "s06",
+   "file": "assets/narration/s06.mp3",
+   "text": "He brakes, and the engine stalls, a few steps from [Gavrilo](/ɡævɹˈiːləʊ/) [Princip](/pɹˈɪntsɪp/).",
+   "key": "ea1171a2db6cbe4b",
+   "start": 19.175,
+   "duration": 4.51,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "he",
+     "start": 0.045,
+     "end": 0.145
+    },
+    {
+     "text": "breaks",
+     "start": 0.145,
+     "end": 0.745
+    },
+    {
+     "text": "and",
+     "start": 0.785,
+     "end": 0.985
+    },
+    {
+     "text": "the",
+     "start": 0.985,
+     "end": 1.225
+    },
+    {
+     "text": "engine",
+     "start": 1.225,
+     "end": 1.615
+    },
+    {
+     "text": "stalls",
+     "start": 2.005,
+     "end": 2.185
+    },
+    {
+     "text": "a",
+     "start": 2.185,
+     "end": 2.265
+    },
+    {
+     "text": "few",
+     "start": 2.265,
+     "end": 2.505
+    },
+    {
+     "text": "steps",
+     "start": 2.505,
+     "end": 2.865
+    },
+    {
+     "text": "from",
+     "start": 2.925,
+     "end": 3.225
+    },
+    {
+     "text": "Gavrilo",
+     "start": 3.225,
+     "end": 3.785
+    },
+    {
+     "text": "Princip.",
+     "start": 3.785,
+     "end": 4.51
+    }
+   ]
+  },
+  {
+   "id": "s07",
+   "file": "assets/narration/s07.mp3",
+   "text": "He fires twice.",
+   "key": "31f7097ce84a0bf6",
+   "start": 23.685,
+   "duration": 1.853,
+   "gap_after": 0.0,
+   "words": [
+    {
+     "text": "He",
+     "start": 0.155,
+     "end": 0.315
+    },
+    {
+     "text": "fires",
+     "start": 0.315,
+     "end": 0.705
+    },
+    {
+     "text": "twice.",
+     "start": 0.705,
+     "end": 1.155
+    }
+   ]
+  }
+ ],
+ "duration": 25.538
+}

@@ -1,0 +1,197 @@
+<!-- hyperframes-registry-item: camcorder-hud -->
+<!--
+  GUIDE: compositions/camcorder-hud.html (composition id "camcorder-hud")
+  WHAT: a transparent 4 s camcorder viewfinder over the frame: a blinking red dot with REC at the top
+    left, a battery icon at the top right, OCT 01 2026 and 6:00 PM at the bottom left, and SP 16:9
+    with a running counter at the bottom right. The counter runs from 00:00:00 to 00:00:04 across
+    the 4 s, and the dot blinks every 0.55 s. Mounted by index.html at 4 s for 4 s on track 5, over
+    the bloom beat of the clip.
+  STRUCTURE: #camcorder-hud is the host. Inside it, #ch-hud is a full-frame layer with four corner
+    readouts: .ch-record (dot and REC), .ch-battery, .ch-date and .ch-counter (the mode line and
+    .ch-counter-value). Timeline: one linear tween of a seconds value from 0 to 4; its update
+    callback rewrites the counter text and the record dot opacity. The HUD is also drawn once at load.
+  CUSTOMIZE: the text color, record accent (#f12c2c), margin (5vmin) and font size (3.7vmin) are
+    variables on #ch-hud. The date and time text is in .ch-date, and the mode label is in .ch-mode.
+    The font family is JetBrains Mono, set on #ch-hud. The counter starts from data-hf-counter-start
+    (0 seconds). The blink period of 0.55 is in updateHud. Keep the host data-duration (4) equal to
+    the window length.
+  MEDIA: No media file is bundled. The file has no slots: it loads no picture, video or sound, and its
+    one font, JetBrains Mono, is named in the #ch-hud font stack. HyperFrames bundles it, so no font
+    file is needed, and nothing is to be plugged in.
+  WHEN TO USE: a home-video or found-footage feel on top of any clip. Pick a cleaner overlay for
+    formal, product or corporate films, where a timestamp would read as noise.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      /* Root of the HUD: the color, accent, inset and font size variables, plus the base type. */
+      #ch-hud {
+        --hf-camcorder-color: #fff;
+        --hf-camcorder-accent: #f12c2c;
+        --hf-camcorder-inset: 5vmin;
+        --hf-camcorder-font-size: 3.7vmin;
+        position: absolute;
+        inset: 0;
+        color: var(--hf-camcorder-color);
+        font-family: "JetBrains Mono", monospace;
+        font-size: var(--hf-camcorder-font-size);
+        font-weight: 700;
+        line-height: 1.25;
+        pointer-events: none;
+        -webkit-text-stroke: 0.12vmin rgb(0 0 0 / 92%);
+        text-shadow: 0 0.2vmin 0.6vmin rgb(0 0 0 / 90%);
+      }
+
+      /* Corner readouts are absolutely positioned; the rules below pin each readout to a corner. */
+      #ch-hud .ch-corner {
+        position: absolute;
+      }
+
+      /* The REC label with its red dot, at the top left. */
+      #ch-hud .ch-record {
+        top: var(--hf-camcorder-inset);
+        left: var(--hf-camcorder-inset);
+        display: flex;
+        align-items: center;
+        gap: 1.8vmin;
+      }
+
+      #ch-hud .ch-record-dot {
+        width: 2.2vmin;
+        height: 2.2vmin;
+        border-radius: 50%;
+        background: var(--hf-camcorder-accent);
+        box-shadow: 0 0 0.9vmin color-mix(in srgb, var(--hf-camcorder-accent) 55%, transparent);
+      }
+
+      /* The battery icon, drawn as a bordered box with a bar and a terminal nub. */
+      #ch-hud .ch-battery {
+        top: var(--hf-camcorder-inset);
+        right: var(--hf-camcorder-inset);
+        width: 7vmin;
+        height: 3.5vmin;
+        border: 0.35vmin solid currentcolor;
+      }
+
+      #ch-hud .ch-battery::before {
+        position: absolute;
+        top: 0.7vmin;
+        left: 0.7vmin;
+        width: 4.7vmin;
+        height: 1.4vmin;
+        background: currentcolor;
+        content: "";
+      }
+
+      #ch-hud .ch-battery::after {
+        position: absolute;
+        top: 0.7vmin;
+        right: -1vmin;
+        width: 0.7vmin;
+        height: 1.4vmin;
+        background: currentcolor;
+        content: "";
+      }
+
+      /* The date and time, at the bottom left. */
+      #ch-hud .ch-date {
+        bottom: var(--hf-camcorder-inset);
+        left: var(--hf-camcorder-inset);
+      }
+
+      /* The mode line and the running counter, at the bottom right. */
+      #ch-hud .ch-counter {
+        right: var(--hf-camcorder-inset);
+        bottom: var(--hf-camcorder-inset);
+        text-align: right;
+      }
+
+      /* The mode line is set smaller than the counter and sits above it. */
+      #ch-hud .ch-mode {
+        display: block;
+        margin-bottom: 0.7vmin;
+        font-size: 2.6vmin;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="camcorder-hud"
+      data-composition-id="camcorder-hud"
+      data-start="0"
+      data-duration="4"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- The HUD layer with four corner readouts; the script updates the counter and the record dot. -->
+      <div id="ch-hud" data-hf-counter-start="0" aria-hidden="true">
+        <div class="ch-corner ch-record"><span class="ch-record-dot"></span><span>REC</span></div>
+        <div class="ch-corner ch-battery"></div>
+        <div class="ch-corner ch-date">OCT 01 2026<br />6:00 PM</div>
+        <div class="ch-corner ch-counter">
+          <span class="ch-mode">SP · 16:9</span><span class="ch-counter-value">00:00:00</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      /* Lookup: the counter, the record dot and the host; it throws if any of them is missing. */
+      var hud = document.getElementById("ch-hud");
+      var counter = hud && hud.querySelector(".ch-counter-value");
+      var recordDot = hud && hud.querySelector(".ch-record-dot");
+      var host = hud && hud.closest("[data-composition-id]");
+      if (!hud || !counter || !recordDot || !host) {
+        throw new Error("Camcorder HUD could not find its composition host");
+      }
+
+      var compositionId = host.getAttribute("data-composition-id");
+      var duration = Number(host.getAttribute("data-duration")) || 4;
+      var counterStart = Number(hud.getAttribute("data-hf-counter-start")) || 0;
+      var state = { seconds: 0 };
+
+      /* Turns elapsed seconds into HH:MM:SS, and blinks the record dot every 0.55 s. */
+      function formatCounter(value) {
+        var seconds = Math.max(0, Math.floor(value));
+        var hours = Math.floor(seconds / 3600);
+        var minutes = Math.floor((seconds % 3600) / 60);
+        var remainder = seconds % 60;
+        return [hours, minutes, remainder]
+          .map(function (part) {
+            return String(part).padStart(2, "0");
+          })
+          .join(":");
+      }
+
+      function updateHud() {
+        counter.textContent = formatCounter(counterStart + state.seconds);
+        recordDot.style.opacity = Math.floor(state.seconds / 0.55) % 2 === 0 ? "1" : "0.25";
+      }
+
+      /* Timeline: a linear tween of the seconds value over the host duration, redrawing the HUD on each update. */
+      var tl = gsap.timeline({ paused: true });
+      tl.to(state, { seconds: duration, duration: duration, ease: "none", onUpdate: updateHud }, 0);
+      updateHud();
+      window.__timelines[compositionId] = tl;
+    </script>
+  </body>
+</html>

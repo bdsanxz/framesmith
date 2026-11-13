@@ -1,0 +1,46 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (composition id "main")
+  WHAT: The root of the re-skinned rotisserie scene: a 5.5-second film at 1920x1080 that shows
+    only the rotary scene from compositions/rotary.html, from start 0 to the end. The copy is a
+    one-line statement on the Aurora Labs frame with one word cycling on a drum.
+  STRUCTURE: #root (composition id "main", duration 5.5) holds one clip host on track 0:
+    #slot-rotary mounts compositions/rotary.html at start 0 for 5.5 s. The root GSAP timeline is
+    paused, has no tweens, and is registered as window.__timelines["main"].
+  CUSTOMIZE: The film length is data-duration on #root and on #slot-rotary (both 5.5). It must
+    match the length of the rotary timeline, which ends at 5.5 s on its final push. The night
+    ground #06141F is set in the html, body and #root rules. The words and the drum are in
+    compositions/rotary.html, not here.
+  MEDIA: No media file is bundled, and this file has no photo, video, sound, font or CSS image slot, so
+    none is needed. It loads only the GSAP 3.14.2 script from jsdelivr, which is code; the one scene it
+    mounts, compositions/rotary.html, has no media slot either.
+  WHEN TO USE: A one-scene film on this re-skinned line, or the host pattern to copy when a
+    scene is placed in a longer film. Pick a different root when the film has several scenes
+    that must follow each other on one track.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Rotisserie carousel — re-skinned</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Page reset and a fixed 1920 by 1080 frame on the night ground. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #06141F; }
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #06141F; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.5" data-width="1920" data-height="1080">
+      <!-- Host: the rotary scene on track 0, from 0 to 5.5 seconds. -->
+      <div id="slot-rotary" data-composition-id="rotary" data-composition-src="compositions/rotary.html"
+        data-start="0" data-duration="5.5" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      /* Paused root timeline with no tweens; the host runs the rotary timeline. */
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

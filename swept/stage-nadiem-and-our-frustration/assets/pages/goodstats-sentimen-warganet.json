@@ -1,0 +1,52 @@
+{
+ "url": "https://data.goodstats.id/statistic/nadiem-makarim-dituntut-18-tahun-penjara-bagaimana-respons-warganet-azZkS",
+ "title": "Nadiem Makarim Dituntut 18 Tahun Penjara, Bagaimana Respons Warganet? - GoodStats Data",
+ "site": "data.goodstats.id",
+ "quote": "Banyak warganet menilai Nadiem menjadi korban kriminalisasi dan tebang pilih hukum.",
+ "width": 2200,
+ "height": 1520,
+ "lines": [
+  [
+   298,
+   716,
+   1103,
+   42
+  ],
+  [
+   32,
+   764,
+   178,
+   42
+  ]
+ ],
+ "also": [
+  {
+   "quote": "sentimen negatif tercatat sebesar 17,4%.",
+   "lines": [
+    [
+     187,
+     1468,
+     614,
+     42
+    ]
+   ]
+  },
+  {
+   "quote": "didominasi sentimen positif dengan persentase mencapai 78,7%.",
+   "lines": [
+    [
+     699,
+     668,
+     718,
+     42
+    ],
+    [
+     32,
+     716,
+     261,
+     42
+    ]
+   ]
+  }
+ ]
+}

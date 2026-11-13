@@ -1,0 +1,102 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition) (composition id "main")
+  WHAT: The whole 19.5-second film, "A still life, annotated", in one hand-drawn graphic family. A
+    full-frame still-life clip (footage/clip.mp4, 11.5 s) runs first, with a handwritten title over it
+    for 6 s, two callouts on the mug and the lemon from 6 to 11 s, and a marker scribble that covers the
+    screen around 11.5 s (solid from about 11.3 to 11.8 s). After the cut, the same clip sits in a tilted, hand-drawn frame with a caption
+    from 11.75 s to about 19 s, and then the film ends.
+  STRUCTURE: hosts in order, with start time and what each mounts. #clip (track 0, 0 s, full-frame video
+    footage/clip.mp4, muted). #title-slot (track 1, 0 s, hw-title for 6 s). #notes-slot (track 1, 6 s,
+    notes for 5 s). #wipe-slot (track 2, 10.4 s, hw-scribble-transition for 2.2 s). #frame-slot (track 1,
+    11.5 s, hw-frame for 8 s). #clip-framed (track 3, 11.5 s, the same file inside #slot-wrap at the
+    frame's slot, playing the file from its 11.5 s mark). Stacking, back to front: .wrap (z 1), #frame-slot (z 3), #slot-wrap (z 4), #title-slot
+    and #notes-slot (z 5), #wipe-slot (z 8). The main timeline "main" only fades #slot-wrap in at 11.75 s
+    over 0.4 s and out at 19 s over 0.4 s. The root is 1920 by 1080 with data-duration 19.5.
+  CUSTOMIZE: each host's data-start and data-duration set its timing; the root data-duration (19.5) must
+    cover the last end. The two fade times (11.75 and 19) are numbers in the main script. The framed slot
+    is the #slot-wrap rule (left 480, top 180, 960 by 620, rotated -1.2 degrees); it must match CONFIG.slot
+    and the tilt in compositions/hw-frame.html. Title text and scheme are in compositions/hw-title.html,
+    callout text and anchors in compositions/notes.html. The cut at 11.5 s is the data-start (10.4) of
+    #wipe-slot plus 1.1 s, inside the wipe's solid window (0.92 to 1.42 s). Move them together. The two
+    video elements share one file: change its path in both, and keep #clip-framed's data-media-start at 11.5.
+  MEDIA: No media file is bundled. Two video slots play footage/clip.mp4, the same file that make-footage.sh
+    in this folder creates. #clip (in .wrap, track 0) plays it from its start for 0 to 11.5 s. #clip-framed
+    (in #slot-wrap, track 3) plays it from 11.5 s into the file, for 11.5 to 19.5 s. Both are shown now as a
+    labelled hatch stand-in (1600 by 900, text "VIDEO: footage/clip.mp4", cropped to cover). The hatch is faint
+    grey over the #1b1a1e ground, so the dark ink title in hw-title is hard to read until footage is in. The
+    footage should show the still life the callouts point at (a mug and a lemon on a table). To plug in your
+    file, replace each img with a video that keeps its attributes:
+    a video element with id="clip", data-start="0", data-media-start="0", data-duration="11.5", data-track-index="0", src="footage/clip.mp4", data-media="footage/clip.mp4", data-media-kind="video", muted and playsinline
+    a video element with id="clip-framed", data-start="11.5", data-media-start="11.5", data-duration="8", data-track-index="3", src="footage/clip.mp4", data-media="footage/clip.mp4", data-media-kind="video", muted and playsinline
+    (the second goes inside #slot-wrap). Set src to your own file, and keep every id, class, data-* value and
+    data-media-kind="video" so the .wrap and #slot-wrap video rules still match. There is no photo, sound or
+    CSS image slot. Font: Caveat bold, used by hw-title, notes and hw-frame through @font-face with
+    local("Caveat"). None is bundled, so an installed Caveat is used and otherwise the cursive fallback; each
+    of those guides gives the url() step.
+  WHEN TO USE: a short annotated film about one still subject: a title, a few callouts, then a framed
+    close-up, all in one hand-drawn style. Use a plainer treatment if the film should not look sketched,
+    or a single-scene composition when there is no cut to hide.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>A still life, annotated</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset, and the page is fixed at 1920 by 1080 with a dark ground. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #1b1a1e; }
+      /* The root stage: a relative 1920 by 1080 box that clips its children. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #1b1a1e; }
+      /* The clip layer: full frame at z 1, under the framed layout. */
+      .wrap { position: absolute; inset: 0; z-index: 1; }
+      .wrap [data-media-kind="video"] { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      /* hw-frame's documented media slot (x 480, y 180, 960 × 620), tilted with the frame's -1.2°.
+         The block takes images only, so the footage is ours, placed over its documented slot. */
+      #slot-wrap { position: absolute; left: 480px; top: 180px; width: 960px; height: 620px; overflow: hidden; border-radius: 10px;
+        transform: rotate(-1.2deg); z-index: 4; opacity: 0; }
+      #slot-wrap [data-media-kind="video"] { width: 100%; height: 100%; object-fit: cover; }
+      /* Stacking of the hosts, back to front: the frame at 3, the framed clip at 4, the callouts and title at 5, the wipe at 8. */
+      #frame-slot { z-index: 3; }
+      #title-slot, #notes-slot { z-index: 5; }
+      #wipe-slot { z-index: 8; }
+    </style>
+  </head>
+  <body>
+    <!-- One family (hw, hand-drawn) for every graphic: hw-title, the hw-callout-circle component merged into
+         compositions/notes.html, hw-scribble-transition, hw-frame. Blocks are mounted as sub-compositions at
+         their own durations; the component was pasted into a composition of ours. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="19.5" data-width="1920" data-height="1080">
+      <!-- 0–11.5 the clip full frame -->
+      <div class="wrap"><img id="clip" data-start="0" data-media-start="0" data-duration="11.5" data-track-index="0" src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div>
+
+      <!-- 0–6 hw-title over the footage (chalk scheme) -->
+      <div id="title-slot" data-composition-id="hw-title" data-composition-src="compositions/hw-title.html"
+        data-start="0" data-duration="6" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- 6–11 two callouts drawn on the objects -->
+      <div id="notes-slot" data-composition-id="notes" data-composition-src="compositions/notes.html"
+        data-start="6" data-duration="5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- 10.4–12.6 the scribble wipe: solid cover 0.92–1.42 s into its window, so the cut sits at 10.4 + 1.1 = 11.5 -->
+      <div id="wipe-slot" data-composition-id="hw-scribble-transition" data-composition-src="compositions/hw-scribble-transition.html"
+        data-start="10.4" data-duration="2.2" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- 11.5–19.5 hw-frame, with the clip placed over its media slot from the host -->
+      <div id="frame-slot" data-composition-id="hw-frame" data-composition-src="compositions/hw-frame.html"
+        data-start="11.5" data-duration="8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="slot-wrap"><img id="clip-framed" data-start="11.5" data-media-start="11.5" data-duration="8" data-track-index="3" src="data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E" data-media="footage/clip.mp4" data-media-kind="video" alt="" /></div>
+    </div>
+    <script>
+      /* Main timeline: its only tweens fade the framed clip; the hosts run everything else. */
+      const tl = gsap.timeline({ paused: true });
+      // The framed footage arrives as the wipe clears and the frame draws in.
+      tl.to("#slot-wrap", { opacity: 1, duration: 0.4, ease: "power2.out" }, 11.75);
+      tl.to("#slot-wrap", { opacity: 0, duration: 0.4, ease: "power2.in" }, 19.0);
+      /* Registration of the main timeline under the composition id. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

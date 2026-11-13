@@ -2,8 +2,8 @@
   "composition": "main",
   "counts": {
     "approximated": 26,
-    "refused": 5,
-    "translated": 6
+    "refused": 3,
+    "translated": 8
   },
   "duration": 8.0,
   "entries": [
@@ -111,17 +111,17 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"0.5 + i * 0.06\" is an expression; refusing the call site",
+      "detail": "position \"0.5 + i * 0.06\" is outside the numeric grammar (unbound identifier \"i\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/terminal-type.html",
       "line": 78,
       "verdict": "refused"
     },
     {
       "construct": "tl.to",
-      "detail": "duration \"blink / 2\" is not a non-negative number; refusing the call site",
+      "detail": "tl.to on \"#terminal-type-cursor\" at start=0.0000 duration=0.2500",
       "file": "compositions/terminal-type.html",
       "line": 83,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "placement",
@@ -212,7 +212,7 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"rand() * 0.12\" is an expression; refusing the call site",
+      "detail": "position \"rand() * 0.12\" is outside the numeric grammar (unbound identifier \"rand\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/terminal-shatter.html",
       "line": 110,
       "verdict": "refused"
@@ -265,17 +265,17 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"word\" is not a DOM selector (\"word\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "position \"at\" is outside the numeric grammar (unbound identifier \"at\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/kinetic-title.html",
       "line": 60,
       "verdict": "refused"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "target \"[\\\"#kinetic-title-l1\\\", \\\"#kinetic-title-l2\\\"]\" is not a DOM selector (\"[\\\"#kinetic-title-l1\\\", \\\"#kinetic-title-l2\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.fromTo on [\"#kinetic-title-l1\", \"#kinetic-title-l2\"] at start=6.8000 duration=1.2000",
       "file": "compositions/kinetic-title.html",
       "line": 63,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "gsap.timeline",

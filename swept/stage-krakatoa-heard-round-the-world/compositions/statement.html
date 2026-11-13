@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/statement.html (composition id "statement")
+  WHAT: A 5.64 s statement card, mounted at 22.82 s after the stat scene. An 1888 lithograph of the
+    island fills the frame; it is sharp for the first beat, then dims and softens as the sentence
+    arrives. A short gold tick draws out, and the words "The loudest sound in recorded history" rise
+    in one at a time over the picture.
+  STRUCTURE: Back to front: #sm-bg (the picture wrapper, scaling from 1.02 to 1.09 over 5.64 s),
+    #sm-img (the lithograph, 2000x1229 at -40,-83, from assets/generated/src/litho-crop.jpg), #sm-tint
+    (a muted olive tint blended over it at 0.3 opacity), #sm-shade (a radial shade), and #sm-block
+    with the tick #sm-tick and the sentence #sm-line, whose six words are the spans #sm-w1 to
+    #sm-w6. Timeline, in seconds from the scene start: 1.7 the picture's filter moves from sharp to
+    blur 4px and brightness 0.36 over 0.7 s; 2.1 the tick grows from left to right over 0.3 s; the
+    words rise 24px and fade in at 2.36, 2.47, 2.89, 3.13, 3.31 and 3.73 s, each over 0.3 s.
+  CUSTOMIZE: The sentence is the text of the spans in #sm-line; to change it, change the spans and
+    the six times in the array of the forEach together, one time per word, in order. Colours: the
+    tick #e9b04a, the text #f3efe4, the tint #6f7458. The type is Cormorant Garamond 600 at 82px.
+    The dim is the filter pair on #sm-img at 1.7 s (blur 0 to 4px, brightness 0.82 to 0.36). The crop
+    is set by #sm-img left -40px, top -83px and its size.
+  MEDIA: No media file is bundled. Slot 1, a photo: #sm-img, the lower half of the 1888 Royal Society
+    lithograph, the island and the foot of the column (it was assets/generated/src/litho-crop.jpg, cut by
+    make-footage.sh, as the CSS comment says). A faint hatch stand-in labeled
+    "PHOTO: assets/generated/src/litho-crop.jpg" shows there, under the same tint and dimming. To plug in
+    your own file, set the img's src to it, for example src="assets/generated/src/litho-crop.jpg". Any
+    engraved or dark print of an island and a column of smoke, cropped to the same frame, works; the
+    #0c0d0b ground shows behind it. Slot 2, font: no font file is bundled. Cormorant Garamond (weight 600)
+    loads with src: local("Cormorant Garamond"), so it is used if installed, else the serif fallback
+    shows. To plug in the file, add url("assets/fonts/cormorant-garamond-latin.woff2") as a source in the
+    @font-face rule. Sound slots: none. CSS image slots: none; the tint and the shade are colour and
+    gradients. No video here.
+  WHEN TO USE: One sentence of claim laid over a dimmed historical picture, when the sentence is the
+    point of the beat. Pick a plainer caption for a longer quotation.
+-->
+
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Font: Cormorant Garamond at weight 600, loaded from the system with local(); no font file is bundled. */
+        @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 600; font-display: block; src: local("Cormorant Garamond"); }
+        /* The dark ground behind the print. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0d0b; }
+        /* The 1888 lithograph is shown sharp first, then dims and softens as the sentence arrives.
+           The print is tall: make-footage.sh cuts out its lower half, the island and the foot of the column. */
+        #sm-bg { position: absolute; inset: 0; transform-origin: 48% 62%; }
+        #sm-img { position: absolute; left: -40px; top: -83px; width: 2000px; height: 1229px; }
+        /* The tint: a muted olive colour blended over the print to pull it toward grey-green. */
+        #sm-tint { position: absolute; inset: 0; background: #6f7458; mix-blend-mode: color; opacity: 0.3; }
+        /* The shade: a radial darkening so the sentence sits on a dark field. */
+        #sm-shade { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 80% at 50% 40%, rgba(8, 9, 7, 0.05) 0%, rgba(8, 9, 7, 0.55) 100%); }
+        /* The text block on the lower left: the gold tick above the sentence. */
+        #sm-block { position: absolute; left: 132px; top: 566px; }
+        #sm-tick { width: 64px; height: 4px; background: #e9b04a; }
+        #sm-line { margin-top: 26px; font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: 82px; line-height: 1.25; color: #f3efe4; white-space: nowrap; }
+        #sm-line span { display: inline-block; }
+      </style>
+      <div id="root" data-composition-id="statement" data-width="1920" data-height="1080">
+        <!-- The picture layer: the lithograph (a photo slot), which the script dims for the sentence. -->
+        <div id="sm-bg" data-layout-allow-overflow><img id="sm-img" src="data:image/svg+xml,%3C!--litho-crop.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/litho-crop.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/src/litho-crop.jpg" alt="" /></div>
+        <div id="sm-tint"></div>
+        <div id="sm-shade"></div>
+        <div id="sm-block">
+          <div id="sm-tick"></div>
+          <div id="sm-line"><span id="sm-w1">The</span> <span id="sm-w2">loudest</span> <span id="sm-w3">sound</span> <span id="sm-w4">in</span> <span id="sm-w5">recorded</span> <span id="sm-w6">history</span></div>
+        </div>
+      </div>
+      <script>
+        /* The scene timeline, paused; it is registered under the composition id at the end. */
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#sm-bg", { scale: 1.02 }, { scale: 1.09, duration: 5.64, ease: "sine.inOut" }, 0);
+        // "But what the world remembers is the sound" plays over the sharp lithograph; it dims for the sentence.
+        tl.fromTo("#sm-img", { filter: "grayscale(1) blur(0px) brightness(0.82)" }, { filter: "grayscale(1) blur(4px) brightness(0.36)", duration: 0.7, ease: "power2.inOut" }, 1.7);
+        tl.fromTo("#sm-tick", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 2.1);
+        // Each word rises in as it is spoken ("the" 25.20 s ... "history" 26.57 s, minus the scene start 22.82 s).
+        [2.36, 2.47, 2.89, 3.13, 3.31, 3.73].forEach((t, i) => {
+          tl.fromTo(`#sm-w${i + 1}`, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, t);
+        });
+        window.__timelines["statement"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

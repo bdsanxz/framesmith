@@ -1,0 +1,73 @@
+<!doctype html>
+<!--
+  GUIDE: index.html (root composition, id "main", 5 seconds, 1920 by 1080)
+  WHAT: A 5-second logo card with sound. The official GitHub mark slides in from the left, the word Merged.
+    pops in at 1.5 seconds, and the line sourced, not redrawn follows at 2 seconds (all from
+    compositions/card.html). The card has a music bed and two sound effects, a whoosh at 0.33s and a click at
+    1.45s, but their audio files are not bundled, so this copy is silent. The logo was a resolved file in
+    .media/ rather than a hand-drawn shape, and that folder is not bundled either. The card is the whole film.
+  STRUCTURE: Root composition "main" (data-duration 5). Host slot #slot-card mounts compositions/card.html as
+    composition "card" at 0 for 5 seconds on track 0 (kind graphics). This file has no audio element: the three
+    sound slots are comments on tracks 10 to 12, one per sound: the bed (from 0 for 5 seconds), the whoosh
+    (from 0.33s) and the click (from 1.45s). The root GSAP timeline is paused and registered as
+    window.__timelines["main"]; it has no tweens of its own.
+  CUSTOMIZE: The card text (Merged. and sourced, not redrawn) and the logo are in compositions/card.html.
+    The level of each sound is its data-volume (bed 0.5, whoosh 0.7, click 0.8). The bed's volume automation
+    is 1 at 0s, 1 at 4s and 0 at 5s; the note above its slot lists it. Sound timing is data-start (0.33 for the
+    whoosh, 1.45 for the click); card.html places its tweens to match (the whoosh peaks 0.17s into its file,
+    the click onset is 0.05s in), so move a sound and its tween together. The duration 5 must match on #root,
+    on #slot-card and on the bed.
+  MEDIA: No media file is bundled. This file has no photo, video, font or CSS image slot of its own. Its slots
+    are the following. (1) The logo, a photo slot inside compositions/card.html (#card-mark); see that file's
+    MEDIA section. (2) id "bed": an audio slot from 0s for 5s at volume 0.5 on track 10, which played
+    .media/audio/bgm/bgm_001.mp3, a synthesized stand-in music bed. (3) id "whoosh": an audio slot from 0.33s at
+    volume 0.7 on track 11, which played .media/audio/sfx/sfx_001.mp3, a 0.6s whoosh. (4) id "click": an audio
+    slot from 1.45s at volume 0.8 on track 12, which played .media/audio/sfx/sfx_002.mp3, a 0.4s click. Now all
+    three are silent. To plug in your own sounds, add an audio element inside #root for each one, with the id
+    and data attributes from its comment and src set to your file, for example
+    an audio element with id="bed", src set to your .mp3 file, data-start="0", data-duration="5", data-volume="0.5" and data-track-index="10",
+    then the whoosh with data-start="0.33" data-duration="0.6" data-volume="0.7" data-track-index="11", and the
+    click with data-start="1.45" data-duration="0.4" data-volume="0.8" data-track-index="12". The bed's
+    automation was stored in a data-automation attribute that is not in this file, so add it yourself if you
+    want the fade. Set the logo in card.html as described there.
+  WHEN TO USE: A short logo-and-title card with sound, where every asset must come from a recorded source
+    rather than being drawn or supplied by hand. A new music bed or image needs a provider sign-in (the
+    README says so); pick another inspiration for a long film or footage.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Media layers — every asset from the .media ledger</title>
+    <!-- GSAP core, loaded from jsDelivr; the card timeline and the root timeline both use it. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Reset margins and padding, and size every box from its border. */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* Pin the page to the 1920 by 1080 canvas and paint the dark background. */
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0d1117; }
+      /* The composition root fills the canvas and clips anything outside it. */
+      #root[data-composition-id="main"] { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0d1117; }
+    </style>
+  </head>
+  <body>
+    <!-- The media these slots once played was resolved into .media/ (not bundled); nothing was redrawn or invented. -->
+    <!-- Root composition main: a 5 second timeline holding the visual host slot and the three audio slots (comments below). -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5" data-width="1920" data-height="1080">
+      <!-- Host slot: mounts compositions/card.html as the card composition for 5 seconds on track 0. -->
+      <div id="slot-card" data-composition-id="card" data-composition-src="compositions/card.html"
+        data-start="0" data-duration="5" data-track-index="0" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <!-- bgm_001: ingested from a local file (a synthesized stand-in bed); sfx_001 whoosh and sfx_002 click came from the project's sound kit. -->
+      <!-- Music bed: base volume 0.5, with an automation lane that stays at 1 until 4 seconds and is at 0 at 5 seconds. -->
+      <!-- SOUND SLOT (id "bed", from 0 s, for 5 s, volume 0.5, track 10): an audio element played .media/audio/bgm/bgm_001.mp3 here, which is not bundled. Its volume lanes were in data-automation. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "whoosh", from 0.33 s, volume 0.7, track 11): an audio element played .media/audio/sfx/sfx_001.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+      <!-- SOUND SLOT (id "click", from 1.45 s, volume 0.8, track 12): an audio element played .media/audio/sfx/sfx_002.mp3 here, which is not bundled. To hear it, add an audio element with this id and these data attributes and a sound file of your own as its src. -->
+    </div>
+    <script>
+      /* Root timeline: paused and registered for the renderer, with no tweens because the card and audio carry the timing. */
+      const tl = gsap.timeline({ paused: true });
+      /* Registers the root timeline as main so the renderer can seek it. */
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

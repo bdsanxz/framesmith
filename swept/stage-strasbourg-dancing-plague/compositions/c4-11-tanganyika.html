@@ -1,0 +1,118 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c4-11-tanganyika.html (composition id "c4-11-tanganyika")
+  WHAT: About 9.8 seconds on the comparison of the dancing plague with a laughter epidemic in
+    Tanganyika. The composition makes no sound itself; the narration it matches is in index.html.
+    It opens on the Europe PMC record of Waller's Lancet article, zoomed in and pushed further for
+    2.84 seconds. Without its photo file, that record shows as a faint hatched stand-in with a
+    label. It then cuts to a map of East Africa: a blue sea, orange land (the land is a bundled
+    SVG drawing, see MEDIA), paper grain and a soft dark shade at the edges, with a glowing white dot, the
+    label "Kashasha" and the note "Tanganyika (kini Tanzania)" (now Tanzania). The map is pushed
+    slowly in for 6.94 seconds while the dot's glow pulses. It plays from 495.08 seconds in
+    index.html (mounted in #c4-11-tanganyika-slot), on the narration "Waller membandingkannya dengan
+    wabah" (Waller compares it with the epidemic), and the place is named on "Tanganyika" at 497.92
+    seconds. It lasts 9.78 seconds, the data-duration of that slot.
+  STRUCTURE: Two layers in #root, back to front: #c411tanganyika-a (the record, in a .dr-shot)
+    and #c411tanganyika-b (the map layer, hidden until 2.84 seconds). The map layer holds, in
+    order: .mp-sea (the sea colour), the map image #c411tanganyika-b-map, an empty svg
+    .mp-lines, the .mp-grain noise layer (a feTurbulence paper texture blended by multiply),
+    .mp-shade (a radial dark edge), the glow #c411tanganyika-b-glow, the dot, the label and the
+    note. Timeline: a scales 1.2 to 1.26 over 2.84 seconds; b scales 1.1 to 1.2 from 2.84 for 6.94
+    seconds; the glow scales 0.8 to 1.25 and its opacity 0.55 to 0.95 in 1.1 second yoyo steps,
+    repeated five times (the count is computed from 6.94 and 1.1 seconds). The map layer has no
+    colour grade; the record has a lighter grade set in its data-color-grading attribute (contrast
+    0.06, saturation -0.3, exposure -0.12, temperature 0.06, vignette 0.25, grain 0.06).
+  CUSTOMIZE: The place name is the .mp-label text "Kashasha", inline at left 776 px, top 314.6 px,
+    26.1 px. The note is the .mp-note text, inline at left 1010 px, top 470 px, 22.6 px, in bold
+    italic. The dot is at left 749.9 px, top 323.3 px, 13.9 px across, with a dark 1.7 px ring;
+    the glow is 52.2 px at left 730.8 px, top 304.2 px, so the glow stays centred on the dot. All
+    are in frame pixels inside the map layer, so they move with the map's push, and they must be
+    moved together if the map image changes: move the dot and the glow by the same amount, and the
+    label and note with them.
+    The map image is shown at 3840 by 2160 px, centred on the frame. The sea colour #3f7f9f is in
+    .mp-sea; the label colour #170f08 is in .mp-label and .mp-note. The map layer's transform
+    origin is set inline to 757 px 330 px, and the record's origin is 900 330 px in the script.
+    The cut is at 2.84 seconds, and the 9.78 second length must match data-duration of
+    c4-11-tanganyika-slot in index.html.
+  MEDIA: No media file is bundled in this composition. It has one photo slot and one font slot, in the order
+    they appear on screen, plus one bundled SVG drawing (below), and no sound, video or CSS image slot.
+    1. Photo: the img #c411tanganyika-a-img inside #c411tanganyika-a (the record layer). It
+       showed assets/generated/epmc.jpg, the Europe PMC record screenshot of Waller's article,
+       the same record as c4-08. It is a web page shown as a citation, not open-licence
+       material, and the README asks for it to be replaced if the release needs open licences.
+       Now it shows a faint hatched stand-in with a label naming that path (data-media), and its
+       data-color-grading attribute is kept. To plug in: set src="assets/generated/epmc.jpg" on
+       that img.
+    Bundled drawing (SVG, kept): assets/generated/map-africa.svg, the map image #c411tanganyika-b-map (class
+       mp-map) inside #c411tanganyika-b (the map layer). It renders as it is: the land and the borders of East
+       Africa come from it, with the blue sea (rule .mp-sea, #3f7f9f), the paper grain, the shade, the dot, the
+       label and the note on top. It is not a media slot and needs nothing plugged in. The SVG is a map with
+       today's borders that does not draw Lake Victoria, and its land colour is set inside the SVG file. To use
+       your own map, set the src of that img to your SVG file. If you use another map, move the dot, glow and
+       labels so they sit on the place (see CUSTOMIZE).
+    2. Font: Arimo, in the @font-face rule at the top of the style block. It was the bundled file
+       assets/fonts/arimo-latin.woff2. Now the rule reads src: local("Arimo"), so the labels use
+       Arimo only when it is installed on the machine; otherwise they fall back to the sans-serif
+       in the font stack. To plug in: add url("assets/fonts/arimo-latin.woff2") format("woff2") to
+       the src list of that rule, or point it at your own copy of Arimo.
+  WHEN TO USE: a place named in narration, shown with a dot and a label on a map. Pick another
+    layout when the place is outside the map or when a whole region has to be shown.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The Arimo font for the map labels: used if installed, else the sans-serif fallback. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The map: orange land on a blue sea, dark borders, paper grain, a glowing dot, small dark labels. */
+        .mp-sea { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: #3f7f9f; }
+        .mp-map { position: absolute; left: -960px; top: -540px; width: 3840px; height: 2160px; max-width: none; }
+        .mp-lines { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        .mp-grain { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; mix-blend-mode: multiply; opacity: 0.34; }
+        .mp-shade { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(42, 33, 24, 0) 55%, rgba(42, 33, 24, 0.32) 100%); }
+        .mp-glow { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255, 244, 205, 0.95) 0%, rgba(255, 226, 150, 0.55) 35%, rgba(255, 226, 150, 0) 70%); }
+        .mp-dot { position: absolute; border-radius: 50%; background: #fff6da; }
+        .mp-label { position: absolute; font-family: "Arimo", sans-serif; font-weight: 700; color: #170f08; white-space: nowrap; }
+        .mp-note { position: absolute; font-family: "Arimo", sans-serif; font-weight: 400; font-style: italic; font-weight: 700; color: #170f08; white-space: nowrap; }
+      </style>
+      <!-- "Waller membandingkannya dengan wabah ..." (495.08 s): epmc from the start; graphic on "Tanganyika" (497.92 s). -->
+      <div id="root" data-composition-id="c4-11-tanganyika" data-width="1920" data-height="1080">
+        <!-- Layer 1: the record screenshot, shown from the start, zoomed and pushed. -->
+        <div class="dr-shot" id="c411tanganyika-a" data-layout-allow-overflow><img id="c411tanganyika-a-img" src="data:image/svg+xml,%3C!--epmc.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'668' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/epmc.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/epmc.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.06,"saturation":-0.3,"exposure":-0.12,"temperature":0.06},"details":{"vignette":0.25,"grain":0.06}}' /></div>
+        <!-- Layer 2: the map of East Africa with its dot and labels, shown from 2.84 seconds. -->
+        <div class="dr-shot" id="c411tanganyika-b" data-layout-allow-overflow style="transform-origin: 757px 330px;">
+          <div class="mp-sea" data-layout-allow-overflow></div>
+          <!-- The map image, shown at 3840 by 2160 px and centred on the frame. -->
+          <img class="mp-map" id="c411tanganyika-b-map" src="assets/generated/map-africa.svg" alt="" data-layout-allow-overflow />
+          <svg class="mp-lines" viewBox="0 0 1920 1080"></svg>
+          <svg class="mp-grain" viewBox="0 0 1920 1080" preserveAspectRatio="none" data-layout-allow-overflow><filter id="c411tanganyika-b-noise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" /><feColorMatrix type="matrix" values="0 0 0 0 0.16  0 0 0 0 0.13  0 0 0 0 0.09  0 0 0 0.55 0" /></filter><rect width="1920" height="1080" filter="url(#c411tanganyika-b-noise)" /></svg>
+          <div class="mp-shade" data-layout-allow-overflow></div>
+          <div class="mp-glow" id="c411tanganyika-b-glow" data-layout-allow-overflow style="left: 730.8px; top: 304.2px; width: 52.2px; height: 52.2px;"></div>
+          <div class="mp-dot" style="left: 749.9px; top: 323.3px; width: 13.9px; height: 13.9px; box-shadow: 0 0 0 1.7px #2a2118;"></div>
+          <div class="mp-label" style="left: 776.0px; top: 314.6px; font-size: 26.1px; line-height: 31.3px;">Kashasha</div>
+          <div class="mp-note" style="left: 1010.0px; top: 470.0px; font-size: 22.6px; line-height: 27.1px;">Tanganyika (kini Tanzania)</div>
+        </div>
+      </div>
+      <script>
+        /* Timeline setup: the record's push, then the map's cut at 2.84 seconds. */
+        const tl = gsap.timeline({ paused: true });
+        /* Sets the zoom origin of the record before its push. */
+        gsap.set("#c411tanganyika-a", { transformOrigin: "900px 330px" });
+        tl.fromTo("#c411tanganyika-a", { scale: 1.2, x: -6, y: 2 }, { scale: 1.260, x: 6, y: -2, duration: 2.84, ease: "none" }, 0.0);
+        // The map: a slow push toward the place, and the dot's glow breathing. Nothing else moves.
+        tl.fromTo("#c411tanganyika-b", { scale: 1.1 }, { scale: 1.2, duration: 6.94, ease: "none" }, 2.84);
+        tl.fromTo("#c411tanganyika-b-glow", { scale: 0.8, opacity: 0.55 }, { scale: 1.25, opacity: 0.95, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: Math.max(1, Math.floor(6.94 / 1.1) - 1) }, 2.84);
+        /* Hides the map layer until its cut at 2.84 seconds. */
+        gsap.set("#c411tanganyika-b", { opacity: 0 });
+        tl.to("#c411tanganyika-b", { opacity: 1, duration: 0.001 }, 2.84);
+        /* Registers the timeline under its composition id so the host can play it. */
+        window.__timelines["c4-11-tanganyika"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,320 @@
+[
+  {
+    "text": "Every",
+    "start": 0.01,
+    "end": 0.37,
+    "id": "w0"
+  },
+  {
+    "text": "video",
+    "start": 0.37,
+    "end": 0.74,
+    "id": "w1"
+  },
+  {
+    "text": "here",
+    "start": 0.74,
+    "end": 1.04,
+    "id": "w2"
+  },
+  {
+    "text": "starts",
+    "start": 1.04,
+    "end": 1.49,
+    "id": "w3"
+  },
+  {
+    "text": "as",
+    "start": 1.49,
+    "end": 1.64,
+    "id": "w4"
+  },
+  {
+    "text": "one",
+    "start": 1.64,
+    "end": 1.86,
+    "id": "w5"
+  },
+  {
+    "text": "line",
+    "start": 1.86,
+    "end": 2.16,
+    "id": "w6"
+  },
+  {
+    "text": "of",
+    "start": 2.16,
+    "end": 2.24,
+    "id": "w7"
+  },
+  {
+    "text": "markup,",
+    "start": 2.3,
+    "end": 2.8,
+    "id": "w8"
+  },
+  {
+    "text": "watch",
+    "start": 2.82,
+    "end": 3.1,
+    "id": "w9"
+  },
+  {
+    "text": "that",
+    "start": 3.15,
+    "end": 3.46,
+    "id": "w10"
+  },
+  {
+    "text": "line",
+    "start": 3.46,
+    "end": 3.68,
+    "id": "w11"
+  },
+  {
+    "text": "become",
+    "start": 3.78,
+    "end": 4.26,
+    "id": "w12"
+  },
+  {
+    "text": "a",
+    "start": 4.26,
+    "end": 4.33,
+    "id": "w13"
+  },
+  {
+    "text": "wire,",
+    "start": 4.33,
+    "end": 4.72,
+    "id": "w14"
+  },
+  {
+    "text": "the",
+    "start": 4.74,
+    "end": 4.89,
+    "id": "w15"
+  },
+  {
+    "text": "wire",
+    "start": 4.89,
+    "end": 5.11,
+    "id": "w16"
+  },
+  {
+    "text": "turns",
+    "start": 5.11,
+    "end": 5.4,
+    "id": "w17"
+  },
+  {
+    "text": "into",
+    "start": 5.41,
+    "end": 5.66,
+    "id": "w18"
+  },
+  {
+    "text": "a",
+    "start": 5.66,
+    "end": 5.72,
+    "id": "w19"
+  },
+  {
+    "text": "chart,",
+    "start": 5.72,
+    "end": 6.18,
+    "id": "w20"
+  },
+  {
+    "text": "and",
+    "start": 6.18,
+    "end": 6.32,
+    "id": "w21"
+  },
+  {
+    "text": "the",
+    "start": 6.41,
+    "end": 6.56,
+    "id": "w22"
+  },
+  {
+    "text": "bars",
+    "start": 6.56,
+    "end": 6.79,
+    "id": "w23"
+  },
+  {
+    "text": "rise",
+    "start": 6.85,
+    "end": 7.08,
+    "id": "w24"
+  },
+  {
+    "text": "off",
+    "start": 7.08,
+    "end": 7.27,
+    "id": "w25"
+  },
+  {
+    "text": "it,",
+    "start": 7.27,
+    "end": 7.53,
+    "id": "w26"
+  },
+  {
+    "text": "then",
+    "start": 7.53,
+    "end": 7.79,
+    "id": "w27"
+  },
+  {
+    "text": "it",
+    "start": 7.79,
+    "end": 7.91,
+    "id": "w28"
+  },
+  {
+    "text": "bends",
+    "start": 8.22,
+    "end": 8.25,
+    "id": "w29"
+  },
+  {
+    "text": "into",
+    "start": 8.25,
+    "end": 8.49,
+    "id": "w30"
+  },
+  {
+    "text": "a",
+    "start": 8.55,
+    "end": 8.57,
+    "id": "w31"
+  },
+  {
+    "text": "waveform",
+    "start": 8.57,
+    "end": 9.08,
+    "id": "w32"
+  },
+  {
+    "text": "as",
+    "start": 9.18,
+    "end": 9.22,
+    "id": "w33"
+  },
+  {
+    "text": "the",
+    "start": 9.22,
+    "end": 9.41,
+    "id": "w34"
+  },
+  {
+    "text": "voice",
+    "start": 9.41,
+    "end": 9.84,
+    "id": "w35"
+  },
+  {
+    "text": "comes",
+    "start": 10.13,
+    "end": 10.2,
+    "id": "w36"
+  },
+  {
+    "text": "in,",
+    "start": 10.21,
+    "end": 10.47,
+    "id": "w37"
+  },
+  {
+    "text": "now",
+    "start": 10.51,
+    "end": 10.69,
+    "id": "w38"
+  },
+  {
+    "text": "the",
+    "start": 10.69,
+    "end": 10.87,
+    "id": "w39"
+  },
+  {
+    "text": "renderer",
+    "start": 10.9,
+    "end": 11.37,
+    "id": "w40"
+  },
+  {
+    "text": "walks",
+    "start": 11.47,
+    "end": 11.81,
+    "id": "w41"
+  },
+  {
+    "text": "every",
+    "start": 11.81,
+    "end": 12.16,
+    "id": "w42"
+  },
+  {
+    "text": "frame,",
+    "start": 12.16,
+    "end": 12.65,
+    "id": "w43"
+  },
+  {
+    "text": "and",
+    "start": 12.65,
+    "end": 12.71,
+    "id": "w44"
+  },
+  {
+    "text": "the",
+    "start": 13.02,
+    "end": 13.07,
+    "id": "w45"
+  },
+  {
+    "text": "wire",
+    "start": 13.07,
+    "end": 13.29,
+    "id": "w46"
+  },
+  {
+    "text": "ends",
+    "start": 13.35,
+    "end": 13.63,
+    "id": "w47"
+  },
+  {
+    "text": "in",
+    "start": 13.63,
+    "end": 13.77,
+    "id": "w48"
+  },
+  {
+    "text": "a",
+    "start": 13.77,
+    "end": 13.84,
+    "id": "w49"
+  },
+  {
+    "text": "finished",
+    "start": 13.84,
+    "end": 14.4,
+    "id": "w50"
+  },
+  {
+    "text": "video",
+    "start": 14.4,
+    "end": 14.65,
+    "id": "w51"
+  },
+  {
+    "text": "file.",
+    "start": 14.93,
+    "end": 15.14,
+    "id": "w52"
+  }
+]

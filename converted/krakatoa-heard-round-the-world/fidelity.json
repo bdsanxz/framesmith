@@ -1,9 +1,9 @@
 {
   "composition": "main",
   "counts": {
-    "approximated": 216,
-    "refused": 55,
-    "translated": 78
+    "approximated": 212,
+    "refused": 10,
+    "translated": 121
   },
   "duration": 67.5,
   "entries": [
@@ -26,22 +26,6 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #mp-map has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/map.html",
-      "line": 75,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #mp-hl has no own left/top; placed by flow approximation at (0, 0)",
-      "file": "compositions/map.html",
-      "line": 76,
-      "verdict": "approximated"
-    },
-    {
-      "construct": "placement",
-      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
       "detail": "element #mp-ring-1 has no own left/top; placed by flow approximation at (1300, 560)",
       "file": "compositions/map.html",
       "line": 80,
@@ -50,7 +34,7 @@
     {
       "construct": "placement",
       "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
-      "detail": "element #mp-vig has no own left/top; placed by flow approximation at (1300, 560)",
+      "detail": "element #mp-vig has no own left/top; placed by flow approximation at (-30, -84)",
       "file": "compositions/map.html",
       "line": 85,
       "verdict": "approximated"
@@ -136,6 +120,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-map-82.svg (239 bytes; xmlns added: true)",
+      "file": "compositions/map.html",
+      "line": 82,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #mp-vig is a layout container; carried as an empty text anchor for motion targeting",
@@ -144,12 +135,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #mp-lead is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-mp-lead.svg (338 bytes; xmlns added: true)",
       "file": "compositions/map.html",
       "line": 87,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -183,32 +173,27 @@
       "verdict": "translated"
     },
     {
-      "construct": "tl.fromTo",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/map.html",
-      "line": 108,
-      "verdict": "refused"
-    },
-    {
       "construct": "tl.set",
-      "detail": "property \"filter\" (value \"\\\"blur(8px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.set on \"#mp-cam\" at start=0.0000 duration=0.5000",
       "file": "compositions/map.html",
       "line": 112,
-      "verdict": "refused"
-    },
-    {
-      "construct": "tl.to",
-      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=0.4500",
-      "file": "compositions/map.html",
-      "line": 113,
       "verdict": "translated"
     },
     {
       "construct": "tl.to",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "a set on opacity at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=0.4500",
+      "file": "compositions/map.html",
+      "line": 113,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.to",
+      "delta": "a set on blur at 0.0000s would truncate below the 1/60s clip minimum; clamped to 0.0167s, masking the tween's first 1/60s where GSAP shows the tween value",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=1.0000",
       "file": "compositions/map.html",
       "line": 114,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
@@ -226,10 +211,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#mp-pin svg\" is compound; only `#id` and `.class` land",
+      "detail": "tl.fromTo on \"#mp-pin svg\" at start=2.5000 duration=0.3000",
       "file": "compositions/map.html",
       "line": 119,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -275,23 +260,16 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/map.html",
-      "line": 100,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 5.5500s gives 1.4414 chars/s instead of 12.0000 chars/s",
-      "detail": "typeOn \"#mp-name\" at 2.6500 for 8 chars at 12.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6667s)",
+      "delta": "reveal paced over the clip window 5.5500s gives 1.4414 chars/s instead of 12.0000 chars/s; per-glyph duration 0.001s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "typeOn \"#mp-name\" at 2.6500 for 8 chars at 12.0000 chars/s (authored reveal 0.6667s) expanded to 8 per-glyph from-to opacity tweens at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/map.html",
       "line": 123,
       "verdict": "approximated"
     },
     {
       "construct": "typeOn",
-      "delta": "reveal paced over the clip window 5.5500s gives 8.8288 chars/s instead of 34.0000 chars/s",
-      "detail": "typeOn \"#mp-sub\" at 3.4800 for 49 chars at 34.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.4412s)",
+      "delta": "reveal paced over the clip window 5.5500s gives 8.8288 chars/s instead of 34.0000 chars/s; per-glyph duration 0.001s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "typeOn \"#mp-sub\" at 3.4800 for 49 chars at 34.0000 chars/s (authored reveal 1.4412s) expanded to 49 per-glyph from-to opacity tweens at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/map.html",
       "line": 127,
       "verdict": "approximated"
@@ -402,10 +380,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #er-photo references remote asset \"data:image/svg+xml,%3C!--eruption-1883.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'915' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/eruption-1883.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #er-photo data: URI decoded to assets/data-er-photo.svg (568 bytes, percent-encoded)",
       "file": "compositions/eruption.html",
       "line": 76,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -417,10 +395,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #er-b-video references remote asset \"data:image/svg+xml,%3C!--a2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a2.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #er-b-video data: URI decoded to assets/data-er-b-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/eruption.html",
       "line": 79,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -432,10 +410,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #er-c-video references remote asset \"data:image/svg+xml,%3C!--a3.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a3.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #er-c-video data: URI decoded to assets/data-er-c-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/eruption.html",
       "line": 82,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -447,10 +425,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #er-d-video references remote asset \"data:image/svg+xml,%3C!--a4.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a4.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #er-d-video data: URI decoded to assets/data-er-d-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/eruption.html",
       "line": 85,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -469,10 +447,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#er-tag-2\\\", \\\"#er-tag-3\\\", \\\"#er-flash\\\"]\" is not a DOM selector (\"[\\\"#er-tag-2\\\", \\\"#er-tag-3\\\", \\\"#er-flash\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#er-tag-2\", \"#er-tag-3\", \"#er-flash\"] at start=5.5500 duration=0.5000",
       "file": "compositions/eruption.html",
       "line": 97,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -588,10 +566,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #wv-video references remote asset \"data:image/svg+xml,%3C!--b1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/b1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #wv-video data: URI decoded to assets/data-wv-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/waves.html",
       "line": 50,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -672,10 +650,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--ruins.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/ruins.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-stat-66.svg (552 bytes, percent-encoded)",
       "file": "compositions/stat.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -848,10 +826,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #sm-img references remote asset \"data:image/svg+xml,%3C!--litho-crop.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'858' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/litho-crop.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #sm-img data: URI decoded to assets/data-sm-img.svg (562 bytes, percent-encoded)",
       "file": "compositions/statement.html",
       "line": 60,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -893,21 +871,23 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"grayscale(1) blur(4px) brightness(0.36)\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "filter remainder [grayscale(1), brightness(0.82), grayscale(1), brightness(0.36)] has no KDL motion property; dropped — blur() part landed as motion (only blur animates as motion; brightness/contrast/saturate/grayscale need Sprint 11 picture treatments)",
+      "detail": "tl.fromTo on \"#sm-img\" at start=24.5200 duration=0.7000",
       "file": "compositions/statement.html",
       "line": 73,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"transformOrigin\" (value \"\\\"0 50%\\\"\") has no KDL motion property; refusing the call site",
+      "delta": "transformOrigin \"\\\"0 50%\\\"\" snapped to clip origin \"left center\" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land",
+      "detail": "tl.fromTo on \"#sm-tick\" at start=24.9200 duration=0.3000",
       "file": "compositions/statement.html",
       "line": 74,
-      "verdict": "refused"
+      "verdict": "approximated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "position \"t\" is an expression; refusing the call site",
+      "detail": "position \"t\" is outside the numeric grammar (unbound identifier \"t\" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site",
       "file": "compositions/statement.html",
       "line": 77,
       "verdict": "refused"
@@ -985,6 +965,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-verbeek-86.svg (569 bytes; xmlns added: true)",
+      "file": "compositions/verbeek.html",
+      "line": 86,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #vb-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -1034,10 +1021,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--verbeek.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/verbeek.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-verbeek-96.svg (552 bytes, percent-encoded)",
       "file": "compositions/verbeek.html",
       "line": 96,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1088,17 +1075,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/verbeek.html",
-      "line": 126,
-      "verdict": "refused"
-    },
-    {
-      "construct": "tl.set",
-      "detail": "target \"[\\\"#vb-stamp\\\", \\\"#vb-note\\\"]\" is not a DOM selector (\"[\\\"#vb-stamp\\\", \\\"#vb-note\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#vb-stamp\", \"#vb-note\"] at start=28.4600 duration=0.5000",
       "file": "compositions/verbeek.html",
       "line": 130,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1109,31 +1089,31 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#vb-person img\" at start=28.4600 duration=0.4000",
       "file": "compositions/verbeek.html",
       "line": 133,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#vb-tape\" at start=28.7600 duration=0.1500",
       "file": "compositions/verbeek.html",
       "line": 135,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#vb-name\" at start=28.8400 duration=0.3000",
       "file": "compositions/verbeek.html",
       "line": 136,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "selector \"#vb-name .vb-mark\" is compound; only `#id` and `.class` land",
+      "detail": "tl.fromTo on \"#vb-name .vb-mark\" at start=29.2600 duration=0.3000",
       "file": "compositions/verbeek.html",
       "line": 137,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1165,23 +1145,16 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/verbeek.html",
-      "line": 117,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1260.0000 chars/s instead of 24.0000 chars/s",
-      "detail": "typeOn \"#vb-role-text\" at 1.2900 for 21 chars at 24.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.8750s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1260.0000 chars/s instead of 24.0000 chars/s",
+      "detail": "typeOn \"#vb-role-text\" at 1.2900 for 21 chars at 24.0000 chars/s (authored reveal 0.8750s) expanded to 21 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/verbeek.html",
       "line": 140,
       "verdict": "approximated"
     },
     {
       "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1560.0000 chars/s instead of 26.0000 chars/s",
-      "detail": "typeOn \"#vb-note-text\" at 2.4200 for 26 chars at 26.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.0000s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1560.0000 chars/s instead of 26.0000 chars/s",
+      "detail": "typeOn \"#vb-note-text\" at 2.4200 for 26 chars at 26.0000 chars/s (authored reveal 1.0000s) expanded to 26 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/verbeek.html",
       "line": 143,
       "verdict": "approximated"
@@ -1235,6 +1208,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-villages-77.svg (276 bytes; xmlns added: true)",
+      "file": "compositions/villages.html",
+      "line": 77,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #vl-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -1268,10 +1248,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--kampong.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/kampong.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #? data: URI decoded to assets/data-villages-85.svg (552 bytes, percent-encoded)",
       "file": "compositions/villages.html",
       "line": 85,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1322,17 +1302,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/villages.html",
-      "line": 113,
-      "verdict": "refused"
-    },
-    {
-      "construct": "tl.set",
-      "detail": "target \"[\\\"#vl-id\\\", \\\"#vl-tape\\\", \\\"#vl-num\\\"]\" is not a DOM selector (\"[\\\"#vl-id\\\", \\\"#vl-tape\\\", \\\"#vl-num\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#vl-id\", \"#vl-tape\", \"#vl-num\"] at start=35.0100 duration=0.5000",
       "file": "compositions/villages.html",
       "line": 117,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1343,10 +1316,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#vl-tape\" at start=35.1700 duration=0.1500",
       "file": "compositions/villages.html",
       "line": 120,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -1364,10 +1337,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#vl-print img\" at start=36.4100 duration=0.4200",
       "file": "compositions/villages.html",
       "line": 124,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -1385,23 +1358,16 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/villages.html",
-      "line": 104,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1560.0000 chars/s instead of 22.0000 chars/s",
-      "detail": "typeOn \"#vl-label-text\" at 1.7000 for 26 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.1818s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1560.0000 chars/s instead of 22.0000 chars/s",
+      "detail": "typeOn \"#vl-label-text\" at 1.7000 for 26 chars at 22.0000 chars/s (authored reveal 1.1818s) expanded to 26 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/villages.html",
       "line": 126,
       "verdict": "approximated"
     },
     {
       "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1980.0000 chars/s instead of 30.0000 chars/s",
-      "detail": "typeOn \"#vl-id-text\" at 2.9600 for 33 chars at 30.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.1000s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1980.0000 chars/s instead of 30.0000 chars/s",
+      "detail": "typeOn \"#vl-id-text\" at 2.9600 for 33 chars at 30.0000 chars/s (authored reveal 1.1000s) expanded to 33 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/villages.html",
       "line": 129,
       "verdict": "approximated"
@@ -1623,6 +1589,13 @@
       "verdict": "approximated"
     },
     {
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-rings-113.svg (569 bytes; xmlns added: true)",
+      "file": "compositions/rings.html",
+      "line": 113,
+      "verdict": "translated"
+    },
+    {
       "construct": "container element",
       "delta": "container background and flex layout not painted; anchor carries no pixels",
       "detail": "element #rg-tear is a layout container; carried as an empty text anchor for motion targeting",
@@ -1655,12 +1628,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #rg-plan is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-rg-plan.svg (2486 bytes; xmlns added: true)",
       "file": "compositions/rings.html",
       "line": 121,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1751,12 +1723,11 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #rg-head-p is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-rg-head-p.svg (213 bytes; xmlns added: true)",
       "file": "compositions/rings.html",
       "line": 145,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1775,28 +1746,25 @@
       "verdict": "approximated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #rg-head-r is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-rg-head-r.svg (213 bytes; xmlns added: true)",
       "file": "compositions/rings.html",
       "line": 149,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #rg-burst is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-rg-burst.svg (535 bytes; xmlns added: true)",
       "file": "compositions/rings.html",
       "line": 151,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
-      "construct": "container element",
-      "delta": "container background and flex layout not painted; anchor carries no pixels",
-      "detail": "element #rg-over is a layout container; carried as an empty text anchor for motion targeting",
+      "construct": "asset svg",
+      "detail": "inline <svg> extracted to assets/data-rg-over.svg (699 bytes; xmlns added: true)",
       "file": "compositions/rings.html",
       "line": 156,
-      "verdict": "approximated"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -1943,24 +1911,17 @@
     },
     {
       "construct": "tl.set",
-      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
-      "file": "compositions/rings.html",
-      "line": 192,
-      "verdict": "refused"
-    },
-    {
-      "construct": "tl.set",
-      "detail": "target \"[\\\"#rg-burst\\\", \\\"#rg-k\\\", \\\"#rg-dot-b\\\", \\\"#rg-dot-p\\\", \\\"#rg-dot-r\\\", \\\"#rg-name-b\\\", \\\"#rg-name-p\\\", \\\"#rg-name-r\\\", \\\"#rg-card-b\\\", \\\"#rg-card-p\\\", \\\"#rg-card-r\\\", \\\"#rg-token\\\", \\\"#rg-note\\\", \\\"#rg-stamp\\\", \\\"#rg-head-p\\\", \\\"#rg-head-r\\\", \\\"#rg-front\\\"]\" is not a DOM selector (\"[\\\"#rg-burst\\\", \\\"#rg-k\\\", \\\"#rg-dot-b\\\", \\\"#rg-dot-p\\\", \\\"#rg-dot-r\\\", \\\"#rg-name-b\\\", \\\"#rg-name-p\\\", \\\"#rg-name-r\\\", \\\"#rg-card-b\\\", \\\"#rg-card-p\\\", \\\"#rg-card-r\\\", \\\"#rg-token\\\", \\\"#rg-note\\\", \\\"#rg-stamp\\\", \\\"#rg-head-p\\\", \\\"#rg-head-r\\\", \\\"#rg-front\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#rg-burst\", \"#rg-k\", \"#rg-dot-b\", \"#rg-dot-p\", \"#rg-dot-r\", \"#rg-name-b\", \"#rg-name-p\", \"#rg-name-r\", \"#rg-card-b\", \"#rg-card-p\", \"#rg-card-r\", \"#rg-token\", \"#rg-note\", \"#rg-stamp\", \"#rg-head-p\", \"#rg-head-r\", \"#rg-front\"] at start=39.8100 duration=0.5000",
       "file": "compositions/rings.html",
       "line": 196,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#rg-shaft-p\\\", \\\"#rg-shaft-r\\\"]\" is not a DOM selector (\"[\\\"#rg-shaft-p\\\", \\\"#rg-shaft-r\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#rg-shaft-p\", \"#rg-shaft-r\"] at start=80.1200 duration=0.5000",
       "file": "compositions/rings.html",
       "line": 198,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -1971,17 +1932,17 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "ease \"back.out(2.5)\" has no Framesmith curve; refusing the call site",
+      "detail": "tl.fromTo on \"#rg-burst\" at start=39.8500 duration=0.1400",
       "file": "compositions/rings.html",
       "line": 201,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#rg-k\" at start=39.9500 duration=0.3000",
       "file": "compositions/rings.html",
       "line": 202,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -2013,10 +1974,10 @@
     },
     {
       "construct": "tl.to",
-      "detail": "target \"[\\\"#rg-head-p\\\", \\\"#rg-head-r\\\", \\\"#rg-token\\\"]\" is not a DOM selector (\"[\\\"#rg-head-p\\\", \\\"#rg-head-r\\\", \\\"#rg-token\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.to on [\"#rg-head-p\", \"#rg-head-r\", \"#rg-token\"] at start=41.9800 duration=0.0800",
       "file": "compositions/rings.html",
       "line": 214,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -2090,10 +2051,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#rg-name-b\" at start=41.3600 duration=0.3000",
       "file": "compositions/rings.html",
       "line": 227,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -2118,10 +2079,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#rg-name-p\" at start=44.5900 duration=0.3000",
       "file": "compositions/rings.html",
       "line": 232,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -2146,10 +2107,10 @@
     },
     {
       "construct": "tl.fromTo",
-      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "detail": "tl.fromTo on \"#rg-name-r\" at start=46.8300 duration=0.3000",
       "file": "compositions/rings.html",
       "line": 237,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.to",
@@ -2188,15 +2149,8 @@
     },
     {
       "construct": "typeOn",
-      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
-      "file": "compositions/rings.html",
-      "line": 183,
-      "verdict": "refused"
-    },
-    {
-      "construct": "typeOn",
-      "delta": "reveal paced over the clip window 0.0167s gives 1680.0000 chars/s instead of 28.0000 chars/s",
-      "detail": "typeOn \"#rg-note-text\" at 9.3400 for 28 chars at 28.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.0000s)",
+      "delta": "set display reveal carried as opacity holds; KDL has no display/visibility motion property; reveal paced over the clip window 0.0167s gives 1680.0000 chars/s instead of 28.0000 chars/s",
+      "detail": "typeOn \"#rg-note-text\" at 9.3400 for 28 chars at 28.0000 chars/s (authored reveal 1.0000s) expanded to 28 per-glyph opacity sets at t + i / cps plus split=\"chars\" typewriter on the text clip",
       "file": "compositions/rings.html",
       "line": 242,
       "verdict": "approximated"
@@ -2259,10 +2213,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #bg-video references remote asset \"data:image/svg+xml,%3C!--d1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/d1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #bg-video data: URI decoded to assets/data-bg-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/barographs.html",
       "line": 59,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2412,10 +2366,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #en-a-video references remote asset \"data:image/svg+xml,%3C!--e1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #en-a-video data: URI decoded to assets/data-en-a-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/ending.html",
       "line": 66,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2427,10 +2381,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #en-b-video references remote asset \"data:image/svg+xml,%3C!--e2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e2.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #en-b-video data: URI decoded to assets/data-en-b-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/ending.html",
       "line": 69,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2442,10 +2396,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #en-c-video references remote asset \"data:image/svg+xml,%3C!--e3.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e3.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #en-c-video data: URI decoded to assets/data-en-c-video.svg (533 bytes, percent-encoded)",
       "file": "compositions/ending.html",
       "line": 72,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",
@@ -2464,10 +2418,10 @@
     },
     {
       "construct": "tl.set",
-      "detail": "target \"[\\\"#en-black\\\", \\\"#en-tag-2\\\"]\" is not a DOM selector (\"[\\\"#en-black\\\", \\\"#en-tag-2\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "detail": "tl.set on [\"#en-black\", \"#en-tag-2\"] at start=58.0600 duration=0.5000",
       "file": "compositions/ending.html",
       "line": 83,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "tl.fromTo",
@@ -2536,10 +2490,10 @@
     },
     {
       "construct": "asset img",
-      "detail": "element #pp-sheet references remote asset \"data:image/svg+xml,%3C!--paper.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paper.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "detail": "element #pp-sheet data: URI decoded to assets/data-pp-sheet.svg (548 bytes, percent-encoded)",
       "file": "compositions/paper.html",
       "line": 47,
-      "verdict": "refused"
+      "verdict": "translated"
     },
     {
       "construct": "container element",

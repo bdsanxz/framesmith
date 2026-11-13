@@ -1,0 +1,100 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/demos.html (composition id "demos")
+  WHAT: The middle of the piece, 11.98s long, mounted at 2.02s on track 0 by index.html, so its
+    frame-local time is the track time minus 2.02. Five sound-led scenes hard-cut on the beat
+    grid: WHOOSH (the word slides in from the left with a skew); MOUSE CLICK (a cursor glides to
+    a bordered button, presses it, and releases it); KEYBOARD TYPING (the words type out letter
+    by letter); IMPACT (the frame fades from green to black while the word shrinks in); and
+    RISER (the word grows and fades in over the swell, ending at local 11.98s, when the end card
+    takes over).
+  STRUCTURE: #root holds five .demos-scene.clip divs in time order, each with its own
+    data-start and data-duration in frame-local seconds: #demos-whoosh at 0 for 1.997;
+    #demos-click at 1.997 for 2.02 (with #demos-click-btn and the #demos-cursor SVG arrow);
+    #demos-typing at 4.017 for 1.997; #demos-impact at 6.014 for 1.997; #demos-riser at 8.011
+    for 3.969. Timeline: #demos-whoosh-w goes from x -900 and skewX -20 to 0 over 0.35s
+    (expo.out) at 0; #demos-cursor glides from x 1500, y 900 to x 1150, y 600 over 0.8s
+    (power2.inOut) at 2.1; #demos-click-btn scales to 0.94 at 3.019 and back to 1 at 3.09; one
+    tl.set per letter of KEYBOARD TYPING from 4.23 seconds across 1.0s; #demos-impact goes from
+    #3CE6AC to #000000 over 1.2s and #demos-impact-w goes from scale 1.3 to 1 with colour black
+    to white over 0.5s, both at 6.014; #demos-riser-w goes from scale 0.6 and opacity 0.4 to
+    scale 1.6 and opacity 1 over 3.969s (power2.in) at 8.011.
+  CUSTOMIZE: Clip starts (1.997, 4.017, 6.014, 8.011) are the audiomap.json downbeats minus 2.02,
+    so keep them with the sound tags in index.html. Words and sizes: WHOOSH, IMPACT and RISER at
+    220px; the MOUSE CLICK label at 140px inside a 4px white outline (radius 24px); KEYBOARD TYPING
+    at 170px, filled at 1.0s across its letters. Colours: #000 frame, #ffffff type, #3CE6AC
+    for the impact flash. The cursor arrow is the SVG path inside #demos-cursor (70x90px). The
+    impact and riser tweens set the feel; a new scene needs its own clip, a tween, and a matching
+    cut in index.html. The font is Inter, one of the fonts HyperFrames bundles, so no font file is needed.
+  MEDIA: No media file is bundled. The file has no slots: each beat is type, shapes and colour, with no
+    picture, video or font file. The matching sounds (whoosh, click, typing, impact, riser) play from
+    index.html, so this file runs silent on its own. Inter is named in the root's font stack, and
+    HyperFrames bundles it. A missing sound needs no change here, only a new peak time in index.html.
+  WHEN TO USE: A sound-design explainer or montage where each sound effect needs its own visual
+    beat. Pick a simpler layout when there are only one or two sounds, or when the picture must
+    carry the story instead of the sound.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Stage: full-frame root; each beat fills it through its own clip. */
+        #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; }
+        /* Scene: a full-frame black clip with its content centred. */
+        .demos-scene { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; }
+        /* Words: heavy white display type; smaller sizes are set inline on the two clips that need them. */
+        .demos-word { display: block; font-size: 220px; font-weight: 900; letter-spacing: -0.04em; color: #ffffff; }
+        /* Button and cursor for the click beat: the outlined button is the target. */
+        #demos-click-btn { position: relative; padding: 40px 80px; border-radius: 24px; border: 4px solid #ffffff; }
+        #demos-cursor { position: absolute; left: 0; top: 0; width: 70px; height: 90px; }
+        /* Impact scene base colour; its tween starts it green and fades it to black. */
+        #demos-impact { background: #000; }
+        /* Typed letters start hidden until the tl.set that reveals each one. */
+        .demos-ch { opacity: 0; }
+      </style>
+      <!-- Frame-local = track − 2.02. One clip per sound, hard-cut on the downbeats. -->
+      <div id="root" data-composition-id="demos" data-width="1920" data-height="1080">
+        <!-- Clip 1: WHOOSH, from frame-local 0 (the whoosh sound lands here). -->
+        <div id="demos-whoosh" class="demos-scene clip" data-start="0" data-duration="1.997"><span id="demos-whoosh-w" class="demos-word">WHOOSH</span></div>
+        <!-- Clip 2: MOUSE CLICK, a button and the cursor arrow that presses it. -->
+        <div id="demos-click" class="demos-scene clip" data-start="1.997" data-duration="2.02">
+          <div id="demos-click-btn"><span class="demos-word" style="font-size:140px">MOUSE CLICK</span></div>
+          <svg id="demos-cursor" viewBox="0 0 14 18"><path d="M1 1 L1 15 L4.6 11.6 L7.2 17 L9.4 16 L6.8 10.7 L12 10.7 Z" fill="#ffffff" stroke="#000" stroke-width="1"/></svg>
+        </div>
+        <!-- Clip 3: KEYBOARD TYPING, a word whose letters are revealed one by one. -->
+        <div id="demos-typing" class="demos-scene clip" data-start="4.017" data-duration="1.997"><span id="demos-typing-w" class="demos-word" style="font-size:170px"></span></div>
+        <!-- Clip 4: IMPACT, a green-to-black flash with the word that shrinks in. -->
+        <div id="demos-impact" class="demos-scene clip" data-start="6.014" data-duration="1.997"><span id="demos-impact-w" class="demos-word">IMPACT</span></div>
+        <!-- Clip 5: RISER, a word that swells and fades in until the end card takes over. -->
+        <div id="demos-riser" class="demos-scene clip" data-start="8.011" data-duration="3.969"><span id="demos-riser-w" class="demos-word">RISER</span></div>
+      </div>
+      <script>
+        /* Setup: one paused GSAP timeline holding the tweens for all five clips. */
+        const tl = gsap.timeline({ paused: true });
+        // WHOOSH: the word crosses the frame; the whoosh peak (track 2.02) is local 0.
+        tl.fromTo("#demos-whoosh-w", { x: -900, skewX: -20 }, { x: 0, skewX: 0, duration: 0.35, ease: "expo.out" }, 0);
+        // MOUSE CLICK: cursor glides in, presses on the grid beat (track 5.039 → local 3.019).
+        tl.fromTo("#demos-cursor", { x: 1500, y: 900 }, { x: 1150, y: 600, duration: 0.8, ease: "power2.inOut" }, 2.1);
+        tl.to("#demos-click-btn", { scale: 0.94, duration: 0.06, ease: "power2.out" }, 3.019);
+        tl.to("#demos-click-btn", { scale: 1, duration: 0.18, ease: "power2.out" }, 3.09);
+        // KEYBOARD TYPING: types itself with the trimmed typing SFX (track 6.25 → local 4.23).
+        const word = "KEYBOARD TYPING", host = document.getElementById("demos-typing-w");
+        [...word].forEach((c, i) => {
+          const s = document.createElement("span");
+          s.className = "demos-ch";
+          s.textContent = c;
+          host.appendChild(s);
+          tl.set(s, { opacity: 1 }, 4.23 + (i * 1.0) / word.length);
+        });
+        // IMPACT: the loudest hit flips the frame green (track 8.034 → local 6.014).
+        tl.fromTo("#demos-impact", { backgroundColor: "#3CE6AC" }, { backgroundColor: "#000000", duration: 1.2, ease: "power2.out" }, 6.014);
+        tl.fromTo("#demos-impact-w", { scale: 1.3, color: "#000000" }, { scale: 1, color: "#ffffff", duration: 0.5, ease: "expo.out" }, 6.014);
+        // RISER: grows with the swell; the riser crests at track 14.0 (= local 11.98, the cut to the end card).
+        tl.fromTo("#demos-riser-w", { scale: 0.6, opacity: 0.4 }, { scale: 1.6, opacity: 1, duration: 3.969, ease: "power2.in" }, 8.011);
+        /* Register the timeline under the composition id so the host can find and seek it. */
+        window.__timelines["demos"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

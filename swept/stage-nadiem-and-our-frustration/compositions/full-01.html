@@ -1,0 +1,263 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/full-01.html (composition id "full-01"). The direcfy skill's scripts/deep-tracery-build.py
+    rewrites this file on every build, so a comment fix here is lost unless the same change is made in that script
+    or in cut.json.
+  WHAT: scenes that FILL the frame while the presenter's voice goes on (z-index 5, over him, so they cover him):
+    page captures with yellow marker bars and a slow zoom, card text on a pale or dark ground, big figures, and
+    icon flows. Thirteen scenes in this file's own seconds; the host mounts it at 7.233 s for 129.567 s (slot full-01
+    in index.html). It has no sound: the words come in on screen as the presenter speaks.
+  STRUCTURE: back to front, the 13 scenes sit in #root in time order (.clip elements f2 to f28, data-track-index 0 to 5)
+    and each is shown only during its own data-start and data-duration, with its scene frame covering the full
+    1920 x 1080 area. The one timeline is the paused gsap timeline "full-01" (tl), registered at the end of the script.
+    The helper W fades words in with a blur, the helper Q types words on, and each scene's camera, marks, labels and
+    steps are fromTo tweens at their own times. The scenes, in order:
+      f2   page white  0.00-2.30 s    screenshot; marks f2-m0 at 0.45 s and f2-m1 at 0.73 s; camera 1.000 to 1.032
+      f4   page white  13.10-21.23 s  screenshot; label "TUNTUTAN JAKSA" typed on at 13.40 s; marks at 18.15 and 18.43 s;
+                                       camera 1.035, then a push to 1.165 at 19.36 s and on to 1.205
+      f5   clip        21.23-29.23 s  black frame; its footage is index.html slot v-5 (see MEDIA)
+      f6   page white  29.27-36.60 s  screenshot; label "UANG PENGGANTI: Rp 5,68 TRILIUN" typed on 29.57 to 29.98 s;
+                                       marks at 31.60 and 31.88 s; camera 1.035, a push to 1.50 at 34.93 s, 1.54 at 35.25 s
+      f8   big         40.27-42.23 s  "9" over "TAHUN PENJARA", the figure from 40.37 s, label "substitusinya"
+      f9   page white  42.23-46.27 s  screenshot; label "KATA NADIEM" typed on 42.53 to 42.67 s; marks at 44.38 and 44.66 s;
+                                       camera 1.000 to 1.056
+      f10  clip        46.30-51.40 s  black frame; its footage is index.html slot v-10 (see MEDIA)
+      f11  card white  51.40-55.13 s  "18 plus 9" in caps with its words coming in from 51.40 to 52.80 s; red bar
+                                       "jadinya berapa?" at 52.51 s
+      f12  big         55.13-58.07 s  "27" over "TAHUN", the figure from 55.23 s, label "Nadiem dituntut penjara"
+      f15  page white  69.23-73.43 s  screenshot; marks at 69.61 and 69.89 s; camera 1.000 to 1.059
+      f18  flow        85.03-89.37 s  three steps "YouTube", "Instagram", "banyak komentar" with arrows between,
+                                       steps at 86.08, 86.88 and 88.01 s; box "PUNYA BANYAK OPINI"
+      f25  card dark   109.33-111.03 s "nggak bisa jadi apa-apa" in caps, then the serif word "kenapa?"
+      f28  flow        120.83-129.57 s steps "bukan wasit", "nggak punya lisensi", "nggak pernah melatih diri" at
+                                       122.00, 124.62 and 126.51 s; box "LU TUH BUKAN WASIT"
+    Not in this file: cut.json also lists b-roll for five spans of this composition, at local 81.07, 94.20, 97.00, 102.07 and
+    111.03 s. index.html plays those clips as video slots above this layer (z-index 6, class brollvid, ids v-17, v-21, v-22,
+    v-23 and v-26), so this file has no element for them.
+    The styles for ranking rows, versus pairs, a dark page and b-roll pictures exist for other scenes that cut.json
+    can place; this file uses none of them, and the ring style is defined but unused here.
+  CUSTOMIZE: change cut.json and build again, never this file. A scene's words ("w"), its text ("lines", "word",
+    "label"), its side and its pictures live in cut.json; the colours are COLORS, and the timings CHAPTER, END and LEAD
+    are at the head of scripts/deep-tracery-build.py. By hand, keep these together when a scene moves: its data-start
+    and data-duration, the camera tween that starts at the same data-start, and the word times in W and Q that fall
+    inside it. Visual knobs in the style block: the mark colour (#fbe406), the label tag colour (#d92329), the pale and
+    dark grounds (#ecebea and #0e0f10), the big figure size (330 px), and the card caps size (104 px).
+  MEDIA: no media file is bundled in this file. Every slot below shows a stand-in, a fallback or nothing, and the steps
+    to plug in your own file follow each one.
+    - Page captures, 5 photo slots: img.pg inside the .sheet of f2, f4, f6, f9 and f15 (no data-media-kind). They were
+      screenshots of news pages: f2 assets/pages/kompastv-tuntutan-18-tahun-top.png, f4 assets/pages/cnn-tuntutan-18-tahun.png,
+      f6 assets/pages/detik-uang-pengganti-5-6-triliun.png, f9 assets/pages/antara-nadiem-tidak-punya-uang.png and f15
+      assets/pages/goodstats-sentimen-warganet.png. Shown now: a 1600 x 900 hatch stand-in labeled with its path. Plug in:
+      set the src of each img.pg to its screenshot at that path, or to your own 16:9 image.
+    - Soft copies, 5 CSS image slots: the .soft div of each of those five pages, with background-image:none. Each was a
+      blurred copy of its screenshot, seen everywhere except the yellow marker bands, where the sharp page shows through
+      the mask. Shown now: nothing, so the sharp page shows across the whole frame. Plug in: in each .soft style, replace
+      none with url("assets/pages/NAME.soft.jpg") for that page and keep the mask as it is.
+    - Grounds, 3 CSS image slots: the background rules of the scenes. The pale rule (.scene.t-page.white, .scene.t-card.white,
+      .scene.t-versus, .scene.t-flow; used here by f2, f4, f6, f9, f11, f15, f18 and f28) was assets/grounds/pale.jpg.
+      The dark rule (.scene.t-card.dark, .scene.t-rank, .scene.t-big; used here by f8, f12 and f25) was
+      assets/grounds/dark.jpg. A third rule, .scene.t-page.dark, also has a none slot for assets/grounds/dark.jpg, but no scene here uses it, so it shows nothing. Shown now: the colour of the
+      rule, #ecebea for pale and #0e0f10 for dark. Plug in: replace none in the rule with url("assets/grounds/pale.jpg")
+      or url("assets/grounds/dark.jpg"), keeping center / cover.
+    - Bundled drawings (SVG, kept): the icon masks of the .fl-icon elements in f18 (f18-s0 assets/icons/brand-youtube.svg,
+      f18-s1 assets/icons/brand-instagram.svg, f18-s2 assets/icons/messages.svg) and f28 (f28-s0 assets/icons/x.svg,
+      f28-s1 assets/icons/license.svg, f28-s2 assets/icons/school.svg). They render as they are, are not slots, and
+      need nothing plugged in. To use your own icon, change the url() in the inline style to your own black SVG icon,
+      keeping the same size and framing.
+    - Fonts, 6 font slots: the @font-face rules for Archivo (weights 500, 700 and 800), Instrument Serif (italic 400),
+      Bricolage Grotesque (800) and JetBrains Mono (500). Each uses src: local(...), so the face is used if it is
+      installed, otherwise the fallback. Archivo sets the text of the scenes and the label tags; Instrument Serif sets
+      the serif word "kenapa?" in f25. Bricolage Grotesque and JetBrains Mono are declared but no rule here uses them.
+      Shown now: the installed font of that name, else the fallback (sans-serif for Archivo, serif for Instrument Serif).
+      Plug in: add a second source to a face, for example src: local("Archivo"), url("YOUR_FILE.woff2") format("woff2");.
+    - Video, 2 clip slots (f5 and f10, class t-clip): this file has no video element, so each clip scene shows only its black
+      ground. Their footage, footage/c01.mp4 (8.0 s) and footage/c02.mp4 (5.1 s), is an img in index.html with ids v-5 and
+      v-10 and class clipvid. Plug in: turn that img in index.html back into a video element (src set to your file, muted and playsinline), keeping its
+      id, class and data-* attributes, so the clip rules still match.
+    - Sound: none in this file. The film's audio elements are in index.html.
+  WHEN TO USE: when a scene should fill the frame and cover the presenter while his voice goes on: a page capture with a
+    marked passage, a card of type, a big figure, or a flow of icons. Use over-NN for text laid over him and back-NN for
+    a scene behind him. For a narrated film without a presenter, use another style; this file belongs to the deep
+    tracery style (references/deep-tracery.md).
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts: each face is local() only, so it needs an installed font or the fallback; see MEDIA. */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 500; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 800; font-display: block; src: local("Archivo"); }
+        @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: block; src: local("Instrument Serif"); }
+        @font-face { font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 800; font-display: block; src: local("Bricolage Grotesque"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: block; src: local("JetBrains Mono"); }
+        /* Base: the root and the scene frame, then the word spans and the blank clip frame. */
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: "Archivo", sans-serif; }
+        .clip { position: absolute; }
+        .scene { inset: 0; overflow: hidden; background: #0c0c0d; }
+        .w { display: inline-block; }
+        .tag { display: inline-block; }
+        /* A page: the real capture on a pale ground, sharp where the marker is and soft elsewhere. */
+        .scene.t-page.white, .scene.t-card.white, .scene.t-versus, .scene.t-flow { background: #ecebea none /* image slot: assets/grounds/pale.jpg, not bundled */ center / cover; }
+        .scene.t-page.dark { background: #0e0f10 none /* image slot: assets/grounds/dark.jpg, not bundled */ center / cover; }
+        /* Camera and capture: the zoom box, the sheet holding the picture, and the picture layers on it. */
+        .cam { position: absolute; inset: 0; }
+        .sheet { position: absolute; transform-origin: 0 0; }
+        .sheet .pg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        .sheet .soft { position: absolute; inset: 0; background-size: 100% 100%; opacity: 0.97; }
+        .scene.t-page.white .sheet { mix-blend-mode: multiply; }
+        /* Marks: the yellow boxes drawn over the lines the presenter names. The red ring rule is defined but not used here. */
+        .mark { position: absolute; background: #fbe406; mix-blend-mode: multiply; transform-origin: 0 50%; }
+        .scene.t-page.dark .mark { mix-blend-mode: screen; background: rgba(251, 228, 6, 0.38); }
+        .ring { position: absolute; overflow: visible; }
+        .ring path { fill: none; stroke: #d92329; stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 1; vector-effect: non-scaling-stroke; }
+        /* Veil and captions: the fade under a page, its red label tag and its source line. */
+        .veil { position: absolute; left: 0; width: 1920px; bottom: 0; height: 420px; background: linear-gradient(0deg, rgba(236, 235, 234, 0.97) 0%, rgba(236, 235, 234, 0.94) 52%, rgba(236, 235, 234, 0) 100%); }
+        .scene.t-page.dark .veil { background: linear-gradient(0deg, rgba(14, 15, 16, 0.97) 0%, rgba(14, 15, 16, 0.94) 52%, rgba(14, 15, 16, 0) 100%); }
+        .scene.t-page.dark .psource { color: #9a9b9d; }
+        .plabel { position: absolute; left: 0; width: 1920px; bottom: 150px; text-align: center; }
+        .plabel .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 58px; line-height: 1; padding: 12px 22px 12px; text-transform: uppercase; letter-spacing: -0.01em; }
+        .psource { position: absolute; left: 0; width: 1920px; bottom: 96px; text-align: center; font-weight: 500; font-size: 24px; color: #3b3b3b; letter-spacing: 0.01em; }
+        .psource.dark { color: #8f9092; }
+        /* A text card: black caps on the pale ground with a red bar, or white type on black with film specks. */
+        .scene.t-card.dark, .scene.t-rank, .scene.t-big { background: #0e0f10 none /* image slot: assets/grounds/dark.jpg, not bundled */ center / cover; }
+        .cblock { position: absolute; left: 160px; width: 1600px; top: 0; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+        .ccaps { font-weight: 800; font-size: 104px; line-height: 1.02; letter-spacing: -0.025em; text-transform: uppercase; color: #0d0c0c; }
+        .scene.t-card.dark .ccaps { color: #f6fbfa; }
+        .clow { font-weight: 700; font-size: 76px; line-height: 1.1; letter-spacing: -0.02em; color: #0d0c0c; }
+        .scene.t-card.dark .clow { color: #f6fbfa; }
+        .cserif { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 500; font-size: 88px; line-height: 1.05; color: #0d0c0c; }
+        .scene.t-card.dark .cserif { color: #b9e31c; }
+        .cl .em { color: #d92329; }
+        .scene.t-card.dark .cl .em { color: #b9e31c; }
+        .cbar .tag, .cchip .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 60px; line-height: 1; padding: 10px 20px; text-transform: uppercase; letter-spacing: -0.005em; }
+        .cchip .tag { font-size: 44px; }
+        /* B-roll and clip: darkened ground so the caps over footage read. The footage is an index.html slot, so the b-roll picture rules are not used in this file. */
+        .scene.t-broll { background: #050505; }
+        .bstill { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; background-size: cover; background-position: center; filter: brightness(0.6) contrast(1.1) saturate(0.9); }
+        .bstill.gray { filter: grayscale(1) brightness(0.55) contrast(1.2); }
+        .bshade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(5, 5, 5, 0.86) 0%, rgba(5, 5, 5, 0.45) 30%, rgba(5, 5, 5, 0.15) 58%, rgba(5, 5, 5, 0.3) 100%); }
+        .scene.t-clip { background: #050505; }
+        /* A ranking: rows on black, the one that matters in red. No ranking is placed in this file. */
+        .rk { position: absolute; left: 460px; width: 1000px; top: 0; height: 1080px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+        .rk-title { color: #f6fbfa; font-weight: 800; font-size: 54px; letter-spacing: -0.02em; margin-bottom: 18px; text-align: center; }
+        .rk-row { display: flex; align-items: center; gap: 22px; height: 78px; background: #f3f3f1; color: #0d0c0c; padding: 0 26px 0 0; font-weight: 700; font-size: 42px; letter-spacing: -0.01em; }
+        .rk-n { width: 78px; height: 78px; line-height: 78px; text-align: center; background: #0d0c0c; color: #f3f3f1; font-weight: 800; }
+        .rk-l { flex: 1; }
+        .rk-v { font-weight: 800; }
+        .rk-row.pick { background: #d92329; color: #ffffff; }
+        .rk-row.pick .rk-n { background: #ffffff; color: #d92329; }
+        /* One figure, as large as the frame takes. */
+        .bg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #f6fbfa; }
+        .bg-label { font-weight: 500; font-size: 46px; color: #a9e8e0; letter-spacing: -0.01em; }
+        .bg-fig { font-weight: 800; font-size: 330px; line-height: 0.95; letter-spacing: -0.04em; }
+        .bg-unit .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 60px; line-height: 1; padding: 10px 22px; letter-spacing: -0.005em; }
+        /* Two things side by side. */
+        .vs { position: absolute; left: 0; width: 1920px; top: 250px; height: 380px; display: flex; align-items: center; justify-content: center; gap: 70px; color: #0d0c0c; }
+        .vs-col { width: 560px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .vs-col img { max-width: 420px; max-height: 190px; object-fit: contain; }
+        .vs-label { font-weight: 800; font-size: 62px; letter-spacing: -0.02em; text-transform: uppercase; text-align: center; line-height: 1.02; }
+        .vs-value { font-weight: 800; font-size: 110px; letter-spacing: -0.03em; line-height: 1; color: #d92329; }
+        .vs-op { font-weight: 800; font-size: 120px; line-height: 1; color: #0d0c0c; }
+        .vs-line { position: absolute; left: 160px; width: 1600px; top: 700px; text-align: center; font-weight: 800; font-size: 58px; letter-spacing: -0.015em; text-transform: uppercase; color: #0d0c0c; }
+        .vs-line .em { font-style: italic; }
+        /* A flow: plain icons in a row, an arrow between each, a red label under them. */
+        .fl { position: absolute; left: 0; width: 1920px; top: 250px; height: 330px; display: flex; align-items: center; justify-content: center; gap: 34px; }
+        .fl-step { width: 300px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .fl-icon { width: 190px; height: 190px; background: #0d0c0c; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+        .fl-num { width: 170px; height: 170px; border-radius: 50%; border: 8px solid #0d0c0c; font-weight: 800; font-size: 100px; line-height: 170px; text-align: center; color: #0d0c0c; }
+        .fl-label { font-weight: 700; font-size: 36px; letter-spacing: -0.01em; color: #0d0c0c; text-align: center; line-height: 1.1; }
+        .fl-arrow { width: 90px; height: 10px; background: #0d0c0c; position: relative; transform-origin: 0 50%; margin-bottom: 60px; }
+        .fl-arrow::after { content: ""; position: absolute; right: -6px; top: -15px; border-left: 30px solid #0d0c0c; border-top: 20px solid transparent; border-bottom: 20px solid transparent; }
+        .fl-box { position: absolute; left: 0; width: 1920px; top: 660px; text-align: center; }
+        .fl-box .tag { background: #d92329; color: #ffffff; font-weight: 800; font-size: 58px; line-height: 1; padding: 12px 22px; text-transform: uppercase; letter-spacing: -0.01em; }
+        .fl-line { position: absolute; left: 160px; width: 1600px; top: 760px; text-align: center; font-weight: 800; font-size: 54px; letter-spacing: -0.015em; text-transform: uppercase; color: #0d0c0c; }
+        .fl-line .em { font-style: italic; }
+      </style>
+      <!-- Scenes in time order. Each div with class clip is one scene; its data-start and data-duration are in this file's seconds. -->
+      <div id="root" data-composition-id="full-01" data-width="1920" data-height="1080">
+        <!-- Scene f2, 0.00-2.30 s: pale page with the KompasTV capture, two yellow marks, no label or source line. -->
+        <div id="f2" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="0.0" data-duration="2.3" data-track-index="0"><div id="f2-cam" class="cam"><div class="sheet" style="left:305.238px;top:202.243px;width:2200px;height:1240px;transform:scale(0.5952)"><img class="pg" src="data:image/svg+xml,%3C!--kompastv-tuntutan-18-tahun-top.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1086' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/kompastv-tuntutan-18-tahun-top.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/kompastv-tuntutan-18-tahun-top.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/kompastv-tuntutan-18-tahun-top.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 19.8%,transparent 23.8%,transparent 59.0%,#000 63.0%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 19.8%,transparent 23.8%,transparent 59.0%,#000 63.0%,#000 100%)"></div><div id="f2-m0" class="mark" style="left:46px;top:428px;width:1339px;height:86px"></div><div id="f2-m1" class="mark" style="left:46px;top:512px;width:801px;height:86px"></div></div></div></div>
+        <!-- Scene f4, 13.10-21.23 s: pale page with the CNN capture, two yellow marks, the red label TUNTUTAN JAKSA and its source line. -->
+        <div id="f4" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="13.1" data-duration="8.133" data-track-index="0"><div id="f4-cam" class="cam"><div class="sheet" style="left:80px;top:-383.789px;width:2200px;height:1240px;transform:scale(1.3158)"><img class="pg" src="data:image/svg+xml,%3C!--cnn-tuntutan-18-tahun.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'915' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/cnn-tuntutan-18-tahun.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/cnn-tuntutan-18-tahun.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/cnn-tuntutan-18-tahun.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38.0%,transparent 42.0%,transparent 58.0%,#000 62.0%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38.0%,transparent 42.0%,transparent 58.0%,#000 62.0%,#000 100%)"></div><div id="f4-m0" class="mark" style="left:782px;top:580px;width:369px;height:40px"></div><div id="f4-m1" class="mark" style="left:16px;top:620px;width:198px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f4-lt" class="tag"><span id="f4-l0w0" class="w">TUNTUTAN</span> <span id="f4-l0w1" class="w">JAKSA</span></span></div><div class="psource">source : cnnindonesia.com</div></div>
+        <!-- Scene f5, 21.23-29.23 s: black clip frame; its footage is the index.html video slot v-5 (see MEDIA). -->
+        <div id="f5" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="21.233" data-duration="8.0" data-track-index="0"></div>
+        <!-- Scene f6, 29.27-36.60 s: pale page with the detik capture, two yellow marks, the red label UANG PENGGANTI: Rp 5,68 TRILIUN and its source line. -->
+        <div id="f6" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="29.267" data-duration="7.333" data-track-index="1"><div id="f6-cam" class="cam"><div class="sheet" style="left:80px;top:-218.306px;width:2200px;height:1240px;transform:scale(1.0480)"><img class="pg" src="data:image/svg+xml,%3C!--detik-uang-pengganti-5-6-triliun.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1124' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/detik-uang-pengganti-5-6-triliun.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/detik-uang-pengganti-5-6-triliun.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/detik-uang-pengganti-5-6-triliun.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 34.1%,transparent 38.1%,transparent 62.0%,#000 66.0%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 34.1%,transparent 38.1%,transparent 62.0%,#000 66.0%,#000 100%)"></div><div id="f6-m0" class="mark" style="left:811px;top:567px;width:227px;height:62px"></div><div id="f6-m1" class="mark" style="left:114px;top:612px;width:841px;height:62px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f6-lt" class="tag"><span id="f6-l0w0" class="w">UANG</span> <span id="f6-l0w1" class="w">PENGGANTI:</span> <span id="f6-l0w2" class="w">Rp</span> <span id="f6-l0w3" class="w">5,68</span> <span id="f6-l0w4" class="w">TRILIUN</span></span></div><div class="psource">source : news.detik.com</div></div>
+        <!-- Scene f8, 40.27-42.23 s: dark big figure 9 with the unit TAHUN PENJARA and the label substitusinya. -->
+        <div id="f8" class="clip scene t-big" data-layout-allow-occlusion data-layout-allow-overflow data-start="40.267" data-duration="1.966" data-track-index="1"><div class="bg"><div class="bg-label">substitusinya</div><div id="f8-fig" class="bg-fig">9</div><div class="bg-unit"><span class="tag">TAHUN PENJARA</span></div></div></div>
+        <!-- Scene f9, 42.23-46.27 s: pale page with the Antara capture, two yellow marks, the red label KATA NADIEM and its source line. -->
+        <div id="f9" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="42.233" data-duration="4.034" data-track-index="1"><div id="f9-cam" class="cam"><div class="sheet" style="left:-54.474px;top:-383.789px;width:2200px;height:1240px;transform:scale(1.3158)"><img class="pg" src="data:image/svg+xml,%3C!--antara-nadiem-tidak-punya-uang.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1086' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/antara-nadiem-tidak-punya-uang.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/antara-nadiem-tidak-punya-uang.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/antara-nadiem-tidak-punya-uang.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 37.3%,transparent 41.3%,transparent 58.7%,#000 62.7%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 37.3%,transparent 41.3%,transparent 58.7%,#000 62.7%,#000 100%)"></div><div id="f9-m0" class="mark" style="left:1084px;top:572px;width:292px;height:40px"></div><div id="f9-m1" class="mark" style="left:166px;top:628px;width:346px;height:40px"></div></div></div><div class="veil"></div><div class="plabel"><span id="f9-lt" class="tag"><span id="f9-l0w0" class="w">KATA</span> <span id="f9-l0w1" class="w">NADIEM</span></span></div><div class="psource">source : antaranews.com</div></div>
+        <!-- Scene f10, 46.30-51.40 s: black clip frame; its footage is the index.html video slot v-10 (see MEDIA). -->
+        <div id="f10" class="clip scene t-clip" data-layout-allow-occlusion data-layout-allow-overflow data-start="46.3" data-duration="5.1" data-track-index="2"></div>
+        <!-- Scene f11, 51.40-55.13 s: white card with the caps 18 plus 9 and a red bar reading jadinya berapa?. -->
+        <div id="f11" class="clip scene t-card white" data-layout-allow-occlusion data-layout-allow-overflow data-start="51.4" data-duration="3.733" data-track-index="2"><div class="cblock"><div class="cl ccaps"><span id="f11-l0w0" class="w">18</span> <span id="f11-l0w1" class="w">plus</span> <span id="f11-l0w2" class="w">9</span></div><div class="cl cbar"><span id="f11-l1t" class="tag"><span id="f11-l1w0" class="w">jadinya</span> <span id="f11-l1w1" class="w">berapa?</span></span></div></div></div>
+        <!-- Scene f12, 55.13-58.07 s: dark big figure 27 with the unit TAHUN and the label Nadiem dituntut penjara. -->
+        <div id="f12" class="clip scene t-big" data-layout-allow-occlusion data-layout-allow-overflow data-start="55.133" data-duration="2.934" data-track-index="2"><div class="bg"><div class="bg-label">Nadiem dituntut penjara</div><div id="f12-fig" class="bg-fig">27</div><div class="bg-unit"><span class="tag">TAHUN</span></div></div></div>
+        <!-- Scene f15, 69.23-73.43 s: pale page with the GoodStats capture, two yellow marks and its source line, no label. -->
+        <div id="f15" class="clip scene t-page white" data-layout-allow-occlusion data-layout-allow-overflow data-start="69.233" data-duration="4.2" data-track-index="3"><div id="f15-cam" class="cam"><div class="sheet" style="left:80px;top:-388.924px;width:2200px;height:1520px;transform:scale(1.1781)"><img class="pg" src="data:image/svg+xml,%3C!--goodstats-sentimen-warganet.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1029' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/pages/goodstats-sentimen-warganet.png%3C/text%3E%3C/svg%3E" data-media="assets/pages/goodstats-sentimen-warganet.png" alt="" /><div class="soft" style="background-image:none /* image slot: assets/pages/goodstats-sentimen-warganet.soft.jpg, not bundled */;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38.7%,transparent 42.7%,transparent 57.4%,#000 61.4%,#000 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38.7%,transparent 42.7%,transparent 57.4%,#000 61.4%,#000 100%)"></div><div id="f15-m0" class="mark" style="left:294px;top:715px;width:1111px;height:44px"></div><div id="f15-m1" class="mark" style="left:28px;top:763px;width:186px;height:44px"></div></div></div><div class="veil"></div><div class="psource">source : data.goodstats.id</div></div>
+        <!-- Scene f18, 85.03-89.37 s: flow of three icon steps (YouTube, Instagram, banyak komentar) and the red box PUNYA BANYAK OPINI. -->
+        <div id="f18" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="85.033" data-duration="4.334" data-track-index="3"><div class="fl"><div id="f18-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/brand-youtube.svg');mask-image:url('assets/icons/brand-youtube.svg')"></div><div class="fl-label">YouTube</div></div><div id="f18-a1" class="fl-arrow"></div><div id="f18-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/brand-instagram.svg');mask-image:url('assets/icons/brand-instagram.svg')"></div><div class="fl-label">Instagram</div></div><div id="f18-a2" class="fl-arrow"></div><div id="f18-s2" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/messages.svg');mask-image:url('assets/icons/messages.svg')"></div><div class="fl-label">banyak komentar</div></div></div><div class="fl-box"><span class="tag">PUNYA BANYAK OPINI</span></div></div>
+        <!-- Scene f25, 109.33-111.03 s: dark card with the caps nggak bisa jadi apa-apa and the lime serif word kenapa?. -->
+        <div id="f25" class="clip scene t-card dark" data-layout-allow-occlusion data-layout-allow-overflow data-start="109.333" data-duration="1.7" data-track-index="5"><div class="cblock"><div class="cl ccaps"><span id="f25-l0w0" class="w">nggak</span> <span id="f25-l0w1" class="w">bisa</span> <span id="f25-l0w2" class="w">jadi</span> <span id="f25-l0w3" class="w">apa-apa</span></div><div class="cl cserif"><span id="f25-l1w0" class="w">kenapa?</span></div></div></div>
+        <!-- Scene f28, 120.83-129.57 s: flow of three icon steps (x, license, school) and the red box LU TUH BUKAN WASIT. -->
+        <div id="f28" class="clip scene t-flow" data-layout-allow-occlusion data-layout-allow-overflow data-start="120.833" data-duration="8.734" data-track-index="5"><div class="fl"><div id="f28-s0" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/x.svg');mask-image:url('assets/icons/x.svg')"></div><div class="fl-label">bukan wasit</div></div><div id="f28-a1" class="fl-arrow"></div><div id="f28-s1" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/license.svg');mask-image:url('assets/icons/license.svg')"></div><div class="fl-label">nggak punya lisensi</div></div><div id="f28-a2" class="fl-arrow"></div><div id="f28-s2" class="fl-step"><div class="fl-icon" style="-webkit-mask-image:url('assets/icons/school.svg');mask-image:url('assets/icons/school.svg')"></div><div class="fl-label">nggak pernah melatih diri</div></div></div><div class="fl-box"><span class="tag">LU TUH BUKAN WASIT</span></div></div>
+      </div>
+      <!-- Script block: the paused GSAP timeline for this file, with the word helpers W and Q and one group of tweens per scene. -->
+      <script>
+        // The one paused timeline for this file, registered at the end of the script.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        // Scene by scene, in time order: camera, marks, labels, words and steps of f2 to f28.
+        tl.set("#f2-cam", { transformOrigin: "731.131px 507.6px" }, 0);
+        tl.fromTo("#f2-cam", { scale: 1 }, { scale: 1.032, duration: 2.3, ease: "none", immediateRender: false }, 0.0);
+        tl.fromTo("#f2-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 0.45);
+        tl.fromTo("#f2-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.425, ease: "power1.inOut" }, 0.73);
+        Q([["f4-lt", 13.4], ["f4-l0w0", 13.45], ["f4-l0w1", 13.54]]);
+        tl.set("#f4-cam", { transformOrigin: "847.763px 432.0px" }, 0);
+        tl.fromTo("#f4-cam", { scale: 1 }, { scale: 1.035, duration: 6.237, ease: "none", immediateRender: false }, 13.1);
+        tl.fromTo("#f4-cam", { scale: 1.035 }, { scale: 1.165, duration: 0.3, ease: "power3.inOut", immediateRender: false }, 19.357);
+        tl.fromTo("#f4-cam", { scale: 1.165 }, { scale: 1.205, duration: 1.536, ease: "none", immediateRender: false }, 19.677);
+        tl.fromTo("#f4-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.259, ease: "power1.inOut" }, 18.147);
+        tl.fromTo("#f4-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.193, ease: "power1.inOut" }, 18.427);
+        Q([["f6-lt", 29.567], ["f6-l0w0", 29.617], ["f6-l0w1", 29.707], ["f6-l0w2", 29.797], ["f6-l0w3", 29.887], ["f6-l0w4", 29.977]]);
+        tl.set("#f6-cam", { transformOrigin: "683.668px 432.0px" }, 0);
+        tl.fromTo("#f6-cam", { scale: 1 }, { scale: 1.035, duration: 5.64, ease: "none", immediateRender: false }, 29.267);
+        tl.fromTo("#f6-cam", { scale: 1.035 }, { scale: 1.5, duration: 0.3, ease: "power3.inOut", immediateRender: false }, 34.927);
+        tl.fromTo("#f6-cam", { scale: 1.5 }, { scale: 1.54, duration: 1.333, ease: "none", immediateRender: false }, 35.247);
+        tl.fromTo("#f6-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.204, ease: "power1.inOut" }, 31.597);
+        tl.fromTo("#f6-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.44, ease: "power1.inOut" }, 31.877);
+        tl.fromTo("#f8-fig", { opacity: 0, scale: 1.25, filter: "blur(18px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, 40.367);
+        tl.fromTo("#f8 .bg-unit", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }, 40.667);
+        Q([["f9-lt", 42.533], ["f9-l0w0", 42.583], ["f9-l0w1", 42.673]]);
+        tl.set("#f9-cam", { transformOrigin: "960.0px 432.0px" }, 0);
+        tl.fromTo("#f9-cam", { scale: 1 }, { scale: 1.056, duration: 4.034, ease: "none", immediateRender: false }, 42.233);
+        tl.fromTo("#f9-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.229, ease: "power1.inOut" }, 44.377);
+        tl.fromTo("#f9-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.25, ease: "power1.inOut" }, 44.657);
+        W([["f11-l0w0", 51.4], ["f11-l0w1", 52.167], ["f11-l0w2", 52.292], ["f11-l1w0", 52.517], ["f11-l1w1", 52.802]]);
+        Q([["f11-l1t", 52.507]]);
+        tl.fromTo("#f12-fig", { opacity: 0, scale: 1.25, filter: "blur(18px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, 55.233);
+        tl.fromTo("#f12 .bg-unit", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }, 55.533);
+        tl.set("#f15-cam", { transformOrigin: "924.099px 507.6px" }, 0);
+        tl.fromTo("#f15-cam", { scale: 1 }, { scale: 1.059, duration: 4.2, ease: "none", immediateRender: false }, 69.233);
+        tl.fromTo("#f15-m0", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power1.inOut" }, 69.606);
+        tl.fromTo("#f15-m1", { scaleX: 0 }, { scaleX: 1, duration: 0.188, ease: "power1.inOut" }, 69.886);
+        tl.fromTo("#f18-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 86.08);
+        tl.fromTo("#f18-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 86.715);
+        tl.fromTo("#f18-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 86.875);
+        tl.fromTo("#f18-a2", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 87.849);
+        tl.fromTo("#f18-s2", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 88.009);
+        W([["f25-l0w0", 109.333], ["f25-l0w1", 109.502], ["f25-l0w2", 109.672], ["f25-l0w3", 109.965], ["f25-l1w0", 110.427]]);
+        tl.fromTo("#f28-s0", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 121.997);
+        tl.fromTo("#f28-a1", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 124.463);
+        tl.fromTo("#f28-s1", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 124.623);
+        tl.fromTo("#f28-a2", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power2.out" }, 126.347);
+        tl.fromTo("#f28-s2", { opacity: 0, y: 26, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "power2.out" }, 126.507);
+        window.__timelines["full-01"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

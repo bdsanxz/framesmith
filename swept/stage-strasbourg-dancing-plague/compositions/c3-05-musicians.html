@@ -1,0 +1,84 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-05-musicians.html (composition id "c3-05-musicians")
+  WHAT: Beat 5 of chapter 3, on the hired musicians. The narration (Indonesian "Para penari dikumpulkan
+    di ...") tells how the dancers were gathered, and the council paid musicians for them. Three stills
+    follow each other: Hondius's procession plate (1642) from 0 s; Burgkmair's cart of horn players
+    (about 1517), captioned, cut in at 3.3 s and captioned until 5.36 s; and Beham's dancing peasant
+    couple (1522), cut in at 5.36 s. The beat runs 8.9 s; index.html mounts it at 326.96 s, under narration
+    clip voice-s35.
+  STRUCTURE: Three stacked layers in #root, back to front: #c305musicians-a (pro-group2.jpg), #c305musicians-b
+    (hornmusic.jpg, with the caption #c305musicians-b-cap) and #c305musicians-c (beham.jpg). Each is a
+    .dr-shot wrapper. The timeline (window.__timelines["c3-05-musicians"]) pushes layer a from 1.014 to
+    1.069 over 3.3 s. At 3.3 s layer b is cut in with its caption and pushes from 1.014 to 1.050 over
+    2.06 s. At 5.36 s the caption is hidden, layer c is cut in, and it pushes from 1.014 to 1.073 over
+    3.54 s.
+  CUSTOMIZE: Each picture's file is named by data-media on its img tag (pro-group2.jpg, hornmusic.jpg,
+    beham.jpg); set the src to swap in your own (see MEDIA). The caption is the two lines inside
+    #c305musicians-b-cap, split by br. The caption's place comes from .dr-cap (left 207 px, top 800 px,
+    30 px Arimo). The cut times 3.3 and 5.36 each appear in the end of one push and the start of the next,
+    and the caption's end is its own tween at 5.36 s, so change them together. The total is the 8.9 s
+    data-duration in index.html.
+  MEDIA: no media file is bundled. This file has three photo slots and one font slot. It has no sound, no
+    video and no CSS image.
+    1. The procession, img #c305musicians-a-img (inside #c305musicians-a, shown 0 to 3.3 s). It showed
+       Hondius's procession plate (1642). It now shows a faint hatch stand-in labeled
+       "PHOTO: assets/generated/pro-group2.jpg". To plug in your picture, set the img's src to your file (for
+       example assets/generated/pro-group2.jpg). The data-media attribute only names the expected path; it
+       loads nothing. The img's data-color-grading still grades your picture.
+    2. The horn players, img #c305musicians-b-img (inside #c305musicians-b, cut in at 3.3 s; the caption
+       #c305musicians-b-cap runs until 5.36 s). It showed Burgkmair's cart of horn players (about 1517). It now
+       shows a stand-in labeled "PHOTO: assets/generated/hornmusic.jpg". To plug in your picture, set the img's
+       src to your file. Its grade adds exposure -0.25 so the caption reads.
+    3. The dancing couple, img #c305musicians-c-img (inside #c305musicians-c, cut in at 5.36 s). It showed
+       Beham's dancing peasant couple (1522). It now shows a stand-in labeled
+       "PHOTO: assets/generated/beham.jpg". To plug in your picture, set the img's src to your file.
+    4. The font, the @font-face for "Arimo" (weights 400 to 700), used by .dr-cap. It was a bundled woff2 file
+       (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is used if it is installed,
+       otherwise the sans-serif fallback of the font stack. To plug in your font, add url("your-font.woff2")
+       format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a short series of three prints, one of which needs its source named while it is shown. Pick
+    c3-02 when no caption is needed, or c3-09 for a clip followed by stills.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The caption font, Arimo, is read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root is the 1920 by 1080 frame in dark slate (#0f1518), behind every layer. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The caption: where the picture comes from, two plain white lines. */
+        .dr-cap { position: absolute; left: 207px; top: 800px; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 30px; line-height: 38px; color: #eef1ee; text-shadow: 0 0 4px #0a0c0d, 0 0 9px #0a0c0d, 0 0 18px #0a0c0d, 0 0 34px rgba(10, 12, 13, 0.85); white-space: nowrap; }
+      </style>
+      <!-- "Para penari dikumpulkan di ..." (326.96 s): pro-group2 from the start; hornmusic + caption on "Dewan" (330.26 s); beham on "penari" (332.32 s). -->
+      <div id="root" data-composition-id="c3-05-musicians" data-width="1920" data-height="1080">
+        <!-- Layers 1 to 3 are stacked in order; the middle still carries its caption from 3.3 s to 5.36 s. -->
+        <div class="dr-shot" id="c305musicians-a" data-layout-allow-overflow><img id="c305musicians-a-img" src="data:image/svg+xml,%3C!--pro-group2.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pro-group2.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/pro-group2.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-shot" id="c305musicians-b" data-layout-allow-overflow><img id="c305musicians-b-img" src="data:image/svg+xml,%3C!--hornmusic.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hornmusic.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/hornmusic.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05,"exposure":-0.25},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+        <div class="dr-cap" id="c305musicians-b-cap">Kereta pemusik, Arak-arakan Kaisar Maximilian<br />Hans Burgkmair, sekitar 1517</div>
+        <div class="dr-shot" id="c305musicians-c" data-layout-allow-overflow><img id="c305musicians-c-img" src="data:image/svg+xml,%3C!--beham.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/beham.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/beham.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1, 0 to 3.3 s: the procession still pushes in; phase 2 cuts in the horn players with their caption at 3.3 s, and the caption ends at 5.36 s. */
+        /* Phase 3, from 5.36 s: the Beham couple is cut in and pushes to the end of the beat. */
+        tl.fromTo("#c305musicians-a", { scale: 1.014, x: -6, y: 2 }, { scale: 1.069, x: 6, y: -2, duration: 3.3, ease: "none" }, 0.0);
+        tl.fromTo("#c305musicians-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.050, x: -5, y: 3, duration: 2.06, ease: "none" }, 3.3);
+        gsap.set("#c305musicians-b", { opacity: 0 });
+        tl.to("#c305musicians-b", { opacity: 1, duration: 0.001 }, 3.3);
+        gsap.set("#c305musicians-b-cap", { opacity: 0 });
+        tl.to("#c305musicians-b-cap", { opacity: 1, duration: 0.001 }, 3.3);
+        tl.to("#c305musicians-b-cap", { opacity: 0, duration: 0.001 }, 5.36);
+        tl.fromTo("#c305musicians-c", { scale: 1.014, x: -4, y: -3 }, { scale: 1.073, x: 4, y: 3, duration: 3.54, ease: "none" }, 5.36);
+        gsap.set("#c305musicians-c", { opacity: 0 });
+        tl.to("#c305musicians-c", { opacity: 1, duration: 0.001 }, 5.36);
+        window.__timelines["c3-05-musicians"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

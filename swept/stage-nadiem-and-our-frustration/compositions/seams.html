@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/seams.html (composition id "seams"), written by scripts/deep-tracery-build.py from cut.json
+  WHAT: the 22 seams (7 burns, 15 flashes) between the presenter and a full-frame scene: a streak of light that wipes across
+    ("burn") or a white flash on the cut ("flash"), each a fraction of a second.
+  STRUCTURE: mounted by index.html as #seams-slot over the whole film (0 to 563.27 s, z-index 9), above every scene.
+    It has no clip per seam: the markup is three full-frame layers (#streak, #lick and #flash), and the timeline (tl,
+    paused) cues each seam from two lists in the script. Burns, at the film times 43.83, 136.80, 279.13, 328.17,
+    356.23, 412.90 and 476.80 s: the streak drops in over 0.17 s, then sweeps down over 0.2 s, and #lick lights just before it.
+    Flashes, at 9.53, 11.23, 65.30, 80.67, 112.63, 146.40, 176.77, 208.37, 255.40, 307.30, 328.17, 347.17, 428.40,
+    527.03 and 547.93 s: a white flash on #flash that rises and fades over about 0.27 s.
+  CUSTOMIZE: a scene's "seam" (on the way in) and "seam_out" (back to the presenter) in cut.json: burn, flash, or cut.
+    The build writes the time lists above; a changed seam means a new build (the file is rewritten), or edit the two
+    lists in the script by hand and keep the times in step with the scene starts in index.html.
+  MEDIA: no media file is bundled, and this file has no photo, video, sound, font or CSS image slot. The streak and
+    the flash are CSS gradients and colours. The whoosh under each burn is not here: index.html has the audio slots
+    for it (see index.html's MEDIA). To plug in a sound, see index.html's MEDIA. Flashes have no sound.
+  WHEN TO USE: to mark the turn from the presenter to a page or a clip, a few times a chapter; a plain cut is the default.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Layout: the root fills the frame; the three layers below sit one above another in this order. */
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        /* The streak of light: a white field with a burning edge above and below, taller than the frame. */
+        #streak { position: absolute; left: -40px; width: 2000px; top: 0; height: 1500px;
+          background: linear-gradient(180deg, rgba(255, 120, 20, 0) 0px, rgba(255, 150, 40, 0.75) 60px, #fff6e2 130px, #ffffff 210px, #ffffff 1290px, #fff6e2 1370px, rgba(255, 150, 40, 0.75) 1440px, rgba(255, 120, 20, 0) 1500px); }
+        #lick { position: absolute; left: 0; width: 1920px; top: 0; height: 150px; opacity: 0; background: linear-gradient(180deg, rgba(255, 244, 214, 0.95) 0%, rgba(255, 160, 60, 0.6) 55%, rgba(255, 120, 20, 0) 100%); }
+        #flash { position: absolute; inset: 0; background: #fffdf6; opacity: 0; }
+      </style>
+      <div id="root" data-composition-id="seams" data-width="1920" data-height="1080">
+        <!-- Markup: three empty layers, all driven by the script: #streak (the burn), #lick (its glow at the top edge) and
+             #flash (the white flash). No clip per seam. -->
+        <div id="streak" data-layout-allow-overflow></div>
+        <div id="lick" data-layout-allow-overflow></div>
+        <div id="flash"></div>
+      </div>
+      <script>
+        // Script: the timeline (tl) is paused and the host seeks it. The burn list and the flash list below are the cue times.
+        const tl = gsap.timeline({ paused: true });
+        // W: words that come in as they are spoken. Q: words that are typed on. [id, time] each. Both are defined here
+        // for the build's shared helpers; this file calls neither.
+        const W = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.28, ease: "power2.out" }, t));
+        const Q = (rows) => rows.forEach(([id, t]) => tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, t));
+        tl.set("#streak", { y: -1500 }, 0);
+        tl.set("#lick", { opacity: 0 }, 0);
+        [43.833, 136.8, 279.133, 328.167, 356.233, 412.9, 476.8].forEach((t) => {
+          tl.set("#lick", { opacity: 1 }, t - 0.4);
+          tl.set("#lick", { opacity: 0 }, t - 0.333);
+          tl.fromTo("#streak", { y: -1500 }, { y: -210, duration: 0.17, ease: "power1.in", immediateRender: false }, t - 0.2);
+          tl.fromTo("#streak", { y: -210 }, { y: 1090, duration: 0.2, ease: "power1.out", immediateRender: false }, t + 0.034);
+          tl.set("#streak", { y: -1500 }, t + 0.25);
+        });
+        tl.set("#flash", { opacity: 0 }, 0);
+        [9.533, 11.233, 65.3, 80.667, 112.633, 146.4, 176.767, 208.367, 255.4, 307.3, 328.167, 347.167, 428.4, 527.033, 547.933].forEach((t) => tl.to("#flash", { keyframes: [{ opacity: 0.85, duration: 0.066, ease: "power1.in" }, { opacity: 0.9, duration: 0.034 }, { opacity: 0, duration: 0.17, ease: "power1.out" }] }, t - 0.07));
+        window.__timelines["seams"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

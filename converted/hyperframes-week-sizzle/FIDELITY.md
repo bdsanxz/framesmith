@@ -6,14 +6,14 @@
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/frames/01-cold-open.html`:54 [tl.fromTo] position "t" is an expression; refusing the call site
-- `compositions/frames/02-cards.html`:79 [tl.fromTo] position "downbeats[i]" is an expression; refusing the call site
-- `compositions/frames/02-cards.html`:80 [tl.fromTo] position "downbeats[i]" is an expression; refusing the call site
-- `compositions/frames/02-cards.html`:81 [tl.fromTo] position "snares[i]" is an expression; refusing the call site
-- `compositions/frames/02-cards.html`:82 [tl.fromTo] position "downbeats[i]" is an expression; refusing the call site
+- `compositions/frames/01-cold-open.html`:54 [tl.fromTo] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/frames/02-cards.html`:79 [tl.fromTo] position "downbeats[i]" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/frames/02-cards.html`:80 [tl.fromTo] position "downbeats[i]" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/frames/02-cards.html`:81 [tl.fromTo] position "snares[i]" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/frames/02-cards.html`:82 [tl.fromTo] position "downbeats[i]" is outside the numeric grammar (unsupported token '[' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/frames/03-roll-counter.html`:62 [tl.set] property "textContent" (value "\"05\"") has no KDL motion property; refusing the call site
-- `compositions/frames/03-roll-counter.html`:66 [tl.set] position "t" is an expression; refusing the call site
-- `compositions/frames/03-roll-counter.html`:67 [tl.fromTo] position "t" is an expression; refusing the call site
+- `compositions/frames/03-roll-counter.html`:66 [tl.set] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/frames/03-roll-counter.html`:67 [tl.fromTo] position "t" is outside the numeric grammar (unbound identifier "t" in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/frames/04-banner.html`:51 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
 
 ## Approximated (measured deltas)

@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/sources.html (composition id "sources")
+  WHAT: The sources roll at the end of the film, 17 s long, mounted by index.html at 517.2 s, with the gate
+    overlay over it. On black, a heading (SUMBER, REFERENSI, DAN BACAAN LANJUTAN, meaning sources, references
+    and further reading) sits above a centred list of about ten entries in small white type. The list is
+    book and article references, an archive record, a reference to a Wikipedia article, the picture credits
+    (which point to CREDITS.md for the full list) and the music credit. The block fades in over 0.4 s, climbs
+    steadily, and fades out between 16.1 s and 16.9 s. The file has no sound; the bed music is in index.html.
+  STRUCTURE: Layers back to front: #sr-fade (the fading block, full frame) and inside it #sr-roll (a 1400 px
+    wide column, centred at left 260 px, which holds #sr-head and then the .sr-item entries). Timeline (gsap,
+    paused): #sr-roll moves y from 470 px to 470 - 38 x 17 = -176 px over 17 s with ease none. #sr-fade fades
+    in from 0 to 1 over 0.4 s, and from 16.1 s it fades to 0 over 0.8 s with ease power1.in.
+  CUSTOMIZE: The entries: the .sr-item lines in #sr-roll; the bold part of each is a b element for names. The
+    heading text is #sr-head. Type: heading 22px bold with 0.04em tracking and 34px below; entries 20px with 30px
+    line height and 26px between them; the colour #e9edea; the ground #0c0f10. Speed and length: the tween uses
+    38 px a second over 17 s, so the column moves a fixed 646 px. A longer list needs a larger distance or a
+    longer duration, and the 17.0 s must match data-duration of sources-slot in index.html (the fade-out at
+    16.1 s is set against it). Changing the speed means changing the 38 and the start y of 470 together.
+  MEDIA: No media file is bundled in this composition. It has one font slot and no photo, video, sound or
+    CSS image slot. The credits name the pictures, but no picture is shown here. The font slot is the Arimo
+    face in the @font-face rule at the top of the style block. It was the bundled file
+    assets/fonts/arimo-latin.woff2; now the rule reads src: local("Arimo"), so the roll uses Arimo only
+    when it is installed on the machine, and otherwise falls back to the sans-serif in the font stack. To
+    plug in: add url("assets/fonts/arimo-latin.woff2") format("woff2") to the src list of that rule, or
+    point it at your own copy of Arimo.
+  WHEN TO USE: The closing credits or sources roll of a documentary, on a plain black ground with no picture
+    behind the text. Pick another file when the credits need a picture behind them, or when the list must hold
+    still on screen.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Font: the Arimo face is local only, and it sets the whole roll. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The sources: a heading and a centred list in small white type on black, rolling up. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0c0f10; }
+        #sr-fade { position: absolute; inset: 0; }
+        #sr-roll { position: absolute; left: 260px; width: 1400px; top: 0; text-align: center; font-family: "Arimo", sans-serif; color: #e9edea; }
+        #sr-head { font-weight: 700; font-size: 22px; line-height: 30px; letter-spacing: 0.04em; margin-bottom: 34px; }
+        .sr-item { font-weight: 400; font-size: 20px; line-height: 30px; margin-bottom: 26px; }
+        .sr-item b { font-weight: 700; }
+      </style>
+      <div id="root" data-composition-id="sources" data-width="1920" data-height="1080">
+        <!-- The fading block that holds the whole roll, and the column that climbs inside it. -->
+        <div id="sr-fade"><div id="sr-roll" data-layout-allow-overflow>
+          <div id="sr-head">SUMBER, REFERENSI, DAN BACAAN LANJUTAN</div>
+          <div class="sr-item"><b>Waller, J.</b> (2008). A Time to Dance, a Time to Die:<br />The Extraordinary Story of the Dancing Plague of 1518. Icon Books.</div>
+          <div class="sr-item"><b>Waller, J. C.</b> (2008). In a spin: the mysterious dancing epidemic of 1518.<br />Endeavour, 32(3), 117–121.</div>
+          <div class="sr-item"><b>Waller, J.</b> (2009). A forgotten plague: making sense of dancing mania.<br />The Lancet, 373(9664), 624–625.</div>
+          <div class="sr-item"><b>Waller, J.</b> (2009, 16 Juli). Dancing plagues and mass hysteria.<br />The Psychologist, British Psychological Society.</div>
+          <div class="sr-item"><b>Pennant-Rea, N.</b> (2018, 10 Juli). The Dancing Plague of 1518.<br />The Public Domain Review.</div>
+          <div class="sr-item"><b>Hecker, J. F. C.</b> (1832). Die Tanzwuth, eine Volkskrankheit im Mittelalter.<br />Berlin: Enslin. Salinan Wellcome Library, archive.org.</div>
+          <div class="sr-item"><b>Clementz, É., &amp; Bischoff, G.</b> (2018–2020), tentang jumlah penari dan kematian,<br />dirujuk lewat Wikipédia: Épidémie dansante de 1518.</div>
+          <div class="sr-item"><b>Brant, S.</b> (1518, 2 Agustus). Larangan menari dewan kota Strasbourg.<br />Archives de la Ville et de l'Eurométropole de Strasbourg.</div>
+          <div class="sr-item"><b>Wikipedia.</b> Dancing plague of 1518; Dancing mania;<br />History of Strasbourg; Bundschuh movement.</div>
+          <div class="sr-item"><b>Gambar.</b> Rijksmuseum, National Gallery of Art, Wellcome Collection,<br />BnF Gallica, Wikimedia Commons. Daftar lengkap: CREDITS.md.</div>
+          <div class="sr-item"><b>Musik:</b> Karl Casey @ White Bat Audio</div>
+        </div></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // The roll starts with its heading at mid-frame and climbs at a steady 38 px a second.
+        tl.fromTo("#sr-roll", { y: 470 }, { y: 470 - 38 * 17.0, duration: 17.0, ease: "none" }, 0);
+        /* The block fades in over the first 0.4 s, and fades out from 16.1 s. */
+        tl.fromTo("#sr-fade", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 0);
+        tl.to("#sr-fade", { opacity: 0, duration: 0.8, ease: "power1.in" }, 16.1);
+        /* Registration: the host finds this timeline by the id sources. */
+        window.__timelines["sources"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

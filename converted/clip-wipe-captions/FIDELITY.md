@@ -1,19 +1,17 @@
 # Fidelity report: clip-wipe-captions → main
 
 - translated: 32
-- approximated (with deltas): 64
-- refused: 9
+- approximated (with deltas): 66
+- refused: 7
 
 ## Refused (cause named; conversion refused)
 
-- `compositions/frames/intro.html`:83 [tl.fromTo] property "transformOrigin" (value "\"0% 100%\"") has no KDL motion property; refusing the call site
-- `compositions/frames/anatomy.html`:90 [tl.to] property "filter" (value "\"blur(6px)\"") has no KDL motion property; refusing the call site
-- `compositions/components/caption-clip-wipe.html`:289 [tl.set] position "g.start" is an expression; refusing the call site
-- `compositions/components/caption-clip-wipe.html`:296 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-- `compositions/components/caption-clip-wipe.html`:302 [tl.to] position "w.start + 0.1" is an expression; refusing the call site
-- `compositions/components/caption-clip-wipe.html`:304 [tl.to] position "w.end" is an expression; refusing the call site
-- `compositions/components/caption-clip-wipe.html`:308 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
-- `compositions/components/caption-clip-wipe.html`:318 [tl.set] position "g.end" is an expression; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:289 [tl.set] position "g.start" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/components/caption-clip-wipe.html`:296 [tl.to] position "w.start" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/components/caption-clip-wipe.html`:302 [tl.to] position "w.start + 0.1" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/components/caption-clip-wipe.html`:304 [tl.to] position "w.end" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/components/caption-clip-wipe.html`:308 [tl.to] position "g.end - 0.2" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
+- `compositions/components/caption-clip-wipe.html`:318 [tl.set] position "g.end" is outside the numeric grammar (unsupported token '.' in the numeric grammar (+ - * / parens, numbers, identifiers)); refusing the call site
 - `compositions/components/caption-clip-wipe.html`:322 [tl.seek] timeline call "seek" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
 
 ## Approximated (measured deltas)
@@ -41,6 +39,7 @@
 - `compositions/frames/intro.html`:69 [container element] element #intro-tab is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/intro.html`:70 [container element] element #intro-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/intro.html`:72 [container element] element #intro-file is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:83 [tl.fromTo] tl.fromTo on "#intro-tab" at start=5.5800 duration=0.5000 delta: transformOrigin "\"0% 100%\"" snapped to clip origin "left bottom" (KDL pivot is a 3x3 placement; pivot off by 0.000 x / 0.000 of element size); the clip origin pivots 3D turns only, while KDL 2D scale/rotation pivot at a built-in point, so the GSAP 2D pivot does not fully land
 - `compositions/frames/anatomy.html`:62 [placement] element #anatomy-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/anatomy.html`:63 [placement] element #anatomy-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/anatomy.html`:65 [placement] element #anatomy-doc has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
@@ -56,6 +55,7 @@
 - `compositions/frames/anatomy.html`:69 [container element] element #anatomy-name is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/anatomy.html`:70 [container element] element #anatomy-desc is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
 - `compositions/frames/anatomy.html`:73 [container element] element #anatomy-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:90 [tl.to] tl.to on "#anatomy-body" at start=12.4600 duration=0.6000 delta: blur endpoint resolves from the clip's static blur 0 (converter does not read CSS filter); GSAP animates from the captured authored filter state, so early eval differs
 - `compositions/frames/ladder.html`:59 [placement] element #ladder-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/ladder.html`:61 [placement] element #ladder-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
 - `compositions/frames/ladder.html`:62 [placement] element #ladder-eyebrow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights

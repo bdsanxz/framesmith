@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/c3-03-humours.html (composition id "c3-03-humours")
+  WHAT: Beat 3 of chapter 3, on the four humours. The narration (Indonesian "Bagi kedokteran masa itu
+    ...") explains the medicine of the time. A line diagram on near-black draws a ring in 1.4 s, a
+    cross through its centre, and four labels (blood, yellow bile, black bile, phlegm). The blood
+    quarter then fills red, with the label "too hot". The beat runs 8.34 s; index.html mounts it at
+    310.52 s, under narration clip voice-s33. The diagram is the textbook scheme, not a drawing of 1518.
+  STRUCTURE: One layer, #c303humours-a. It is a .dg ground (#111517) holding one SVG (viewBox 1920 by
+    1080) and the HTML labels. The SVG has the ring #c303humours-a-ring (radius 300 at 960,560), the
+    cross #c303humours-a-cross, and the blood quarter #c303humours-a-blood in the upper left. The labels
+    are absolute divs: the title and subtitle at the top, the poles PANAS (hot, top), DINGIN (cold,
+    bottom), LEMBAP (moist, left) and KERING (dry, right), the four humours at the quarters
+    (#c303humours-a-q1 to -q4) and TERLALU PANAS under the blood (#c303humours-a-hot). The timeline
+    scales the layer from 1.0 to 1.04 over 8.34 s, draws the ring's stroke-dashoffset from 1885 to 0
+    from 0.3 s over 1.4 s, cuts in the cross and the four humour labels at 3.49 s, and cuts in the blood
+    quarter and its label at 4.33 s.
+  CUSTOMIZE: The labels are plain text in the divs; their positions are inline left and top values. The
+    ring is radius 300 centred at 960,560, and the cross and the blood path are drawn from the same
+    centre, so move them together. The dash length 1885 is the ring's circumference, so change the
+    radius and the dash together. Colours: ground #111517, lines #e9eae2, blood rgba(224,72,44,0.55),
+    red labels #e0482c. Font sizes: .dg-label 26 px, .dg-small 20 px. The cut times 3.49 and 4.33 and the
+    ring start 0.3 are numbers in the timeline; the total is data-duration 8.34 in index.html.
+  MEDIA: no media file is bundled. The diagram is drawn in SVG and HTML, so it has no picture, video, sound
+    or CSS image and needs no photo stand-in. It has one font slot.
+    1. The font, the @font-face for "Arimo" (weights 400 to 700), used by the labels .dg-label and .dg-small.
+       It was a bundled woff2 file (assets/fonts/arimo-latin.woff2). It now reads local("Arimo"): the face is
+       used if it is installed, otherwise the sans-serif fallback of the font stack. To plug in your font, add
+       url("your-font.woff2") format("woff2") to the src list of that @font-face.
+  WHEN TO USE: a textbook scheme or a concept that a picture would not show clearly, drawn in lines and
+    labels. Pick a still (c3-02) when the idea is a person or a place.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* The label font, Arimo, is read from the installed fonts with local("Arimo"); no font file is bundled. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        /* The root is the 1920 by 1080 frame in dark slate (#0f1518); the diagram ground sits on it. */
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        /* The diagram: thin lines on near-black, labels in tracked white caps, one red. */
+        .dg { position: absolute; inset: 0; background: #111517; }
+        .dg svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+        .dg-label { position: absolute; font-family: "Arimo", sans-serif; font-weight: 700; font-size: 26px; line-height: 32px; letter-spacing: 0.2em; color: #e9eae2; white-space: nowrap; }
+        .dg-small { position: absolute; font-family: "Arimo", sans-serif; font-weight: 400; font-size: 20px; line-height: 26px; letter-spacing: 0.12em; color: rgba(233, 234, 226, 0.62); white-space: nowrap; }
+        .dg-red { color: #e0482c; }
+      </style>
+      <!-- "Bagi kedokteran masa itu, ..." (310.52 s): graphic from the start. -->
+      <div id="root" data-composition-id="c3-03-humours" data-width="1920" data-height="1080">
+        <div class="dr-shot dg" id="c303humours-a" data-layout-allow-overflow>
+          <!-- Layer 1, the only layer: one SVG draws the ring, the cross and the blood quarter over the .dg ground. -->
+          <svg viewBox="0 0 1920 1080">
+            <path id="c303humours-a-blood" d="M960,560 L660,560 A300,300 0 0 1 960,260 Z" fill="rgba(224,72,44,0.55)" />
+            <circle id="c303humours-a-ring" cx="960" cy="560" r="300" fill="none" stroke="#e9eae2" stroke-width="2" stroke-dasharray="1885" stroke-dashoffset="1885" transform="rotate(-90 960 560)" />
+            <path id="c303humours-a-cross" d="M660,560 L1260,560 M960,260 L960,860" fill="none" stroke="rgba(233,234,226,0.6)" stroke-width="2" />
+          </svg>
+          <div class="dg-label" style="left: 0; width: 1920px; text-align: center; top: 120px;">EMPAT CAIRAN TUBUH</div>
+          <div class="dg-small" style="left: 0; width: 1920px; text-align: center; top: 160px;">TEORI HUMORAL, KEDOKTERAN EROPA ABAD KE-16</div>
+          <div class="dg-small" style="left: 810px; width: 300px; text-align: center; top: 220px;">PANAS</div>
+          <div class="dg-small" style="left: 810px; width: 300px; text-align: center; top: 874px;">DINGIN</div>
+          <div class="dg-small" style="left: 438px; width: 200px; text-align: right; top: 547px;">LEMBAP</div>
+          <div class="dg-small" style="left: 1282px; top: 547px;">KERING</div>
+          <div class="dg-label" id="c303humours-a-q1" style="left: 725px; width: 205px; text-align: center; top: 410px; font-size: 22px; letter-spacing: 0.14em;">DARAH</div>
+          <div class="dg-label" id="c303humours-a-q2" style="left: 990px; width: 205px; text-align: center; top: 410px; font-size: 22px; letter-spacing: 0.14em;">EMPEDU KUNING</div>
+          <div class="dg-label" id="c303humours-a-q3" style="left: 990px; width: 205px; text-align: center; top: 670px; font-size: 22px; letter-spacing: 0.14em;">EMPEDU HITAM</div>
+          <div class="dg-label" id="c303humours-a-q4" style="left: 725px; width: 205px; text-align: center; top: 670px; font-size: 22px; letter-spacing: 0.14em;">LENDIR</div>
+          <div class="dg-small" id="c303humours-a-hot" style="left: 725px; width: 205px; text-align: center; top: 448px;">TERLALU PANAS</div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // The ring draws, the four names land on "empat cairan", and the blood quarter fills red on "Darah".
+        tl.fromTo("#c303humours-a", { scale: 1.0 }, { scale: 1.04, duration: 8.34, ease: "none" }, 0.0);
+        tl.to("#c303humours-a-ring", { strokeDashoffset: 0, duration: 1.4, ease: "power1.inOut" }, 0.3);
+        gsap.set("#c303humours-a-cross", { opacity: 0 }); tl.to("#c303humours-a-cross", { opacity: 1, duration: 0.001 }, 3.49);
+        gsap.set("#c303humours-a-q1", { opacity: 0 }); tl.to("#c303humours-a-q1", { opacity: 1, duration: 0.001 }, 3.49);
+        gsap.set("#c303humours-a-q2", { opacity: 0 }); tl.to("#c303humours-a-q2", { opacity: 1, duration: 0.001 }, 3.49);
+        gsap.set("#c303humours-a-q3", { opacity: 0 }); tl.to("#c303humours-a-q3", { opacity: 1, duration: 0.001 }, 3.49);
+        gsap.set("#c303humours-a-q4", { opacity: 0 }); tl.to("#c303humours-a-q4", { opacity: 1, duration: 0.001 }, 3.49);
+        gsap.set("#c303humours-a-blood", { opacity: 0 }); tl.to("#c303humours-a-blood", { opacity: 1, duration: 0.001 }, 4.33);
+        gsap.set("#c303humours-a-hot", { opacity: 0 }); tl.to("#c303humours-a-hot", { opacity: 1, duration: 0.001 }, 4.33);
+        window.__timelines["c3-03-humours"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

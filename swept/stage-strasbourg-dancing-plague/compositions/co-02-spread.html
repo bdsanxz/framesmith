@@ -1,0 +1,76 @@
+<!doctype html>
+<!--
+  GUIDE: compositions/co-02-spread.html (composition id "co-02-spread")
+  WHAT: The second narrated beat of the cold open, 8.74 s long, mounted by index.html at 15.94 s, under
+    the narration line that begins "Ia menari berhari-hari". For the first 2.27 s a short muted film clip
+    of candles burning in the dark slowly pushes in. At 2.27 s it cuts to a still picture, which pushes in
+    until the end. No words appear on screen; the narration and the music are mounted by index.html. The
+    clip and the still are not bundled, so each shows as a faint hatched stand-in with a label naming its
+    file until you add it (see MEDIA).
+  STRUCTURE: Two layers, back to front: #co02spread-a (.dr-shot holding the video #co02spread-a-video) and
+    #co02spread-b (.dr-shot holding the image #co02spread-b-img, hidden at the start). Timeline (gsap,
+    paused): from 0 s for 2.27 s, #co02spread-a scales 1.0 to 1.039 with ease none. At 2.27 s,
+    #co02spread-b appears at once (0.001 s) and then, for 6.47 s, scales 1.014 to 1.118 while drifting
+    x 5 to -5 and y -3 to 3.
+  CUSTOMIZE: The clip: the element #co02spread-a-video, now a stand-in img that takes a video src when
+    you turn it back into a video (see MEDIA). The still: the src of img#co02spread-b-img. The cut at 2.27 s is written in the video data-duration, in the first tween's
+    duration, and in the position of the second tween, so change them together. The length 8.74 s
+    (2.27 + 6.47) must match data-duration of co-02-spread-slot in index.html. Grade: data-color-grading
+    on both media (contrast 0.1, saturation -0.32, blacks -0.22, temperature -0.05, vignette 0.2,
+    grain 0.08). Push amounts are the scale values inside the two tweens.
+  MEDIA: No media file is bundled in this composition. It has one video slot, one photo slot and one
+    font slot, and no sound or CSS image slot.
+    1. Video, first shot: the element #co02spread-a-video inside #co02spread-a. It is an img with
+       data-media-kind="video", so the CSS treats it as a video. It played footage/v01.mp4, a muted
+       clip of candles burning in the dark, from 0 to 2.27 seconds (data-start and data-duration).
+       Now it shows the hatched stand-in naming that path, with its grade (data-color-grading) kept.
+       To plug in: replace that img with a video element that has id="co02spread-a-video", src="footage/v01.mp4", muted and playsinline, and keep its class, its data-start="0.0", data-duration="2.27",
+       data-track-index="1", its data-color-grading attribute and data-media-kind="video", so the
+       CSS rules still match. If the clip is missing, use a solid #0f1518 ground (the #root colour),
+       or a dark still of a candle from a free licensed source.
+    2. Photo, second shot: the img #co02spread-b-img inside #co02spread-b, hidden until 2.27 seconds.
+       It showed assets/generated/pro-group.jpg, a graded still photo. Now it shows the hatched
+       stand-in naming that path (data-media). To plug in: set src="assets/generated/pro-group.jpg"
+       on that img. If it is missing, use the same dark ground or a free licensed old engraving.
+    3. Font: Arimo, in the @font-face rule at the top of the style block. It was a bundled file.
+       Now the rule reads src: local("Arimo"), and this file draws no text, so the font is unused
+       here. To plug in (only if you add text): add url("assets/fonts/arimo-latin.woff2")
+       format("woff2") to the src list of that rule.
+  WHEN TO USE: A beat that goes from a short moving clip to a still picture with no words on screen,
+    used as atmosphere under the narration. Pick a file with a caption or a red name when the picture has
+    to be identified for the viewer.
+-->
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        /* Fonts and stage: a dark slate root that the shots fill. Arimo is declared, but no text is drawn here. */
+        @font-face { font-family: "Arimo"; font-style: normal; font-weight: 400 700; font-display: block; src: local("Arimo"); }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0f1518; }
+        /* One wrapper per shot: the push is on the wrapper, the grade on the media. */
+        .dr-shot { position: absolute; inset: 0; transform-origin: 50% 46%; }
+        .dr-shot [data-media-kind="video"], .dr-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      </style>
+      <!-- "Ia menari berhari-hari Dalam ..." (15.94 s): film: candles burning in the dark from the start; pro-group on "Dalam" (18.21 s). -->
+      <div id="root" data-composition-id="co-02-spread" data-width="1920" data-height="1080">
+        <!-- The first shot: the muted candle clip, with its push carried by the wrapper. -->
+        <div class="dr-shot" id="co02spread-a" data-layout-allow-overflow><img id="co02spread-a-video" data-start="0.0" data-duration="2.27" data-track-index="1" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' src="data:image/svg+xml,%3C!--v01.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'478' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/v01.mp4%3C/text%3E%3C/svg%3E" data-media="footage/v01.mp4" data-media-kind="video" alt="" /></div>
+        <!-- The second shot: the still picture, hidden until the cut at 2.27 s. -->
+        <div class="dr-shot" id="co02spread-b" data-layout-allow-overflow><img id="co02spread-b-img" src="data:image/svg+xml,%3C!--pro-group.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pro-group.jpg%3C/text%3E%3C/svg%3E" data-media="assets/generated/pro-group.jpg" alt="" data-color-grading='{"adjust":{"contrast":0.1,"saturation":-0.32,"blacks":-0.22,"temperature":-0.05},"wheels":{"shadows":{"hue":192,"amount":0.26},"highlights":{"hue":35,"amount":0.14}},"details":{"vignette":0.2,"grain":0.08}}' /></div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        /* Phase 1 (0 to 2.27 s): the candle clip pushes in slowly. */
+        tl.fromTo("#co02spread-a", { scale: 1.0 }, { scale: 1.039, duration: 2.27, ease: "none" }, 0.0);
+        /* Phase 2 (from 2.27 s): the still picture is shown and pushes in until the end. */
+        tl.fromTo("#co02spread-b", { scale: 1.014, x: 5, y: -3 }, { scale: 1.118, x: -5, y: 3, duration: 6.47, ease: "none" }, 2.27);
+        /* Setup: the still picture starts hidden until the cut. */
+        gsap.set("#co02spread-b", { opacity: 0 });
+        tl.to("#co02spread-b", { opacity: 1, duration: 0.001 }, 2.27);
+        /* Registration: the host finds this timeline by the id co-02-spread. */
+        window.__timelines["co-02-spread"] = tl;
+      </script>
+    </template>
+  </body>
+</html>
