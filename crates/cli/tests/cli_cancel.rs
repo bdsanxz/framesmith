@@ -35,10 +35,13 @@ fn write(folder: &Path, name: &str, content: &str) {
 fn slow_folder(root: &Path) {
     let folder = root.join("proj");
     std::fs::create_dir_all(&folder).unwrap();
+    // Bigger than the old 640x480/60s: the cancel must land
+    // mid-render on every CI box, even ones that finish the small
+    // version in under the SIGINT wait window.
     write(
         &folder,
         "composition.kdl",
-        "composition name=\"t\" width=640 height=480 duration=60 fps=30 background=\"#112233\" version=1 {\n    text value=\"slow render for cancel\" start=0 duration=60 x=20 y=100 size=32 color=\"#ffffff\"\n}\n",
+        "composition name=\"t\" width=640 height=480 duration=120 fps=30 background=\"#112233\" version=1 {\n    text value=\"slow render for cancel\" start=0 duration=120 x=20 y=100 size=32 color=\"#ffffff\"\n}\n",
     );
 }
 
