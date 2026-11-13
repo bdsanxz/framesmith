@@ -33,6 +33,7 @@ mod router;
 mod skills;
 mod starters;
 mod storyboard;
+mod update_cmd;
 
 use std::path::{Path, PathBuf};
 
@@ -61,6 +62,11 @@ fn usage() -> ! {
          \x20 framesmith remove-background <input.png> [--quality fast|balanced|precise] [--model <name>] [--engine auto|NAME|stub] [-o <outdir>]\n\
          \x20 framesmith beats <input.wav> [-o <out.beats.json>]\n\
          \x20 framesmith benchmark [--json] [--out <dir>]
+         \x20 framesmith version [--json]  report version, build, and ffmpeg registry pin\n\
+         \x20 framesmith update check [--json] [--api-url <url>]  report current, update-available, or unavailable (never blocks a render)\n\
+         \x20 framesmith update apply --yes [--json] [--api-url <url>]  install the newer release with consent after checksum verification\n\
+         \x20 framesmith upgrade [--check] [--json] [--api-url <url>]  check for updates and show how to get them\n\
+         \x20 framesmith upgrade --yes [--json] [--api-url <url>]  install the newer release with consent after checksum verification\n\
          \x20 framesmith verify [--json] [--chunked] <candidate> --oracle <oracle>  judge a file against the single-pass oracle within the codec noise band\n\
          \x20 framesmith errors [--json] [CODE]
          \x20 framesmith catalog search <words...> [--json] [--registry <dir>]
@@ -2233,6 +2239,10 @@ fn main() {
                  \x20 preview-list  show every live server\n\
                  \x20 preview-stop-all  end all servers and report the count\n\
                  \x20 doctor [<folder>]  report environment and project health facts
+                 \x20 version [--json]  report version, build, and ffmpeg registry pin
+                 \x20 update check [--json] [--api-url <url>]  report current, update-available, or unavailable (never blocks a render)
+                 \x20 update apply --yes [--json] [--api-url <url>]  install the newer release with consent after checksum verification
+                 \x20 upgrade [--check] [--json] [--api-url <url>]  check for updates and show how to get them
                  \x20 models list|install <name> [--yes]  list known models or install one with consent\n\
                  \x20 transcribe <input>  transcribe speech to word-timed transcript JSON (optionally --to srt|vtt)\n\
                  \x20 tts <text...>  synthesize voice audio to WAV\n\
@@ -2242,6 +2252,9 @@ fn main() {
             );
             0
         }
+        "version" => update_cmd::cmd_version(&args),
+        "update" => update_cmd::cmd_update(&args),
+        "upgrade" => update_cmd::cmd_upgrade(&args),
         "-V" | "--version" => {
             println!("framesmith {}", env!("CARGO_PKG_VERSION"));
             0

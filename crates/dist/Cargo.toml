@@ -1,0 +1,6 @@
+[package]
+name = "dist"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith per-OS installer packaging: required targets, completeness, checksum and tagged-release checks"
+license = "MIT OR Apache-2.0"

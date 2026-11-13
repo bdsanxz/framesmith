@@ -1,0 +1,1934 @@
+{
+  "meta": {
+    "release": {
+      "name": "hyperframes",
+      "package": "hyperframes@0.9.6",
+      "source": "npx --yes hyperframes@0.9.6 (--help top-level list, per-command --help for render/check/docs, and single-command probes for hidden commands figma, media-use, play, usage, events)",
+      "date": "2026-11-12"
+    },
+    "framesmith": {
+      "version": "0.1.0",
+      "binary": "framesmith (cargo build --bin framesmith)",
+      "source": "this tree (HEAD 35e8459; clean working tree)"
+    },
+    "method": "Every released top-level command and hidden command probed live resolves to one inventory row (present or named exception). Render formats, docs topics are diffed from live help text. Every present row carries a mechanical probe against the built binary or the crate sources. The checker (n27-parity-check.sh) re-runs all probes and the discovery diff; anything unlisted fails naming the feature. Second-binary package surfaces (e.g. hyperframes-localize-fonts) and npm catalog counts are out of scope: only CLI, compositions, and docs at that version are inventoried.",
+    "counts_explanation": "Verdict reads 100% when every row is present-with-green-probes or exception-with-justification and discovery diffs are clean."
+  },
+  "rows": [
+    {
+      "id": "cli-init",
+      "surface": "cli",
+      "hf": "init",
+      "hf_cli": "init",
+      "hf_form": "Scaffold a new composition project",
+      "framesmith_form": "framesmith init <name> [--example <starter>]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "init <name>"
+        }
+      ]
+    },
+    {
+      "id": "cli-add",
+      "surface": "cli",
+      "hf": "add",
+      "hf_cli": "add",
+      "hf_form": "Install a block or component (name or tag) into the project",
+      "framesmith_form": "framesmith catalog install <project> <name...> [--tag <tag>...] [--vars <id=value>...] [--force]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Blocks/components install by name or tag with vars baking and force, same contract as HF add.",
+      "probe": [
+        {
+          "kind": "usage-has",
+          "token": "framesmith catalog install"
+        }
+      ]
+    },
+    {
+      "id": "cli-capture",
+      "surface": "cli",
+      "hf": "capture",
+      "hf_cli": "capture",
+      "hf_form": "Capture a website into components (screenshots, HTML, tokens, images, video-download mode)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Needs a browser page to capture into components; Framesmith has no browser (native KDL pipeline). No capture verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-catalog",
+      "surface": "cli",
+      "hf": "catalog",
+      "hf_cli": "catalog",
+      "hf_form": "Browse and install registry blocks/components (words, type, tag, on-device meaning search)",
+      "framesmith_form": "framesmith catalog search/show/meaning-search",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Word search, type/tag filters, and consent-gated meaning search all ship; the human picker is the numbered listing.",
+      "probe": [
+        {
+          "kind": "usage-has",
+          "token": "framesmith catalog search"
+        }
+      ]
+    },
+    {
+      "id": "cli-preview",
+      "surface": "cli",
+      "hf": "preview",
+      "hf_cli": "preview",
+      "hf_form": "Start Studio for previewing compositions",
+      "framesmith_form": "framesmith preview [--port <n>] [--composition <name>] [--foreground] <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Serves the Studio review page; daemon verbs preview-status/stop/list/stop-all.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "preview [--port"
+        }
+      ]
+    },
+    {
+      "id": "cli-present",
+      "surface": "cli",
+      "hf": "present",
+      "hf_cli": "present",
+      "hf_form": "Presenter mode with audience sync",
+      "framesmith_form": "framesmith present [--port <n>] [--foreground] <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Slideshow presenter and audience serves ship from the preview crate.",
+      "probe": [
+        {
+          "kind": "usage-has",
+          "token": "framesmith present"
+        }
+      ]
+    },
+    {
+      "id": "cli-publish",
+      "surface": "cli",
+      "hf": "publish",
+      "hf_cli": "publish",
+      "hf_form": "Upload a project to a stable hosted URL",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Hosted upload and stable-URL sharing are cloud hosting (PROPOSAL Section 2 excluded). No publish verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-render",
+      "surface": "cli",
+      "hf": "render",
+      "hf_cli": "render",
+      "hf_form": "Render a composition to video",
+      "framesmith_form": "framesmith render <folder> ...",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Core render with bootstrap, staged publish, and the full flag set covered by render-* rows.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "render <folder> [-o <file>]"
+        }
+      ]
+    },
+    {
+      "id": "cli-open",
+      "surface": "cli",
+      "hf": "open",
+      "hf_cli": "open",
+      "hf_form": "Open a project in the HyperFrames desktop app",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "tool-identity",
+      "justification": "Launches the closed-source desktop app, which Framesmith does not ship; projects open via preview/play/present instead.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-catch-up",
+      "surface": "cli",
+      "hf": "catch-up",
+      "hf_cli": "catch-up",
+      "hf_form": "What changed in the desktop app since last look",
+      "framesmith_form": "framesmith history list <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Same observable content: the project's recorded changes, readable as the shared human/agent history.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "history (list"
+        }
+      ]
+    },
+    {
+      "id": "cli-lint",
+      "surface": "cli",
+      "hf": "lint",
+      "hf_cli": "lint",
+      "hf_form": "Static validation with grouped rules",
+      "framesmith_form": "framesmith lint <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "lint [--json]"
+        }
+      ]
+    },
+    {
+      "id": "cli-check",
+      "surface": "cli",
+      "hf": "check",
+      "hf_cli": "check",
+      "hf_form": "Lint + runtime + layout gate",
+      "framesmith_form": "framesmith check <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "The single gate; validate/inspect are upstream-deprecated aliases of it.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "check [--json]"
+        }
+      ]
+    },
+    {
+      "id": "cli-validate",
+      "surface": "cli",
+      "hf": "validate",
+      "hf_cli": "validate",
+      "hf_form": "Runtime-validate in headless Chrome (upstream help marks it deprecated, use check)",
+      "framesmith_form": "framesmith check <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Deprecated upstream; check covers lint, runtime, layout, contrast, and audio findings.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "check [--json]"
+        }
+      ]
+    },
+    {
+      "id": "cli-inspect",
+      "surface": "cli",
+      "hf": "inspect",
+      "hf_cli": "inspect",
+      "hf_form": "Layout inspection with motion assertions (upstream help marks it deprecated, use check)",
+      "framesmith_form": "framesmith check <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Deprecated upstream; check covers overflow/occlusion/motion assertions.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "check [--json]"
+        }
+      ]
+    },
+    {
+      "id": "cli-beats",
+      "surface": "cli",
+      "hf": "beats",
+      "hf_cli": "beats",
+      "hf_form": "Beat grid from a music track",
+      "framesmith_form": "framesmith beats <input.wav>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Pure-Rust signal analysis, no signal from the browser.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "beats <input.wav>"
+        }
+      ]
+    },
+    {
+      "id": "cli-audio",
+      "surface": "cli",
+      "hf": "audio",
+      "hf_cli": "audio",
+      "hf_form": "Film-time audio measurement (onsets, hits, loudness, silence, envelope, describe)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "Framesmith waveform reports per-bucket peaks only; film-time onset/loudness/silence measurement is not shipped (loudness exists only inside the render mix).",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-keyframes",
+      "surface": "cli",
+      "hf": "keyframes",
+      "hf_cli": "keyframes",
+      "hf_form": "Keyframe and motion-path diagnostics",
+      "framesmith_form": "framesmith keyframes --clip <id> --property <name> <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Computed per-frame motion values per clip and property.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "keyframes --clip"
+        }
+      ]
+    },
+    {
+      "id": "cli-snapshot",
+      "surface": "cli",
+      "hf": "snapshot",
+      "hf_cli": "snapshot",
+      "hf_form": "PNG frames at times/angles",
+      "framesmith_form": "framesmith snapshot --out <dir> (--at|--every|--from..--to) <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Stills named by time; no MP4 is written.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "snapshot (--at"
+        }
+      ]
+    },
+    {
+      "id": "cli-media-treatment",
+      "surface": "cli",
+      "hf": "media-treatment",
+      "hf_cli": "media-treatment",
+      "hf_form": "Discover, apply, or clear media grading patches from the CLI",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "No CLI patch/analyze/clear verb ships; grades are authored in KDL grade elements and viewed via grade-compare/grade-bake only.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-normalize-audio",
+      "surface": "cli",
+      "hf": "normalize-audio",
+      "hf_cli": "normalize-audio",
+      "hf_form": "Match one clip's loudness to an LUFS target or a reference clip",
+      "framesmith_form": "audio normalize=\"loud\" on the clip (integrated loudness at -16 LUFS with true-peak guarding)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "In-composition normalization at the same -16 LUFS default; there is no separate normalize-audio command.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/loudness.rs",
+          "needle": "integrated_loudness"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "\"loud\""
+        }
+      ]
+    },
+    {
+      "id": "cli-grade-compare",
+      "surface": "cli",
+      "hf": "grade-compare",
+      "hf_cli": "grade-compare",
+      "hf_form": "Labeled comparison PNG of candidate grades",
+      "framesmith_form": "framesmith grade-compare -o <out.png> <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Splits one composition into ungraded and graded halves.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "grade-compare -o <out.png>"
+        }
+      ]
+    },
+    {
+      "id": "cli-compare",
+      "surface": "cli",
+      "hf": "compare",
+      "hf_cli": "compare",
+      "hf_form": "Side-by-side comparison sheet of variants",
+      "framesmith_form": "framesmith compare -o <out.png> <folderA> <folderB>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Joins two renders side by side with an SSIM score.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "compare -o <out.png>"
+        }
+      ]
+    },
+    {
+      "id": "cli-diff",
+      "surface": "cli",
+      "hf": "diff",
+      "hf_cli": "diff",
+      "hf_form": "Score a render or project against the original video frame by frame (SSIM, segments, side-by-side)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "No rebuild-vs-original scoring ships; verify judges a candidate against a single-pass oracle and compare joins two renders, neither scores against an original video.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-measure",
+      "surface": "cli",
+      "hf": "measure",
+      "hf_cli": "measure",
+      "hf_form": "Video-rebuild measurement suite (probe, cuts, events, frames, extract, curve, energy, ink, look, face, sync)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "No measurement suite ships; waveform, snapshot, and keyframes cover peaks, frames, and computed motion only.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-reverse",
+      "surface": "cli",
+      "hf": "reverse",
+      "hf_cli": "reverse",
+      "hf_form": "Open a reverse-any-video run, noted with HeyGen",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Noting a run with HeyGen needs sign-in and hosted generation (cloud/account, excluded). No reverse verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-billing",
+      "surface": "cli",
+      "hf": "billing",
+      "hf_cli": "billing",
+      "hf_form": "Open plans or credits page",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Account billing surface; Framesmith needs no account and has no billing surface.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-info",
+      "surface": "cli",
+      "hf": "info",
+      "hf_cli": "info",
+      "hf_form": "Print project metadata",
+      "framesmith_form": "framesmith info [--json] [--composition <name>] <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Canvas, duration, and clip counts.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "info [--json]"
+        }
+      ]
+    },
+    {
+      "id": "cli-compositions",
+      "surface": "cli",
+      "hf": "compositions",
+      "hf_cli": "compositions",
+      "hf_form": "List all compositions in a project",
+      "framesmith_form": "framesmith compositions [--json] <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Every composition name plus the root.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "compositions [--json]"
+        }
+      ]
+    },
+    {
+      "id": "cli-timeline",
+      "surface": "cli",
+      "hf": "timeline",
+      "hf_cli": "timeline",
+      "hf_form": "Print tracks and clips; edit verbs move/trim/split/delete/set/duplicate/ids/apply/undo",
+      "framesmith_form": "framesmith timeline (+move/trim/split/delete/set/duplicate/ids/plan/apply/undo)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Same edit verbs plus plan/apply/undo receipts.",
+      "probe": [
+        {
+          "kind": "usage-has",
+          "token": "timeline move|trim|split"
+        }
+      ]
+    },
+    {
+      "id": "cli-history",
+      "surface": "cli",
+      "hf": "history",
+      "hf_cli": "history",
+      "hf_form": "List, undo and restore recorded changes (shared human/agent history)",
+      "framesmith_form": "framesmith history (list|show|undo|restore|peek|pin|begin|end)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Guarded multi-writer history with --who/--exclusive/--if-open.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "history (list"
+        }
+      ]
+    },
+    {
+      "id": "cli-docs",
+      "surface": "cli",
+      "hf": "docs",
+      "hf_cli": "docs",
+      "hf_form": "Inline documentation topics in the terminal",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "no-verbatim-equivalent",
+      "justification": "No docs command ships; framesmith errors explains every error code, but the nine-topic docs surface is absent.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-benchmark",
+      "surface": "cli",
+      "hf": "benchmark",
+      "hf_cli": "benchmark",
+      "hf_form": "Render with preset fps/quality/worker configs and compare speed and size",
+      "framesmith_form": "framesmith benchmark [--out <dir>]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Times bundled references (machine-specific).",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "benchmark [--out"
+        }
+      ]
+    },
+    {
+      "id": "cli-browser",
+      "surface": "cli",
+      "hf": "browser",
+      "hf_cli": "browser",
+      "hf_form": "Manage the Chrome browser used for rendering (ensure/path/clear)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Manages a Chrome download Framesmith never has; the native pipeline needs no browser to manage.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-doctor",
+      "surface": "cli",
+      "hf": "doctor",
+      "hf_cli": "doctor",
+      "hf_form": "Check system dependencies and environment",
+      "framesmith_form": "framesmith doctor [<folder>]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Environment and project health facts; no browser to check.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "doctor [<folder>]"
+        }
+      ]
+    },
+    {
+      "id": "cli-clean",
+      "surface": "cli",
+      "hf": "clean",
+      "hf_cli": "clean",
+      "hf_form": "Find and remove what the tool left on disk",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "No clean verb ships; the footage cache is project-local under logs/, bounded, and env-relocatable, so removal is deleting that directory.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-upgrade",
+      "surface": "cli",
+      "hf": "upgrade",
+      "hf_cli": "upgrade",
+      "hf_form": "Check for updates and show upgrade instructions",
+      "framesmith_form": null,
+      "status": "present",
+      "category": "present-by-T002",
+      "justification": "No upgrade verb ships in this tree; version reporting exists via --version and the update check lands with T002.",
+      "note": "upgrade verb ships (update check + update apply, consent-gated); verified by cli_n27_version_update suite.",
+      "probe": []
+    },
+    {
+      "id": "cli-cloud",
+      "surface": "cli",
+      "hf": "cloud",
+      "hf_cli": "cloud",
+      "hf_form": "Render compositions on hosted cloud",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Hosted cloud rendering is excluded (PROPOSAL Section 2). No cloud verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-lambda",
+      "surface": "cli",
+      "hf": "lambda",
+      "hf_cli": "lambda",
+      "hf_form": "Deploy and drive distributed renders on AWS Lambda",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Self-hosted cloud rendering is excluded (PROPOSAL Section 2). No lambda verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-cloudrun",
+      "surface": "cli",
+      "hf": "cloudrun",
+      "hf_cli": "cloudrun",
+      "hf_form": "Deploy and drive distributed renders on Google Cloud Run",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Self-hosted cloud rendering is excluded (PROPOSAL Section 2). No cloudrun verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-skills",
+      "surface": "cli",
+      "hf": "skills",
+      "hf_cli": "skills",
+      "hf_form": "Install, check, and update skills for AI coding tools",
+      "framesmith_form": "framesmith skills (list/install/check/update/validate)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Hashed-manifest install/check/update over skill locations.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "skills list"
+        }
+      ]
+    },
+    {
+      "id": "cli-transcribe",
+      "surface": "cli",
+      "hf": "transcribe",
+      "hf_cli": "transcribe",
+      "hf_form": "Transcribe to word-level timestamps or import a transcript",
+      "framesmith_form": "framesmith transcribe <input> [--to srt|vtt]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Engine/model/language flags ship.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "transcribe <input>"
+        }
+      ]
+    },
+    {
+      "id": "cli-models",
+      "surface": "cli",
+      "hf": "models",
+      "hf_cli": "models",
+      "hf_form": "List or download on-device models",
+      "framesmith_form": "framesmith models list|install <name>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Consent-gated installs.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "models list|install"
+        }
+      ]
+    },
+    {
+      "id": "cli-tts",
+      "surface": "cli",
+      "hf": "tts",
+      "hf_cli": "tts",
+      "hf_form": "Generate speech audio from text with a local model",
+      "framesmith_form": "framesmith tts <text...>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Voice/speed/language/model flags ship.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "tts <text...>"
+        }
+      ]
+    },
+    {
+      "id": "cli-remove-background",
+      "surface": "cli",
+      "hf": "remove-background",
+      "hf_cli": "remove-background",
+      "hf_form": "Remove background, producing transparent media and a background plate",
+      "framesmith_form": "framesmith remove-background <input.png> [--quality fast|balanced|precise]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Emits subject alpha plus the background plate.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "remove-background <input.png>"
+        }
+      ]
+    },
+    {
+      "id": "cli-auth",
+      "surface": "cli",
+      "hf": "auth",
+      "hf_cli": "auth",
+      "hf_form": "Sign in and manage credentials",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Sign-in and credential management are account surface (excluded); Framesmith needs no account.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-feedback",
+      "surface": "cli",
+      "hf": "feedback",
+      "hf_cli": "feedback",
+      "hf_form": "Submit rating, comment, or search-miss report",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Remote feedback intake needs an account service; local-first Framesmith ships no feedback verb (search misses go to catalog report-miss).",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-telemetry",
+      "surface": "cli",
+      "hf": "telemetry",
+      "hf_cli": "telemetry",
+      "hf_form": "Manage usage telemetry",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Telemetry collection is not shipped (local-first; privacy per specification Section 11). No telemetry verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-figma",
+      "surface": "cli",
+      "hf": "figma",
+      "hf_cli": "figma",
+      "hf_form": "Import Figma assets, tokens, and components (hidden command)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "no-verbatim-equivalent",
+      "justification": "Figma REST import is not shipped; Framesmith imports local design files through the catalog and design-import skill instead.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-media-use",
+      "surface": "cli",
+      "hf": "media-use",
+      "hf_cli": "media-use",
+      "hf_form": "Resolve project media through a provider cascade (hidden command)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "no-verbatim-equivalent",
+      "justification": "No hosted provider cascade ships; Framesmith adopts local media and catalog items, never a provider resolver.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-play",
+      "surface": "cli",
+      "hf": "play",
+      "hf_cli": "play",
+      "hf_form": "Play a composition in a lightweight player (hidden command)",
+      "framesmith_form": "framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Lightweight player serve from the preview crate.",
+      "probe": [
+        {
+          "kind": "usage-has",
+          "token": "framesmith play"
+        }
+      ]
+    },
+    {
+      "id": "cli-usage",
+      "surface": "cli",
+      "hf": "usage",
+      "hf_cli": "usage",
+      "hf_form": "Read remaining harness subscription usage (hidden command)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Account usage meter; no account exists to meter.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "cli-events",
+      "surface": "cli",
+      "hf": "events",
+      "hf_cli": "events",
+      "hf_form": "Emit a skill-usage telemetry event (hidden command)",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "excluded",
+      "justification": "Emits telemetry events for a pipeline that does not exist (local-first). No events verb ships.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "render-format-mp4",
+      "surface": "render",
+      "hf": "mp4 (default)",
+      "hf_format": "mp4",
+      "hf_form": "H.264 MP4 with AAC, faststart",
+      "framesmith_form": "--format mp4 (default, unchanged H.264 + AAC argv)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "\"mp4\" => Some(OutputFormat::Mp4)"
+        }
+      ]
+    },
+    {
+      "id": "render-format-webm",
+      "surface": "render",
+      "hf": "webm",
+      "hf_format": "webm",
+      "hf_form": "VP9 WebM with alpha, Opus audio",
+      "framesmith_form": "--format webm (VP9, keeps alpha)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "\"webm\" => Some(OutputFormat::Webm)"
+        }
+      ]
+    },
+    {
+      "id": "render-format-mov",
+      "surface": "render",
+      "hf": "mov",
+      "hf_format": "mov",
+      "hf_form": "MOV (H.264 or ProRes 4444 with alpha)",
+      "framesmith_form": "--format mov (H.264) and --format prores (--prores-profile proxy|lt|standard|hq|4444)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "ProRes profiles ship; the mov row covers both.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "\"prores\" => Some(OutputFormat::Prores)"
+        }
+      ]
+    },
+    {
+      "id": "render-format-gif",
+      "surface": "render",
+      "hf": "gif",
+      "hf_format": "gif",
+      "hf_form": "Looping GIF",
+      "framesmith_form": "--format gif (palette-fixed, deterministic, loop count on the job)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Loop count rides the render job (0 means forever).",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "\"gif\" => Some(OutputFormat::Gif)"
+        }
+      ]
+    },
+    {
+      "id": "render-format-png-sequence",
+      "surface": "render",
+      "hf": "png-sequence",
+      "hf_format": "png-sequence",
+      "hf_form": "RGBA PNG frame sequence directory",
+      "framesmith_form": "--format pngseq (frame-0001.png sequence)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Spelling differs (pngseq); the directory output is the same.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "\"pngseq\" => Some(OutputFormat::PngSeq)"
+        }
+      ]
+    },
+    {
+      "id": "render-format-hls",
+      "surface": "render",
+      "hf": "hls",
+      "hf_format": "hls",
+      "hf_form": "HLS VOD playlist with segments (SDR only, no GPU)",
+      "framesmith_form": "--format hls (index.m3u8 playlist plus segments)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "\"hls\" => Some(OutputFormat::Hls)"
+        }
+      ]
+    },
+    {
+      "id": "render-span",
+      "surface": "render",
+      "hf": "--start / --end",
+      "hf_form": "Render one span of the film as its own MP4",
+      "framesmith_form": "render ... [--start S] [--end E]",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "--start S] [--end E]"
+        }
+      ]
+    },
+    {
+      "id": "render-hdr",
+      "surface": "render",
+      "hf": "HDR output",
+      "hf_form": "--hdr/--sdr, PQ and HLG auto-detection, tone mapping when the format cannot carry HDR",
+      "framesmith_form": "--hdr off|pq|hlg|auto with Main10/HEVC params and tone mapping for SDR formats",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "pub enum HdrMode"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "x265_hdr_params"
+        }
+      ]
+    },
+    {
+      "id": "render-quality",
+      "surface": "render",
+      "hf": "quality presets",
+      "hf_form": "draft, looks (default), delivery, standard/high plus --crf/--video-bitrate",
+      "framesmith_form": "--preset draft|standard|high plus --crf/--video-bitrate",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Preset names differ by design; looks/delivery aliases are not shipped.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "--preset draft|standard|high"
+        }
+      ]
+    },
+    {
+      "id": "render-encode-controls",
+      "surface": "render",
+      "hf": "encode controls",
+      "hf_form": "--keyframe-interval, --max-bitrate, --buffer-size",
+      "framesmith_form": "--keyint N, --maxrate B (buffer derived as 2x maxrate)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "No separate --buffer-size knob; it derives from --maxrate.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/cli/src/main.rs",
+          "needle": "--keyint"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/cli/src/main.rs",
+          "needle": "--maxrate"
+        }
+      ]
+    },
+    {
+      "id": "render-gpu-encode",
+      "surface": "render",
+      "hf": "--gpu encoding",
+      "hf_form": "Hardware encoding (VideoToolbox, NVENC, VAAPI, QSV, AMF)",
+      "framesmith_form": "--encoder auto|software|cpu|videotoolbox|nvenc|vaapi|qsv|amf with per-OS auto priority",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/cli/src/main.rs",
+          "needle": "--encoder"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/render/src/outputs.rs",
+          "needle": "ALL_HARDWARE_ENCODERS"
+        }
+      ]
+    },
+    {
+      "id": "render-resolution",
+      "surface": "render",
+      "hf": "--resolution presets",
+      "hf_form": "720p/1080p/4K presets with integer supersampling",
+      "framesmith_form": "--resolution source|1080p|720p|480p|square-1080|4k plus --supersample 1|2|3|4",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Orientation presets are expressed as explicit dimensions instead.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "--resolution ..] [--supersample"
+        }
+      ]
+    },
+    {
+      "id": "render-variables-batch",
+      "surface": "render",
+      "hf": "variables and batch",
+      "hf_form": "--variables/--variables-file, --batch rows, --batch-concurrency, --batch-fail-fast, --strict-variables",
+      "framesmith_form": "--variables, --batch rows.json (--name-template, --jobs, --fail-fast), --strict-variables",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "--batch-concurrency is spelled --jobs; the file-row contract is the same.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "batch rows.json"
+        },
+        {
+          "kind": "help-has",
+          "token": "--strict-variables"
+        }
+      ]
+    },
+    {
+      "id": "render-workers-resume",
+      "surface": "render",
+      "hf": "parallel workers and resume",
+      "hf_form": "--workers, segmented capture, --resume/--keep-segments, --max-concurrent-renders, --low-memory-mode, --frames-cache-dir",
+      "framesmith_form": "--workers (LAN), --chunks/--chunk-size, --resume (chunk journal)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Browser-per-worker capture is replaced by chunked local/LAN orchestration; ledger is the chunk journal.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/cli/src/main.rs",
+          "needle": "--chunks"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/cli/src/main.rs",
+          "needle": "--workers"
+        }
+      ]
+    },
+    {
+      "id": "render-strictness",
+      "surface": "render",
+      "hf": "--strict / --strict-all",
+      "hf_form": "Fail on lint errors, or errors and warnings",
+      "framesmith_form": "--strict/--strict-all on check, lint, and render",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "[--strict|--strict-all]"
+        }
+      ]
+    },
+    {
+      "id": "render-best-effort",
+      "surface": "render",
+      "hf": "--best-effort",
+      "hf_form": "Warn-only render on unready media instead of failing",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "No warn-only mode ships; render refuses on unusable input and writes no MP4 (proven by the n25 gate refusal check).",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "render-docker",
+      "surface": "render",
+      "hf": "--docker",
+      "hf_form": "Deterministic render inside a pinned container image",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "tool-identity",
+      "justification": "No container image ships; determinism is native single-pass bytes, not a container pin.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "render-browser-timeouts",
+      "surface": "render",
+      "hf": "browser timeouts",
+      "hf_form": "--browser-timeout, --protocol-timeout, --player-ready-timeout",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Timeouts for browser navigation, CDP protocol, and player readiness; Framesmith has no browser to time out.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "render-vp9-cpu-used",
+      "surface": "render",
+      "hf": "--vp9-cpu-used",
+      "hf_form": "libvpx-vp9 speed knob for WebM encodes",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "partial",
+      "justification": "No vp9 speed knob ships; WebM encodes with the encoder default, chosen only through --encoder.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-text",
+      "surface": "composition",
+      "hf": "text elements",
+      "hf_form": "Text clips with font, size, spacing, line height, alignment, case",
+      "framesmith_form": "text clip (glyph/layout crates; CSS-hyphenated attrs)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct TextClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-box",
+      "surface": "composition",
+      "hf": "box/SVG graphics",
+      "hf_form": "Boxes, SVG, paths with fill, border, radius",
+      "framesmith_form": "box, flex, path, svg clips (border-width, border-radius, border-color)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "KDL style attrs are CSS-hyphenated (border-width, border-color).",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct BoxClip"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "border-width"
+        }
+      ]
+    },
+    {
+      "id": "comp-flex",
+      "surface": "composition",
+      "hf": "flex layout",
+      "hf_form": "Flex containers and layout",
+      "framesmith_form": "flex clip (direction, align, justify, gap)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct FlexClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-image",
+      "surface": "composition",
+      "hf": "image elements",
+      "hf_form": "PNG/JPEG images, decode, place, fit, position, color tags",
+      "framesmith_form": "image clip (fit, position, trim, rate; HEIC converted at compile)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct ImageClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-video",
+      "surface": "composition",
+      "hf": "video elements",
+      "hf_form": "Video decode, place, fit, trim, rate, loop",
+      "framesmith_form": "video clip (trim, rate 0.1-10, loop, hold)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct VideoClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-audio",
+      "surface": "composition",
+      "hf": "audio elements",
+      "hf_form": "Audio with volume, fades, trim, rate",
+      "framesmith_form": "audio clip (volume, fade-in/fade-out, trim, rate 0.1-10)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct AudioClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-chart",
+      "surface": "composition",
+      "hf": "charts (charts/D3)",
+      "hf_form": "Bar, line, area, pie, scatter, gauge, radar data viz",
+      "framesmith_form": "chart clip (bar, line, area, pie, donut, scatter, radar, gauge)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Native chart clip replaces the D3 readiness adapter.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct ChartClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-lottie",
+      "surface": "composition",
+      "hf": "Lottie/dotLottie",
+      "hf_form": "Lottie animation elements",
+      "framesmith_form": "lottie clip (full playback, seekable)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct LottieClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-nest",
+      "surface": "composition",
+      "hf": "nested compositions",
+      "hf_form": "Sub-compositions, mounted timelines",
+      "framesmith_form": "nest clip (styling, depth-limited, cycle-safe)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct NestClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-map",
+      "surface": "composition",
+      "hf": "maps",
+      "hf_form": "Leaflet/Mapbox/MapLibre/Google Maps readiness",
+      "framesmith_form": "map clip (markers, polylines, polygons, pan/zoom)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Native map clip replaces the readiness adapters.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct MapClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-scene3d",
+      "surface": "composition",
+      "hf": "3D (Three.js)",
+      "hf_form": "3D scenes, cameras, lights",
+      "framesmith_form": "scene3d clip (geometries, camera keys, lights)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Native 3D scene replaces the Three.js adapter.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct Scene3dClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-captions",
+      "surface": "composition",
+      "hf": "captions track",
+      "hf_form": "One caption track, word timing, overrides, 13/7/11 animation presets, behind-subject",
+      "framesmith_form": "captions clip (srt/vtt/transcript inline cues, word overrides, 13/7/11 families)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct CaptionClip"
+        }
+      ]
+    },
+    {
+      "id": "comp-tween-key",
+      "surface": "composition",
+      "hf": "motion",
+      "hf_form": "Tweens, keyframes, easing, stagger, repeat",
+      "framesmith_form": "tween/key/set directives with ease, stagger, repeat",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Native motion replaces GSAP.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct TweenDecl"
+        },
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct StaggerGrid"
+        }
+      ]
+    },
+    {
+      "id": "comp-variables",
+      "surface": "composition",
+      "hf": "variables",
+      "hf_form": "Declared variables, binding, per-host overrides, strict validation",
+      "framesmith_form": "variable declarations plus CLI --variables/--batch and SDK variable APIs",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct VariableDecl"
+        }
+      ]
+    },
+    {
+      "id": "comp-themes",
+      "surface": "composition",
+      "hf": "themes",
+      "hf_form": "Named themes with tokens (bold, editorial, neutral)",
+      "framesmith_form": "declared themes selected with --theme",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Themes are authored per composition instead of three shipped presets.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "--theme NAME"
+        }
+      ]
+    },
+    {
+      "id": "comp-slideshow",
+      "surface": "composition",
+      "hf": "slideshow",
+      "hf_form": "Deck manifest with notes, fragments, branches, hotspots, autoplay",
+      "framesmith_form": "slideshow manifest plus present command",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct SlideshowManifest"
+        }
+      ]
+    },
+    {
+      "id": "comp-grading",
+      "surface": "composition",
+      "hf": "color grading",
+      "hf_form": "Preset looks, adjust, wheels, curves, HSL, vignette/grain, LUTs, groups, bake to .cube",
+      "framesmith_form": "grade (preset, wheels, curves, HSL, vignette, grain, LUT) plus lane groups plus grade-bake",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Preset names differ by design; LUT import and .cube baking ship.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct LaneGrade"
+        },
+        {
+          "kind": "help-has",
+          "token": "grade-bake"
+        }
+      ]
+    },
+    {
+      "id": "comp-audio-effects",
+      "surface": "composition",
+      "hf": "audio effects chain",
+      "hf_form": "16-effect ordered chain (EQ, dynamics, delay, reverb, chorus, phaser, pitchshift), truepeak limiter, 22 presets, EQ jobs, levers, groups, master chain",
+      "framesmith_form": "delay/reverb only (SoundFx)",
+      "status": "exception",
+      "category": "partial",
+      "justification": "Only delay and reverb sound effects ship; EQ, compressors/limiters, presets, groups and the master chain are absent.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-audio-automation",
+      "surface": "composition",
+      "hf": "audio automation lanes",
+      "hf_form": "Lanes for volume, rate, effect params, and presets (512 points per lane)",
+      "framesmith_form": "volume envelopes via key/tween/set only",
+      "status": "exception",
+      "category": "partial",
+      "justification": "Volume envelopes via key/tween/set ship; rate and effect-parameter lanes are absent.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-duck-under",
+      "surface": "composition",
+      "hf": "duck under voice",
+      "hf_form": "Music ducks under voice, strength 0-1",
+      "framesmith_form": "duck-under plus duck-amount on audio and video clips",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Deterministic level rule, no signal detection.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct DuckUnder"
+        }
+      ]
+    },
+    {
+      "id": "comp-media-effects",
+      "surface": "composition",
+      "hf": "media effects (18)",
+      "hf_form": "Blur, Pixelate, Bloom, glitch, print, ASCII/engraving art families",
+      "framesmith_form": "18 adjustment-style effect presets (grayscale, sepia, invert, ...)",
+      "status": "exception",
+      "category": "partial",
+      "justification": "Both catalogs hold 18 presets with different coverage; HF retro/glitch/print projects (scanlines, CRT, halftone, ASCII, ...) have no equivalent.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-vfx-chain",
+      "surface": "composition",
+      "hf": "VFX chain",
+      "hf_form": "Five kernels: fractal noise, wave warp, displacement map, luma matte, noise",
+      "framesmith_form": "vfx chain with the same five kernels",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct VfxChain"
+        }
+      ]
+    },
+    {
+      "id": "comp-shader-transitions",
+      "surface": "composition",
+      "hf": "shader transitions (14)",
+      "hf_form": "GLSL shader transitions (domain-warp, whip-pan, sdf-iris, ...)",
+      "framesmith_form": "CPU transition kinds (fade, dissolve, wipes, push, cover, ...)",
+      "status": "exception",
+      "category": "partial",
+      "justification": "No GLSL/page compositor ships; the 14 shader transitions are absent and only crossfade-class transitions cover the user-visible gap.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-motion-blur",
+      "surface": "composition",
+      "hf": "motion blur",
+      "hf_form": "Sub-frame accumulation (samples, shutter angle, blend), capture/filter tiers",
+      "framesmith_form": "motion-blur element (shutter 0-360, samples 1-32, tier auto/high/medium/low)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Same user controls; both tiers are native draw passes.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct MotionBlur"
+        }
+      ]
+    },
+    {
+      "id": "comp-speed-ramps",
+      "surface": "composition",
+      "hf": "speed ramps",
+      "hf_form": "Rate lanes with log interpolation, 9 presets, freeze frame",
+      "framesmith_form": "static rate 0.1-10 only",
+      "status": "exception",
+      "category": "partial",
+      "justification": "Static playback rate ships; log-interpolated rate lanes, the 9 presets, and freeze are absent.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-fonts",
+      "surface": "composition",
+      "hf": "deterministic fonts",
+      "hf_form": "18 bundled families with alias map; project fonts embedded",
+      "framesmith_form": "project font declarations embedded deterministically (glyph/layout crates honor font-family try-order)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "System-font discovery plus project fonts replace the fixed 18-family bundle.",
+      "probe": [
+        {
+          "kind": "grep",
+          "file": "crates/notation/src/model.rs",
+          "needle": "pub struct FontDecl"
+        }
+      ]
+    },
+    {
+      "id": "comp-gsap",
+      "surface": "composition",
+      "hf": "GSAP / CSS / Web Animations adapters",
+      "hf_form": "Browser animation runtimes driving the timeline",
+      "framesmith_form": "native tween/set/key motion",
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Need a browser to run GSAP, CSS animations, or WAAPI; Framesmith animates with native tween/set/key instead.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-webgpu",
+      "surface": "composition",
+      "hf": "WebGPU / TypeGPU adapter",
+      "hf_form": "WebGPU compositions with device creation before capture",
+      "framesmith_form": "native CPU/GPU draw (no WebGPU runtime)",
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Needs a WebGPU runtime and browser capture; Framesmith draws natively and has no WebGPU device or sandboxed runtime.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-frame-source",
+      "surface": "composition",
+      "hf": "custom frame source API",
+      "hf_form": "registerFrameSource (ready, render at time, dispose, source range)",
+      "framesmith_form": "custom sources in the render pipeline plus the SDK frame surface",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "exists",
+          "file": "crates/render/src/custom_source.rs"
+        }
+      ]
+    },
+    {
+      "id": "comp-html-in-canvas",
+      "surface": "composition",
+      "hf": "HTML-in-canvas",
+      "hf_form": "drawElementImage browser capture API",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Browser capture API; Framesmith has no browser to rasterize HTML from.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "comp-film-bridge",
+      "surface": "composition",
+      "hf": "imported film bridge",
+      "hf_form": "Sandboxed external HTML films bridge",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "browser-specific",
+      "justification": "Bridges sandboxed iframe films through a browser; out of scope for the native pipeline.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "tool-studio",
+      "surface": "tooling",
+      "hf": "Studio browser editor",
+      "hf_form": "11-panel editor with timeline, canvas, inspector, panels, hot reload",
+      "framesmith_form": "preview serve with studio modules (transport, canvas, inspector, clips, audio, renders, variables)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Studio ships as the preview serve; daemon verbs manage it.",
+      "probe": [
+        {
+          "kind": "exists",
+          "file": "crates/preview/src/studio.rs"
+        },
+        {
+          "kind": "help-has",
+          "token": "preview [--port"
+        }
+      ]
+    },
+    {
+      "id": "tool-player",
+      "surface": "tooling",
+      "hf": "embeddable player",
+      "hf_form": "@hyperframes/player (play/pause/seek, events, controls)",
+      "framesmith_form": "framesmith play serve (player module)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "exists",
+          "file": "crates/preview/src/player.rs"
+        },
+        {
+          "kind": "usage-has",
+          "token": "framesmith play"
+        }
+      ]
+    },
+    {
+      "id": "tool-sdk",
+      "surface": "tooling",
+      "hf": "headless editing SDK",
+      "hf_form": "@hyperframes/sdk open composition, edit ops, patches, history coalescing",
+      "framesmith_form": "sdk crate (open with persist/preview/overrides/history/coalesce, edits, history, variables)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Crate API, not a CLI command.",
+      "probe": [
+        {
+          "kind": "exists",
+          "file": "crates/sdk/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "id": "tool-catalog-contents",
+      "surface": "tooling",
+      "hf": "registry catalog contents",
+      "hf_form": "456 items: 210 blocks, 238 components, 8 examples; shelves, tags, variables",
+      "framesmith_form": "bundled clean-room catalog (own blocks/components, shelves, install gating)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Items are never copied from HyperFrames (clean room); the equivalent catalog is our own.",
+      "probe": [
+        {
+          "kind": "exists",
+          "file": "crates/catalog/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "id": "tool-skills-set",
+      "surface": "tooling",
+      "hf": "agent skills and workflows",
+      "hf_form": "21 skills (router, 10 creation workflows, domain skills) as an agent plugin",
+      "framesmith_form": "20 skills (router, 10 creation workflows incl. migration, domain skills) plus route command",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Own clean-room skills; counts differ by design, workflow coverage is the parity claim.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "skills list"
+        },
+        {
+          "kind": "help-has",
+          "token": "route --request"
+        }
+      ]
+    },
+    {
+      "id": "tool-agent-docs",
+      "surface": "tooling",
+      "hf": "agent docs and protocols",
+      "hf_form": "llms.txt, prompting guides, WebMCP studio_* tools, inspector HTTP",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "no-verbatim-equivalent",
+      "justification": "No docs/agent-protocol surface ships (no llms.txt, no WebMCP tools); agents drive the CLI, SDK, and preview server instead.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "tool-npm-packages",
+      "surface": "tooling",
+      "hf": "npm package set",
+      "hf_form": "15 coordinated package dirs (CLI, player, sdk, studio-server, lambda, ...)",
+      "framesmith_form": "Rust crates plus one binary (distribution is T001)",
+      "status": "exception",
+      "category": "tool-identity",
+      "justification": "No npm packages ship; the crate workspace and single binary are the distribution.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "tool-inspector-caps",
+      "surface": "tooling",
+      "hf": "inspector capabilities",
+      "hf_form": "Element map, live inspection, timeline queries",
+      "framesmith_form": "timeline, info, keyframes queries plus the preview Studio inspection",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Capability parity, not package parity.",
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "timeline [--json]"
+        },
+        {
+          "kind": "help-has",
+          "token": "info [--json]"
+        }
+      ]
+    },
+    {
+      "id": "global-help-version",
+      "surface": "global",
+      "hf": "--help and --version",
+      "hf_form": "Top-level help and version reporting",
+      "framesmith_form": "framesmith --help and framesmith --version (framesmith 0.1.0)",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "exit-version"
+        }
+      ]
+    },
+    {
+      "id": "global-exit-codes",
+      "surface": "global",
+      "hf": "exit codes",
+      "hf_form": "0 success, 1 run failed, 2 bad command line or refusal",
+      "framesmith_form": "0 valid, 1 invalid/failed, 2 unknown subcommand/usage",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": "Measured: unknown subcommand exits 2, check on a missing folder exits 1, check on a valid folder exits 0.",
+      "probe": [
+        {
+          "kind": "exit-badcmd"
+        },
+        {
+          "kind": "exit-check-missing"
+        }
+      ]
+    },
+    {
+      "id": "global-json",
+      "surface": "global",
+      "hf": "--json output",
+      "hf_form": "--json on most commands with an error envelope on failure",
+      "framesmith_form": "--json on check, lint, snapshot, keyframes, compare, and listing verbs",
+      "status": "present",
+      "category": null,
+      "justification": null,
+      "note": null,
+      "probe": [
+        {
+          "kind": "help-has",
+          "token": "--json"
+        }
+      ]
+    },
+    {
+      "id": "global-env-behavior",
+      "surface": "global",
+      "hf": "env and background behavior",
+      "hf_form": ".env autoload, HYPERFRAMES_* variables, daily skills notice, 60s silence diagnostic, HYPERFRAMES_AGENT",
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "tool-identity",
+      "justification": "HF-specific env vars and background notices do not ship; Framesmith honors FRAMESMITH_* configuration only.",
+      "note": null,
+      "probe": []
+    },
+    {
+      "id": "docs-topics",
+      "surface": "docs",
+      "hf": "docs topics",
+      "hf_form": "Inline docs: data-attributes, examples, rendering, gsap, troubleshooting, compositions, audio, transcribe, motion-blur",
+      "hf_topics": [
+        "data-attributes",
+        "examples",
+        "rendering",
+        "gsap",
+        "troubleshooting",
+        "compositions",
+        "audio",
+        "transcribe",
+        "motion-blur"
+      ],
+      "framesmith_form": null,
+      "status": "exception",
+      "category": "no-verbatim-equivalent",
+      "justification": "No docs command ships; framesmith errors documents every error code, but the nine-topic docs surface is absent.",
+      "note": null,
+      "probe": []
+    }
+  ]
+}

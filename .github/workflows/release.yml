@@ -1,0 +1,184 @@
+name: Release
+
+# Sprint 27 T001 (CAP-001 / REC-001): per-OS installer packages are built
+# only from tagged releases. On a `v*` tag push, CI builds the four
+# required OS/arch pairs, refuses an incomplete set naming the missing OS,
+# and publishes a GitHub Release with the archives plus checksums.txt
+# (release metadata). Unsigned until owner-held keys are provisioned
+# (spec §3 deferred: signed/notarized certificates).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.os }} / ${{ matrix.slug }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            slug: macos-arm64
+            target_os: macos
+            target_arch: arm64
+            target_triple: aarch64-apple-darwin
+          - os: macos-latest
+            slug: macos-x64
+            target_os: macos
+            target_arch: x64
+            target_triple: x86_64-apple-darwin
+          - os: windows-latest
+            slug: windows-x64
+            target_os: windows
+            target_arch: x64
+            target_triple: x86_64-pc-windows-msvc
+          - os: ubuntu-latest
+            slug: linux-x64
+            target_os: linux
+            target_arch: x64
+            target_triple: x86_64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target_triple }}
+
+      - name: Resolve release version from tag
+        id: ver
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          version="${tag#v}"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Release $tag (version $version) on ${{ matrix.slug }}"
+
+      - name: Install FFmpeg (macOS)
+        if: matrix.target_os == 'macos'
+        run: |
+          arch=$(uname -m); [ "$arch" = "arm64" ] && asset=arm64 || asset=x64
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-osx-$asset.zip"
+          unzip -o -q ffmpeg.zip -d ffmpeg-registry
+          xattr -cr ffmpeg-registry/ffmpeg ffmpeg-registry/ffprobe 2>/dev/null || true
+          echo "$PWD/ffmpeg-registry" >> $GITHUB_PATH
+          ./ffmpeg-registry/ffmpeg -version | head -n 1
+
+      - name: Install FFmpeg (Windows)
+        if: matrix.target_os == 'windows'
+        shell: pwsh
+        run: |
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-windows-x64.zip"
+          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-registry -Force
+          "$PWD/ffmpeg-registry" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & .\ffmpeg-registry\ffmpeg.exe -version | Select-Object -First 1
+
+      - name: Install FFmpeg (Linux)
+        if: matrix.target_os == 'linux'
+        run: |
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-linux-x64.zip"
+          unzip -o -q ffmpeg.zip -d ffmpeg-registry
+          echo "$PWD/ffmpeg-registry" >> $GITHUB_PATH
+          ./ffmpeg-registry/ffmpeg -version | head -n 1
+
+      - name: Build framesmith binary (${{ matrix.slug }})
+        run: cargo build --bin framesmith --target ${{ matrix.target_triple }}
+
+      - name: Assemble package (${{ matrix.slug }})
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="target/${{ matrix.target_triple }}/debug/framesmith"
+          [ -f "$BIN" ] || BIN="target/debug/framesmith"
+          [ -f "$BIN" ] || BIN="target/${{ matrix.target_triple }}/debug/framesmith.exe"
+          echo "binary: $BIN"
+          ./tools/build-package.sh \
+            --os "${{ matrix.target_os }}" \
+            --arch "${{ matrix.target_arch }}" \
+            --version "${{ steps.ver.outputs.version }}" \
+            --bin "$BIN" \
+            --out target/dist
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.slug }}
+          path: target/dist/framesmith-*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Windows zip artifact
+        if: matrix.target_os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.slug }}
+          path: target/dist/framesmith-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: publish release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version from tag
+        id: ver
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          version="${tag#v}"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Download all package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: target/dist-all
+          merge-multiple: true
+
+      - name: Verify complete OS set (REC-001)
+        run: |
+          set -euo pipefail
+          echo "assets in target/dist-all:"
+          ls -1 target/dist-all/
+          # Rebuild the outer checksums.txt from the downloaded set,
+          # then refuse naming any missing OS.
+          ./tools/build-package.sh --verify-set --version "${{ steps.ver.outputs.version }}" --out target/dist-all
+          # Generate checksums.txt at release level from the collected assets.
+          ( cd target/dist-all && \
+            for f in framesmith-*.tar.gz framesmith-*.zip; do
+              [ -f "$f" ] || continue
+              case "$(uname)" in
+                Darwin) hex="$(shasum -a 256 "$f" | awk '{print $1}')" ;;
+                *) hex="$(sha256sum "$f" | awk '{print $1}')" ;;
+              esac
+              printf '%s  %s\n' "$hex" "$f"
+            done | sort > checksums.txt )
+          echo "release checksums:"
+          cat target/dist-all/checksums.txt
+          # Copy checksums next to assets for the release upload.
+          cp target/dist-all/checksums.txt target/dist-all.rst.checksums.txt || true
+          mv target/dist-all/checksums.txt .
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: target/dist-all/*

@@ -225,6 +225,14 @@ pub const FFMPEGBIN_RELEASES_PAGE: &str = "https://github.com/bdsanxz/ffmpeg-reg
 pub const FFMPEGBIN_API_LATEST: &str =
     "https://api.github.com/repos/bdsanxz/ffmpeg-registry/releases/latest";
 
+/// FFmpeg registry baseline version published when this build was made.
+/// The bootstrap resolves the latest registry release at download
+/// time; this pin names the release the version command reports
+/// (Sprint 27 T002 / CAP-002) and matches the `9.0.2` download URLs in
+/// the release workflow and the pin named in the third-party notices.
+/// Bump all three together.
+pub const FFMPEG_REGISTRY_PIN: &str = "9.0.2";
+
 /// Every shipped registry pair: `(os, arch, asset, archive entry,
 /// installed binary)`. OS/arch use [`std::env::consts`] spellings
 /// (`macos` for darwin, `aarch64`/`x86_64`/`x86`). The registry ships

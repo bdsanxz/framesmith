@@ -21,6 +21,7 @@ preview = { path = "../preview" }
 sdk = { path = "../sdk" }
 catalog = { path = "../catalog" }
 ml = { path = "../ml" }
+dist = { path = "../dist" }
 serde_json = "1"
 
 [target.'cfg(unix)'.dependencies]

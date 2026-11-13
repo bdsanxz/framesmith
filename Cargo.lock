@@ -171,6 +171,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "catalog",
+ "dist",
  "ffmpeg",
  "glyph",
  "layout",
@@ -306,6 +307,10 @@ dependencies = [
  "quote",
  "syn 3.0.9",
 ]
+
+[[package]]
+name = "dist"
+version = "0.1.0"
 
 [[package]]
 name = "equivalent"
